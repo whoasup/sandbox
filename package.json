@@ -4,7 +4,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "dev": "nx run web:dev",
+    "dev": "nx run web:serve",
     "storybook": "nx run ui-kit:storybook",
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
