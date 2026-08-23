@@ -1,8 +1,16 @@
 <script setup lang="ts">
+import { Vector3 } from 'three';
 import { TresCanvas } from '@tresjs/core';
 import { OrbitControls } from '@tresjs/cientos';
 
 import type { ShapeKind } from '~/composables/useSceneSettings';
+
+// Three.js vectors rather than array shorthand: the shorthand is valid at runtime
+// but is not covered by the generated TresJS prop types.
+const cameraPosition = new Vector3(3.2, 2.4, 4.2);
+const keyLightPosition = new Vector3(4, 6, 4);
+const fillLightPosition = new Vector3(-4, -2, -3);
+const gridPosition = new Vector3(0, -1.8, 0);
 
 withDefaults(
   defineProps<{
@@ -29,12 +37,12 @@ withDefaults(
     <!-- WebGL only exists in the browser, so the canvas must not be server rendered. -->
     <ClientOnly>
       <TresCanvas clear-color="#0b1020" :alpha="false">
-        <TresPerspectiveCamera :position="[3.2, 2.4, 4.2]" :look-at="[0, 0, 0]" />
+        <TresPerspectiveCamera :position="cameraPosition" :look-at="[0, 0, 0]" />
         <OrbitControls :auto-rotate="autoRotate" :auto-rotate-speed="0.8" :enable-damping="true" />
 
         <TresAmbientLight :intensity="0.6" />
-        <TresDirectionalLight :position="[4, 6, 4]" :intensity="1.8" />
-        <TresPointLight :position="[-4, -2, -3]" :intensity="12" color="#a5b4fc" />
+        <TresDirectionalLight :position="keyLightPosition" :intensity="1.8" />
+        <TresPointLight :position="fillLightPosition" :intensity="12" color="#a5b4fc" />
 
         <SceneShape
           :shape="shape"
@@ -43,7 +51,7 @@ withDefaults(
           :wireframe="wireframe"
         />
 
-        <TresGridHelper :args="[12, 12, '#334155', '#1e293b']" :position="[0, -1.8, 0]" />
+        <TresGridHelper :args="[12, 12, '#334155', '#1e293b']" :position="gridPosition" />
       </TresCanvas>
 
       <template #fallback>

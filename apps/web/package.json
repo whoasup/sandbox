@@ -2,6 +2,9 @@
   "name": "@sandbox/web",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "postinstall": "nuxt prepare"
+  },
   "dependencies": {
     "@sandbox/ui-kit": "workspace:*",
     "@tresjs/cientos": "5.8.1",
@@ -13,6 +16,20 @@
     "@types/three": "0.185.0"
   },
   "nx": {
-    "name": "web"
+    "name": "web",
+    "targets": {
+      "typecheck": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/web",
+          "parallel": false,
+          "commands": [
+            "nuxt prepare",
+            "vue-tsc --noEmit -p .nuxt/tsconfig.json"
+          ]
+        }
+      }
+    }
   }
 }

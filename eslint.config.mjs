@@ -8,6 +8,11 @@ export default [
       "ignores": [
         "**/dist",
         "**/out-tsc",
+        "**/node_modules",
+        "**/storybook-static",
+        "**/test-output",
+        "**/.nuxt",
+        "**/.output",
         "**/vite.config.*.timestamp*",
         "**/vitest.config.*.timestamp*"
       ]

@@ -23,7 +23,13 @@ export default [
             "**/*.vue"
         ],
         rules: {
-            "vue/multi-word-component-names": "off"
+            "vue/multi-word-component-names": "off",
+            // Optional props are typed with `?`, an explicit `undefined` default adds nothing.
+            "vue/require-default-prop": "off",
+            // Template formatting is left to the editor rather than the linter.
+            "vue/max-attributes-per-line": "off",
+            "vue/singleline-html-element-content-newline": "off",
+            "vue/html-self-closing": "off"
         }
     }
 ];

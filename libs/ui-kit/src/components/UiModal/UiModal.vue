@@ -63,10 +63,10 @@ function focusableElements(): HTMLElement[] {
 
 function trapFocus(event: KeyboardEvent) {
   const elements = focusableElements();
-  if (elements.length === 0) return;
+  const first = elements.at(0);
+  const last = elements.at(-1);
+  if (!first || !last) return;
 
-  const first = elements[0];
-  const last = elements[elements.length - 1];
   const active = document.activeElement;
 
   if (event.shiftKey && active === first) {

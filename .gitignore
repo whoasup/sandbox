@@ -57,3 +57,4 @@ vitest.config.*.timestamp*
 # test output
 test-output
 storybook-static
+*.tsbuildinfo
