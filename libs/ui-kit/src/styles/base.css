@@ -1,0 +1,44 @@
+/**
+ * Opt-in baseline. Components work without it, but applications get consistent
+ * box sizing, typography and background colours by importing it.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--ui-color-bg);
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-family-base);
+  font-size: var(--ui-font-size-md);
+  line-height: var(--ui-line-height-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+:where(button, input, textarea, select) {
+  font: inherit;
+  color: inherit;
+}
+
+:where(a) {
+  color: var(--ui-color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

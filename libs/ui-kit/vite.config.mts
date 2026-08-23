@@ -22,17 +22,18 @@ export default defineConfig(() => ({
       transformMixedEsModules: true,
     },
     lib: {
-      // Could also be a dictionary or array of multiple entry points.
       entry: 'src/index.ts',
       name: 'ui-kit',
       fileName: 'index',
-      // Change this to the formats you want to support.
-      // Don't forget to update your package.json as well.
-      formats: ['es' as const]
+      cssFileName: 'index',
+      formats: ['es' as const],
     },
     rolldownOptions: {
-      // External packages that should not be bundled into your library.
-      external: []
+      // `vue` stays a peer dependency so consumers keep a single Vue instance.
+      external: ['vue'],
+      output: {
+        globals: { vue: 'Vue' },
+      },
     },
   },
   test: {

@@ -1,0 +1,182 @@
+/**
+ * Design tokens.
+ *
+ * Two layers:
+ *  1. primitives  (--ui-palette-*, --ui-size-*, ...) — raw, theme independent values;
+ *  2. semantic    (--ui-color-*, --ui-space-*, ...)  — what components actually consume.
+ *
+ * Only the semantic layer is re-declared per theme, so a new theme means overriding
+ * a handful of variables instead of touching components.
+ */
+
+:root {
+  /* ---------------------------------------------------------------- palette */
+  --ui-palette-white: #ffffff;
+  --ui-palette-black: #000000;
+
+  --ui-palette-neutral-50: #f8fafc;
+  --ui-palette-neutral-100: #f1f5f9;
+  --ui-palette-neutral-200: #e2e8f0;
+  --ui-palette-neutral-300: #cbd5e1;
+  --ui-palette-neutral-400: #94a3b8;
+  --ui-palette-neutral-500: #64748b;
+  --ui-palette-neutral-600: #475569;
+  --ui-palette-neutral-700: #334155;
+  --ui-palette-neutral-800: #1e293b;
+  --ui-palette-neutral-900: #0f172a;
+  --ui-palette-neutral-950: #020617;
+
+  --ui-palette-brand-100: #e0e7ff;
+  --ui-palette-brand-200: #c7d2fe;
+  --ui-palette-brand-300: #a5b4fc;
+  --ui-palette-brand-400: #818cf8;
+  --ui-palette-brand-500: #6366f1;
+  --ui-palette-brand-600: #4f46e5;
+  --ui-palette-brand-700: #4338ca;
+  --ui-palette-brand-800: #3730a3;
+
+  --ui-palette-success-400: #34d399;
+  --ui-palette-success-500: #10b981;
+  --ui-palette-success-600: #059669;
+
+  --ui-palette-warning-400: #fbbf24;
+  --ui-palette-warning-500: #f59e0b;
+  --ui-palette-warning-600: #d97706;
+
+  --ui-palette-danger-400: #f87171;
+  --ui-palette-danger-500: #ef4444;
+  --ui-palette-danger-600: #dc2626;
+
+  /* ------------------------------------------------------------ typography */
+  --ui-font-family-base: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --ui-font-family-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --ui-font-size-xs: 0.75rem;
+  --ui-font-size-sm: 0.875rem;
+  --ui-font-size-md: 1rem;
+  --ui-font-size-lg: 1.125rem;
+  --ui-font-size-xl: 1.375rem;
+  --ui-font-size-2xl: 1.75rem;
+  --ui-font-size-3xl: 2.25rem;
+
+  --ui-font-weight-regular: 400;
+  --ui-font-weight-medium: 500;
+  --ui-font-weight-semibold: 600;
+  --ui-font-weight-bold: 700;
+
+  --ui-line-height-tight: 1.2;
+  --ui-line-height-base: 1.5;
+  --ui-line-height-relaxed: 1.7;
+
+  /* ---------------------------------------------------------------- spacing */
+  --ui-space-0: 0;
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-5: 1.5rem;
+  --ui-space-6: 2rem;
+  --ui-space-7: 3rem;
+  --ui-space-8: 4rem;
+
+  /* ----------------------------------------------------------------- radius */
+  --ui-radius-sm: 4px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 12px;
+  --ui-radius-xl: 20px;
+  --ui-radius-full: 9999px;
+
+  /* ---------------------------------------------------------------- borders */
+  --ui-border-width: 1px;
+  --ui-focus-ring-width: 3px;
+
+  /* -------------------------------------------------------------- transition */
+  --ui-duration-fast: 120ms;
+  --ui-duration-base: 200ms;
+  --ui-duration-slow: 320ms;
+  --ui-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------------------------------------------------------------- z-index */
+  --ui-z-dropdown: 1000;
+  --ui-z-overlay: 1100;
+  --ui-z-modal: 1200;
+  --ui-z-toast: 1300;
+
+  /* ---------------------------------------------------------- control sizes */
+  --ui-control-height-sm: 32px;
+  --ui-control-height-md: 40px;
+  --ui-control-height-lg: 48px;
+}
+
+/* ------------------------------------------------------------- light theme */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --ui-color-bg: var(--ui-palette-neutral-50);
+  --ui-color-surface: var(--ui-palette-white);
+  --ui-color-surface-raised: var(--ui-palette-white);
+  --ui-color-surface-muted: var(--ui-palette-neutral-100);
+
+  --ui-color-text: var(--ui-palette-neutral-900);
+  --ui-color-text-muted: var(--ui-palette-neutral-500);
+  --ui-color-text-inverse: var(--ui-palette-white);
+
+  --ui-color-border: var(--ui-palette-neutral-200);
+  --ui-color-border-strong: var(--ui-palette-neutral-300);
+
+  --ui-color-primary: var(--ui-palette-brand-600);
+  --ui-color-primary-hover: var(--ui-palette-brand-700);
+  --ui-color-primary-active: var(--ui-palette-brand-800);
+  --ui-color-primary-soft: var(--ui-palette-brand-100);
+  --ui-color-on-primary: var(--ui-palette-white);
+
+  --ui-color-success: var(--ui-palette-success-600);
+  --ui-color-warning: var(--ui-palette-warning-600);
+  --ui-color-danger: var(--ui-palette-danger-600);
+  --ui-color-danger-hover: #b91c1c;
+  --ui-color-on-danger: var(--ui-palette-white);
+
+  --ui-color-overlay: rgb(15 23 42 / 45%);
+  --ui-color-focus-ring: rgb(99 102 241 / 40%);
+
+  --ui-shadow-sm: 0 1px 2px rgb(15 23 42 / 8%);
+  --ui-shadow-md: 0 4px 12px rgb(15 23 42 / 10%);
+  --ui-shadow-lg: 0 18px 40px rgb(15 23 42 / 18%);
+}
+
+/* -------------------------------------------------------------- dark theme */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ui-color-bg: var(--ui-palette-neutral-950);
+  --ui-color-surface: var(--ui-palette-neutral-900);
+  --ui-color-surface-raised: var(--ui-palette-neutral-800);
+  --ui-color-surface-muted: var(--ui-palette-neutral-800);
+
+  --ui-color-text: var(--ui-palette-neutral-100);
+  --ui-color-text-muted: var(--ui-palette-neutral-400);
+  --ui-color-text-inverse: var(--ui-palette-neutral-950);
+
+  --ui-color-border: var(--ui-palette-neutral-700);
+  --ui-color-border-strong: var(--ui-palette-neutral-600);
+
+  --ui-color-primary: var(--ui-palette-brand-500);
+  --ui-color-primary-hover: var(--ui-palette-brand-400);
+  --ui-color-primary-active: var(--ui-palette-brand-300);
+  --ui-color-primary-soft: rgb(99 102 241 / 18%);
+  --ui-color-on-primary: var(--ui-palette-white);
+
+  --ui-color-success: var(--ui-palette-success-400);
+  --ui-color-warning: var(--ui-palette-warning-400);
+  --ui-color-danger: var(--ui-palette-danger-400);
+  --ui-color-danger-hover: var(--ui-palette-danger-500);
+  --ui-color-on-danger: var(--ui-palette-neutral-950);
+
+  --ui-color-overlay: rgb(2 6 23 / 70%);
+  --ui-color-focus-ring: rgb(129 140 248 / 45%);
+
+  --ui-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --ui-shadow-md: 0 4px 12px rgb(0 0 0 / 45%);
+  --ui-shadow-lg: 0 18px 40px rgb(0 0 0 / 55%);
+}

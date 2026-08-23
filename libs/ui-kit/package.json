@@ -19,10 +19,6 @@
     "./styles.css": {
       "@sandbox/source": "./src/styles/index.css",
       "default": "./dist/index.css"
-    },
-    "./tokens.css": {
-      "@sandbox/source": "./src/styles/tokens.css",
-      "default": "./dist/tokens.css"
     }
   },
   "peerDependencies": {

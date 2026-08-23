@@ -1,0 +1,10 @@
+/* Storybook renders stories inside #storybook-root, which needs the themed background. */
+body,
+.sb-show-main {
+  background-color: var(--ui-color-bg);
+  color: var(--ui-color-text);
+}
+
+.sb-show-main.sb-main-padded {
+  padding: var(--ui-space-5);
+}
