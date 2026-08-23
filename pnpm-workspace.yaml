@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - libs/*
+
+autoInstallPeers: true
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@tailwindcss/oxide'
+  - esbuild
+  - nx
+  - unrs-resolver
+  - vue-demi

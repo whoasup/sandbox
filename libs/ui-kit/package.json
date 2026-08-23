@@ -1,0 +1,34 @@
+{
+  "name": "@sandbox/ui-kit",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@sandbox/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": {
+      "@sandbox/source": "./src/styles/index.css",
+      "default": "./dist/index.css"
+    },
+    "./tokens.css": {
+      "@sandbox/source": "./src/styles/tokens.css",
+      "default": "./dist/tokens.css"
+    }
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "nx": {
+    "name": "ui-kit"
+  }
+}
