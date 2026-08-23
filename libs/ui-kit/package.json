@@ -25,6 +25,16 @@
     "vue": "^3.5.0"
   },
   "nx": {
-    "name": "ui-kit"
+    "name": "ui-kit",
+    "targets": {
+      "storybook": {
+        "continuous": true,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "libs/ui-kit",
+          "command": "storybook dev --port 4400 --no-open"
+        }
+      }
+    }
   }
 }
