@@ -1,0 +1,25 @@
+{
+  "extends": ["stylelint-config-standard", "stylelint-config-recommended-vue"],
+  "overrides": [
+    {
+      "files": ["**/*.vue"],
+      "customSyntax": "postcss-html"
+    }
+  ],
+  "ignoreFiles": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/.nuxt/**",
+    "**/.output/**",
+    "**/storybook-static/**",
+    "**/out-tsc/**",
+    "**/test-output/**"
+  ],
+  "rules": {
+    "custom-property-pattern": null,
+    "selector-class-pattern": null,
+    "no-descending-specificity": null,
+    "import-notation": "string",
+    "selector-id-pattern": "^(__nuxt|__layout|[a-z][a-z0-9-]*)$"
+  }
+}
