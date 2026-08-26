@@ -1,0 +1,6 @@
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--ui-color-surface-sunken);
+}
