@@ -1,0 +1,92 @@
+/**
+ * Two-layer design tokens.
+ * 1) Primitives — raw values, never used directly by components.
+ * 2) Semantic — meaning-based aliases that components consume. Only this
+ *    layer is overridden per `data-theme`, so components stay theme-agnostic.
+ */
+:root {
+  /* Primitives: palette */
+  --ui-palette-white: #fff;
+  --ui-palette-black: #0b0d10;
+  --ui-palette-gray-50: #f6f7f8;
+  --ui-palette-gray-100: #eceef1;
+  --ui-palette-gray-200: #d7dbe0;
+  --ui-palette-gray-300: #b7bfc9;
+  --ui-palette-gray-400: #8b96a3;
+  --ui-palette-gray-500: #626d7a;
+  --ui-palette-gray-600: #454e59;
+  --ui-palette-gray-700: #2f363f;
+  --ui-palette-gray-800: #1d2229;
+  --ui-palette-gray-900: #12151a;
+  --ui-palette-blue-400: #5b9bf7;
+  --ui-palette-blue-500: #3b7ded;
+  --ui-palette-blue-600: #2c63c4;
+  --ui-palette-red-500: #e5484d;
+  --ui-palette-green-500: #30a46c;
+
+  /* Primitives: spacing scale */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+
+  /* Primitives: radii */
+  --ui-radius-sm: 4px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 14px;
+  --ui-radius-full: 999px;
+
+  /* Primitives: typography */
+  --ui-font-family-base: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --ui-font-size-xs: 12px;
+  --ui-font-size-sm: 13px;
+  --ui-font-size-md: 15px;
+  --ui-font-size-lg: 19px;
+  --ui-font-size-xl: 24px;
+  --ui-font-weight-regular: 400;
+  --ui-font-weight-medium: 550;
+  --ui-font-weight-bold: 700;
+}
+
+:root,
+[data-theme='light'] {
+  /* Semantic: surfaces */
+  --ui-color-surface: var(--ui-palette-white);
+  --ui-color-surface-raised: var(--ui-palette-gray-50);
+  --ui-color-surface-sunken: var(--ui-palette-gray-100);
+  --ui-color-border: var(--ui-palette-gray-200);
+
+  /* Semantic: text */
+  --ui-color-text: var(--ui-palette-gray-900);
+  --ui-color-text-muted: var(--ui-palette-gray-500);
+  --ui-color-text-on-primary: var(--ui-palette-white);
+
+  /* Semantic: brand / feedback */
+  --ui-color-primary: var(--ui-palette-blue-500);
+  --ui-color-primary-hover: var(--ui-palette-blue-600);
+  --ui-color-primary-active: var(--ui-palette-blue-600);
+  --ui-color-danger: var(--ui-palette-red-500);
+  --ui-color-success: var(--ui-palette-green-500);
+  --ui-shadow-sm: 0 1px 2px rgb(15 23 42 / 8%);
+  --ui-shadow-md: 0 4px 12px rgb(15 23 42 / 12%);
+}
+
+[data-theme='dark'] {
+  --ui-color-surface: var(--ui-palette-gray-800);
+  --ui-color-surface-raised: var(--ui-palette-gray-700);
+  --ui-color-surface-sunken: var(--ui-palette-gray-900);
+  --ui-color-border: var(--ui-palette-gray-600);
+  --ui-color-text: var(--ui-palette-gray-50);
+  --ui-color-text-muted: var(--ui-palette-gray-300);
+  --ui-color-text-on-primary: var(--ui-palette-white);
+  --ui-color-primary: var(--ui-palette-blue-400);
+  --ui-color-primary-hover: var(--ui-palette-blue-500);
+  --ui-color-primary-active: var(--ui-palette-blue-500);
+  --ui-color-danger: var(--ui-palette-red-500);
+  --ui-color-success: var(--ui-palette-green-500);
+  --ui-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --ui-shadow-md: 0 4px 16px rgb(0 0 0 / 50%);
+}
