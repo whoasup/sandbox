@@ -49,8 +49,14 @@ See [`libs/ui-kit/README.md`](libs/ui-kit/README.md) for scripts and structure.
   layer (abstract base classes, factories, encapsulated renderer classes).
 - **Bundler**: Vite (both the ui-kit library build and, under the hood,
   Nuxt's dev/build pipeline).
-- **Linting**: ESLint (flat config, `@nx/eslint-plugin` + `eslint-plugin-vue`)
-  and Stylelint (`stylelint-config-standard` + Vue SFC `<style>` support).
+- **Linting**: ESLint (flat config, `@nx/eslint-plugin` + `eslint-plugin-vue`
+  + `eslint-plugin-storybook` for `*.stories.ts`) and Stylelint
+  (`stylelint-config-standard` + Vue SFC `<style>` support).
+- **Formatting**: Prettier, run as an ESLint rule (`eslint-plugin-prettier`)
+  for `.ts`/`.js`/`.vue`, and directly for plain `.css`. `pnpm lint --fix`
+  fixes both lint issues and formatting in one pass.
+- **Pre-commit**: Husky + lint-staged run ESLint/Stylelint/Prettier `--fix`
+  on staged files only, blocking the commit if anything is left unfixed.
 - **Testing**: Vitest + `@vue/test-utils` for unit/component tests,
   Storybook for interactive component documentation.
 - **Monorepo**: Nx 23 (pnpm workspaces), with project-level `build`, `test`,
@@ -68,5 +74,6 @@ pnpm build       # nx run-many -t build
 pnpm test        # nx run-many -t test
 pnpm lint        # nx run-many -t lint
 pnpm lint:style  # stylelint "**/*.{css,vue}"
+pnpm format      # eslint --fix (incl. Prettier) + stylelint --fix + prettier --write, repo-wide
 pnpm typecheck   # nx run-many -t typecheck
 ```

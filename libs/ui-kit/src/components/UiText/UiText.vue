@@ -25,8 +25,8 @@ const classes = computed(() =>
     `ui-text--size-${props.size}`,
     `ui-text--weight-${props.weight}`,
     `ui-text--tone-${props.tone}`,
-    { 'ui-text--truncate': props.truncate }
-  )
+    { 'ui-text--truncate': props.truncate },
+  ),
 );
 </script>
 

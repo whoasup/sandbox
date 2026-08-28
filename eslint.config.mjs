@@ -1,9 +1,12 @@
 import nx from '@nx/eslint-plugin';
+import storybook from 'eslint-plugin-storybook';
+import prettierRecommended from 'eslint-plugin-prettier/recommended';
 
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
+  ...storybook.configs['flat/recommended'],
   {
     ignores: [
       '**/dist',
@@ -36,9 +39,27 @@ export default [
     },
   },
   {
-    files: ['**/*.ts', '**/*.tsx', '**/*.cts', '**/*.mts', '**/*.js', '**/*.jsx', '**/*.cjs', '**/*.mjs'],
+    files: [
+      '**/*.ts',
+      '**/*.tsx',
+      '**/*.cts',
+      '**/*.mts',
+      '**/*.js',
+      '**/*.jsx',
+      '**/*.cjs',
+      '**/*.mjs',
+    ],
     rules: {
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+    },
+  },
+  // Runs Prettier as an ESLint rule and turns off any core/plugin rules that
+  // would otherwise conflict with it. Must stay last so its rule overrides win.
+  {
+    ...prettierRecommended,
+    rules: {
+      ...prettierRecommended.rules,
+      'prettier/prettier': 'error',
     },
   },
 ];

@@ -18,7 +18,11 @@ describe('ShapeFactory', () => {
   });
 
   it('applies initial params to the created shape', () => {
-    const shape = ShapeFactory.create('cube', { position: { x: 1, z: 2 }, surface: 'stone', color: '#abcdef' });
+    const shape = ShapeFactory.create('cube', {
+      position: { x: 1, z: 2 },
+      surface: 'stone',
+      color: '#abcdef',
+    });
     expect(shape.position.x).toBe(1);
     expect(shape.position.z).toBe(2);
     expect(shape.surface).toBe('stone');

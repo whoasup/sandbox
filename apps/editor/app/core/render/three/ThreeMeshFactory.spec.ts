@@ -48,6 +48,6 @@ describe('ThreeMeshFactory', () => {
     (object) => {
       const mesh = ThreeMeshFactory.createMesh(object);
       expect(mesh).toBeInstanceOf(THREE.Mesh);
-    }
+    },
   );
 });

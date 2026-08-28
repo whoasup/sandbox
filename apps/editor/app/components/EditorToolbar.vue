@@ -11,8 +11,16 @@ import {
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
 
-const { mode, activeSurface, activeColor, selectedId, addShape, removeSelected, applySurfaceToSelection, applyColorToSelection } =
-  useEditorDocument();
+const {
+  mode,
+  activeSurface,
+  activeColor,
+  selectedId,
+  addShape,
+  removeSelected,
+  applySurfaceToSelection,
+  applyColorToSelection,
+} = useEditorDocument();
 
 const modeOptions = [
   { value: '2d' as const, label: '2D' },

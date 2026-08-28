@@ -7,7 +7,10 @@ import dts from 'vite-plugin-dts';
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/ui-kit',
-  plugins: [vue(), dts({ entryRoot: 'src', tsconfigPath: path.join(import.meta.dirname, 'tsconfig.lib.json') })],
+  plugins: [
+    vue(),
+    dts({ entryRoot: 'src', tsconfigPath: path.join(import.meta.dirname, 'tsconfig.lib.json') }),
+  ],
   build: {
     outDir: './dist',
     emptyOutDir: true,

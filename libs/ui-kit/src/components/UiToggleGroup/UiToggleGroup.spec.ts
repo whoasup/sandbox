@@ -30,7 +30,10 @@ describe('UiToggleGroup', () => {
 
   it('does not emit for a disabled option', async () => {
     const wrapper = mount(UiToggleGroup, {
-      props: { modelValue: '2d', options: [...options, { value: 'vr', label: 'VR', disabled: true }] },
+      props: {
+        modelValue: '2d',
+        options: [...options, { value: 'vr', label: 'VR', disabled: true }],
+      },
     });
     await wrapper.findAll('.ui-toggle-group__item')[2]?.trigger('click');
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();

@@ -12,7 +12,7 @@ export class EventEmitter<TEvents extends EventMap> {
 
   public on<TEvent extends keyof TEvents>(
     event: TEvent,
-    handler: EventHandler<TEvents[TEvent]>
+    handler: EventHandler<TEvents[TEvent]>,
   ): () => void {
     const set = this.listeners.get(event) ?? new Set<EventHandler<unknown>>();
     set.add(handler as EventHandler<unknown>);
@@ -20,7 +20,10 @@ export class EventEmitter<TEvents extends EventMap> {
     return () => this.off(event, handler);
   }
 
-  public off<TEvent extends keyof TEvents>(event: TEvent, handler: EventHandler<TEvents[TEvent]>): void {
+  public off<TEvent extends keyof TEvents>(
+    event: TEvent,
+    handler: EventHandler<TEvents[TEvent]>,
+  ): void {
     this.listeners.get(event)?.delete(handler as EventHandler<unknown>);
   }
 

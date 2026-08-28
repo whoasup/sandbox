@@ -8,7 +8,7 @@ withDefaults(
     options: readonly ToggleOption<TValue>[];
     size?: 'sm' | 'md';
   }>(),
-  { size: 'md' }
+  { size: 'md' },
 );
 
 const emit = defineEmits<{ 'update:modelValue': [TValue] }>();
@@ -26,7 +26,11 @@ function select(option: ToggleOption<TValue>): void {
       :key="option.value"
       type="button"
       role="tab"
-      :class="classNames('ui-toggle-group__item', { 'ui-toggle-group__item--active': option.value === modelValue })"
+      :class="
+        classNames('ui-toggle-group__item', {
+          'ui-toggle-group__item--active': option.value === modelValue,
+        })
+      "
       :aria-selected="option.value === modelValue"
       :disabled="option.disabled"
       @click="select(option)"
@@ -53,7 +57,9 @@ function select(option: ToggleOption<TValue>): void {
   font-weight: var(--ui-font-weight-medium);
   border-radius: var(--ui-radius-sm);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .ui-toggle-group--md .ui-toggle-group__item {

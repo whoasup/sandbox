@@ -1,4 +1,5 @@
-export type ClassValue = string | number | false | null | undefined | Record<string, boolean | undefined>;
+export type ClassValue =
+  string | number | false | null | undefined | Record<string, boolean | undefined>;
 
 /**
  * Tiny `classnames`-style helper so components don't pull in an extra

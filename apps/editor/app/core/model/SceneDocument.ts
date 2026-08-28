@@ -29,7 +29,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   }
 
   public get selected(): SceneObject | null {
-    return this.selectedId ? this.objects.get(this.selectedId) ?? null : null;
+    return this.selectedId ? (this.objects.get(this.selectedId) ?? null) : null;
   }
 
   public addShape(kind: ShapeKind, init?: SceneObjectInit): SceneObject {
