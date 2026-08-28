@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+
+# Nx
+.nx
+
+# Build outputs
+dist
+out-tsc
+storybook-static
+test-output
+*.tsbuildinfo
+
+# Nuxt
+.nuxt
+.output
+.data
+
+# Coverage
+coverage
+
+# Lockfiles
+pnpm-lock.yaml
+
+# Generated docs
+CHANGELOG.md

@@ -25,14 +25,18 @@ describe('EditorToolbar', () => {
 
     await cubeButton!.trigger('click');
 
-    const harness = wrapper.vm as unknown as { ctx: ReturnType<typeof createEditorDocumentContext> };
+    const harness = wrapper.vm as unknown as {
+      ctx: ReturnType<typeof createEditorDocumentContext>;
+    };
     expect(harness.ctx.objects.value).toHaveLength(1);
     expect(harness.ctx.objects.value[0]?.kind).toBe('cube');
   });
 
   it('switches editor mode via the toggle group', async () => {
     const wrapper = mountToolbar();
-    const harness = wrapper.vm as unknown as { ctx: ReturnType<typeof createEditorDocumentContext> };
+    const harness = wrapper.vm as unknown as {
+      ctx: ReturnType<typeof createEditorDocumentContext>;
+    };
     expect(harness.ctx.mode.value).toBe('3d');
 
     const twoDButton = wrapper.findAll('[role="tab"]').find((btn) => btn.text() === '2D');

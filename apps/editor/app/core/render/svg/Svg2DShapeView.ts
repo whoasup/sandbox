@@ -34,7 +34,12 @@ export class Svg2DShapeView {
     this.group.append(this.base, this.overlay);
   }
 
-  public update(object: SceneObject, pxPerUnit: number, originPx: { x: number; y: number }, selected: boolean): void {
+  public update(
+    object: SceneObject,
+    pxPerUnit: number,
+    originPx: { x: number; y: number },
+    selected: boolean,
+  ): void {
     const widthPx = object.footprint.width * pxPerUnit;
     const depthPx = object.footprint.depth * pxPerUnit;
     const centerX = originPx.x + object.position.x * pxPerUnit;

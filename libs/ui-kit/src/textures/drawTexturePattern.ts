@@ -60,7 +60,11 @@ function drawDots(ctx: CanvasRenderingContext2D, def: TextureDefinition, size: n
  * (rasterised into a `<pattern><image>`), and the 3D `CanvasTexture` used
  * by the three.js material factory — one implementation, three consumers.
  */
-export function drawTexturePattern(ctx: CanvasRenderingContext2D, def: TextureDefinition, size: number): void {
+export function drawTexturePattern(
+  ctx: CanvasRenderingContext2D,
+  def: TextureDefinition,
+  size: number,
+): void {
   ctx.save();
   ctx.fillStyle = def.baseColor;
   ctx.fillRect(0, 0, size, size);

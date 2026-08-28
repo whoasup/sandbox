@@ -19,9 +19,18 @@ export class ThreeMeshFactory {
       case 'sphere':
         return new THREE.SphereGeometry(dimensions.width / 2, 32, 24);
       case 'cylinder':
-        return new THREE.CylinderGeometry(dimensions.width / 2, dimensions.width / 2, dimensions.height, 32);
+        return new THREE.CylinderGeometry(
+          dimensions.width / 2,
+          dimensions.width / 2,
+          dimensions.height,
+          32,
+        );
       case 'pyramid': {
-        const geometry = new THREE.ConeGeometry(dimensions.width / Math.SQRT2, dimensions.height, 4);
+        const geometry = new THREE.ConeGeometry(
+          dimensions.width / Math.SQRT2,
+          dimensions.height,
+          4,
+        );
         geometry.rotateY(Math.PI / 4);
         return geometry;
       }
@@ -38,7 +47,10 @@ export class ThreeMeshFactory {
   }
 
   public static createMesh(object: SceneObject): THREE.Mesh {
-    const mesh = new THREE.Mesh(ThreeMeshFactory.createGeometry(object.kind), ThreeMeshFactory.createMaterial(object));
+    const mesh = new THREE.Mesh(
+      ThreeMeshFactory.createGeometry(object.kind),
+      ThreeMeshFactory.createMaterial(object),
+    );
     mesh.name = object.id;
     mesh.castShadow = true;
     mesh.receiveShadow = true;

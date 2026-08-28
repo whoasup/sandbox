@@ -27,7 +27,7 @@ const classes = computed(() =>
   classNames('ui-button', `ui-button--${props.variant}`, `ui-button--${props.size}`, {
     'ui-button--pressed': props.pressed,
     'ui-button--icon-only': props.iconOnly,
-  })
+  }),
 );
 
 function handleClick(event: MouseEvent): void {
@@ -64,7 +64,10 @@ function handleClick(event: MouseEvent): void {
   font-family: var(--ui-font-family-base);
   font-weight: var(--ui-font-weight-medium);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
 }
 

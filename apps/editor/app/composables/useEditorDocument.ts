@@ -62,7 +62,11 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     activeColor,
     addShape(kind) {
       const { x, z } = nextPlacement(document.list().length);
-      document.addShape(kind, { position: { x, z }, surface: activeSurface.value, color: activeColor.value });
+      document.addShape(kind, {
+        position: { x, z },
+        surface: activeSurface.value,
+        color: activeColor.value,
+      });
     },
     removeSelected() {
       document.removeSelected();
@@ -90,7 +94,9 @@ export function createEditorDocumentContext(): EditorDocumentContext {
 export function useEditorDocument(): EditorDocumentContext {
   const context = inject(EDITOR_DOCUMENT_KEY);
   if (!context) {
-    throw new Error('useEditorDocument() must be called within a component tree started by createEditorDocumentContext()');
+    throw new Error(
+      'useEditorDocument() must be called within a component tree started by createEditorDocumentContext()',
+    );
   }
   return context;
 }

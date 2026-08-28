@@ -1,4 +1,5 @@
 import { createConfigForNuxt } from '@nuxt/eslint-config/flat';
+import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import baseConfig from '../../eslint.config.mjs';
 
 export default createConfigForNuxt({
@@ -23,5 +24,14 @@ export default createConfigForNuxt({
     },
     {
       ignores: ['.nuxt/**', '.output/**', 'node_modules', '**/*.d.ts', '**/*.vue.js'],
-    }
+    },
+    // Must stay last: re-disables any stylistic rules re-enabled by Nuxt's own
+    // (unicorn/vue) presets above, so Prettier owns formatting.
+    {
+      ...prettierRecommended,
+      rules: {
+        ...prettierRecommended.rules,
+        'prettier/prettier': 'error',
+      },
+    },
   );

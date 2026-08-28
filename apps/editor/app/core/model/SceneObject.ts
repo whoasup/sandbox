@@ -1,6 +1,13 @@
 import { createId } from '@sandbox/ui-kit';
 import { SHAPE_DIMENSIONS, type ShapeDimensions } from './shapeDimensions';
-import type { Footprint, SceneObjectInit, SceneObjectSnapshot, ShapeKind, SurfaceKind, Vector3Like } from './types';
+import type {
+  Footprint,
+  SceneObjectInit,
+  SceneObjectSnapshot,
+  ShapeKind,
+  SurfaceKind,
+  Vector3Like,
+} from './types';
 
 /**
  * Base class for every placeable primitive in the document. Concrete
