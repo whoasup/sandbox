@@ -1,0 +1,47 @@
+{
+  "name": "@sandbox/ui-kit",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@sandbox/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": {
+      "@sandbox/source": "./src/styles/index.css",
+      "default": "./dist/index.css"
+    }
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "nx": {
+    "name": "ui-kit",
+    "targets": {
+      "storybook": {
+        "continuous": true,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "libs/ui-kit",
+          "command": "storybook dev --port 4400 --no-open"
+        }
+      },
+      "test-storybook": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "libs/ui-kit",
+          "command": "test-storybook"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+.ui-reset,
+.ui-reset * {
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--ui-color-text);
+  background-color: var(--ui-color-surface);
+  font-family: var(--ui-font-family-base);
+}
+
+[data-theme] {
+  color: var(--ui-color-text);
+}
