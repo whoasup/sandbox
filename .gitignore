@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Nx
+.nx/cache
+.nx/workspace-data
+nx-cloud.env
+
+# Build outputs
+dist
+out-tsc
+storybook-static
+test-output
+*.tsbuildinfo
+
+# Nuxt
+.nuxt
+.output
+.data
+.env
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Coverage
+coverage

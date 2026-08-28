@@ -1,0 +1,29 @@
+{
+  "name": "@sandbox/editor",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@sandbox/ui-kit": "workspace:*",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.180.0"
+  },
+  "nx": {
+    "name": "editor",
+    "targets": {
+      "typecheck": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/editor",
+          "parallel": false,
+          "commands": ["nuxt prepare", "vue-tsc --noEmit -p .nuxt/tsconfig.json"]
+        }
+      }
+    }
+  }
+}
