@@ -84,9 +84,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ~4.1.0
         version: 4.1.11(vitest@4.1.11)
-      '@vue/eslint-config-prettier':
-        specifier: ^10.2.0
-        version: 10.2.0(eslint@9.39.5(jiti@2.4.2))(prettier@3.9.6)
       '@vue/eslint-config-typescript':
         specifier: ^14.6.0
         version: 14.9.0(eslint-plugin-vue@9.33.0(eslint@9.39.5(jiti@2.4.2)))(eslint@9.39.5(jiti@2.4.2))(typescript@6.0.3)
@@ -99,6 +96,9 @@ importers:
       eslint-config-prettier:
         specifier: ^10.0.0
         version: 10.1.8(eslint@9.39.5(jiti@2.4.2))
+      eslint-plugin-prettier:
+        specifier: ^5.5.0
+        version: 5.5.6(eslint-config-prettier@10.1.8(eslint@9.39.5(jiti@2.4.2)))(eslint@9.39.5(jiti@2.4.2))(prettier@3.9.6)
       eslint-plugin-storybook:
         specifier: ^0.11.0
         version: 0.11.6(eslint@9.39.5(jiti@2.4.2))(typescript@6.0.3)
@@ -3090,12 +3090,6 @@ packages:
 
   '@vue/devtools-shared@8.2.1':
     resolution: {integrity: sha512-Fkac7lUdGReh6pVOi3AYPRGe82LQqRmAfThW7RRligOAP0ZA/Z1z9XLHDM9dv34pV2HRc79DK8uKPeG2fLnA/g==}
-
-  '@vue/eslint-config-prettier@10.2.0':
-    resolution: {integrity: sha512-GL3YBLwv/+b86yHcNNfPJxOTtVFJ4Mbc9UU3zR+KVoG7SwGTjPT+32fXamscNumElhcpXW3mT0DgzS9w32S7Bw==}
-    peerDependencies:
-      eslint: '>= 8.21.0'
-      prettier: '>= 3.0.0'
 
   '@vue/eslint-config-typescript@14.9.0':
     resolution: {integrity: sha512-E3j9hDlfVf10F30MRcLTPY2IIhWIx1nsvkVukk14kTcuA+oBVot9zsP1hzsO+PAMDxV3Fd9FimBJtUBNBL5KFA==}
@@ -11437,15 +11431,6 @@ snapshots:
       perfect-debounce: 2.1.0
 
   '@vue/devtools-shared@8.2.1': {}
-
-  '@vue/eslint-config-prettier@10.2.0(eslint@9.39.5(jiti@2.4.2))(prettier@3.9.6)':
-    dependencies:
-      eslint: 9.39.5(jiti@2.4.2)
-      eslint-config-prettier: 10.1.8(eslint@9.39.5(jiti@2.4.2))
-      eslint-plugin-prettier: 5.5.6(eslint-config-prettier@10.1.8(eslint@9.39.5(jiti@2.4.2)))(eslint@9.39.5(jiti@2.4.2))(prettier@3.9.6)
-      prettier: 3.9.6
-    transitivePeerDependencies:
-      - '@types/eslint'
 
   '@vue/eslint-config-typescript@14.9.0(eslint-plugin-vue@9.33.0(eslint@9.39.5(jiti@2.4.2)))(eslint@9.39.5(jiti@2.4.2))(typescript@6.0.3)':
     dependencies:
