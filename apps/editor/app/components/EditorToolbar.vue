@@ -7,6 +7,7 @@ import {
   UiShapeIcon,
   UiText,
   UiTextureSwatch,
+  UiThemeSwitcher,
   UiToggleGroup,
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
@@ -28,6 +29,7 @@ const modeOptions = [
 ];
 
 const hasSelection = computed(() => selectedId.value !== null);
+const themeLabels = { light: 'Светлая', dark: 'Тёмная', system: 'Системная' };
 
 function onColorInput(event: Event): void {
   const value = (event.target as HTMLInputElement).value;
@@ -85,6 +87,7 @@ function onColorInput(event: Event): void {
     </div>
 
     <div class="editor-toolbar__group editor-toolbar__group--end">
+      <UiThemeSwitcher size="sm" :labels="themeLabels" />
       <UiButton variant="ghost" :disabled="!hasSelection" @click="removeSelected">Удалить</UiButton>
     </div>
   </header>
