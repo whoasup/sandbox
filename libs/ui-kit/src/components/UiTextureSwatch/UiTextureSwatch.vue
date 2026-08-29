@@ -32,23 +32,17 @@ watch(() => [props.surface, props.size], paint);
     ref="canvasRef"
     :width="size"
     :height="size"
-    :class="classNames('ui-texture-swatch', { 'ui-texture-swatch--selected': selected })"
+    :class="
+      classNames(
+        'ui-texture-swatch',
+        'block cursor-pointer rounded-sm border-2 outline-1 outline-border -outline-offset-1',
+        {
+          'ui-texture-swatch--selected border-primary': selected,
+          'border-transparent': !selected,
+        },
+      )
+    "
     :aria-label="label ?? getTextureDefinition(surface).label"
     role="img"
   />
 </template>
-
-<style scoped>
-.ui-texture-swatch {
-  display: block;
-  border-radius: var(--ui-radius-sm);
-  border: 2px solid transparent;
-  outline: 1px solid var(--ui-color-border);
-  outline-offset: -1px;
-  cursor: pointer;
-}
-
-.ui-texture-swatch--selected {
-  border-color: var(--ui-color-primary);
-}
-</style>
