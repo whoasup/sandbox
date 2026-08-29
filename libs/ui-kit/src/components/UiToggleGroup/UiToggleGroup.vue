@@ -33,11 +33,15 @@ function itemClasses(option: ToggleOption<TValue>): string {
   const active = option.value === props.modelValue;
   return classNames(
     'ui-toggle-group__item',
-    'cursor-pointer rounded-sm border-0 bg-transparent font-sans font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+    'cursor-pointer rounded-sm border-0 font-sans font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
     props.size === 'md' ? 'px-4 py-2 text-sm' : 'px-3 py-1 text-xs',
+    // `bg-primary`/`bg-transparent` are mutually exclusive here (never both
+    // applied to the same item) — combining the two would leave the winner
+    // up to Tailwind's internal stylesheet order rather than this branch.
     {
       'ui-toggle-group__item--active bg-primary text-on-primary': active,
-      'text-text-muted enabled:hover:bg-surface-raised enabled:hover:text-text': !active,
+      'bg-transparent text-text-muted enabled:hover:bg-surface-raised enabled:hover:text-text':
+        !active,
     },
   );
 }
