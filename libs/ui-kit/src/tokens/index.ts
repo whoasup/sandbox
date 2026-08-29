@@ -1,8 +1,8 @@
 /**
- * Typed mirror of `styles/tokens.css`, for code that cannot consume CSS
- * variables directly (e.g. three.js materials). Keep values in sync with
- * the `:root` / `[data-theme='light']` block by hand — there are few enough
- * tokens that a build-time generator would be overkill for this MVP.
+ * Typed mirror of `styles/theme.css` / `styles/tokens.css`, for code that
+ * cannot consume CSS variables directly (e.g. three.js materials). Keep
+ * values in sync with those files by hand — there are few enough tokens
+ * that a build-time generator would be overkill for this MVP.
  */
 export const palette = {
   white: '#ffffff',
@@ -17,9 +17,9 @@ export const palette = {
   gray700: '#2f363f',
   gray800: '#1d2229',
   gray900: '#12151a',
-  blue400: '#5b9bf7',
-  blue500: '#3b7ded',
-  blue600: '#2c63c4',
+  orange400: '#fb923c',
+  orange500: '#f97316',
+  orange600: '#ea580c',
   red500: '#e5484d',
   green500: '#30a46c',
 } as const;
@@ -49,9 +49,12 @@ export const tokens = {
     border: palette.gray200,
     text: palette.gray900,
     textMuted: palette.gray500,
-    textOnPrimary: palette.white,
-    primary: palette.blue500,
-    primaryHover: palette.blue600,
+    // Dark text reads better than white on this orange scale at
+    // button/label font sizes — see the contrast rationale in
+    // `styles/tokens.css`.
+    textOnPrimary: palette.gray900,
+    primary: palette.orange500,
+    primaryHover: palette.orange600,
     danger: palette.red500,
     success: palette.green500,
   },
