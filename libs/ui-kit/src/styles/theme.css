@@ -1,0 +1,74 @@
+/**
+ * Tailwind theme: primitives.
+ *
+ * Everything in this `@theme` block is compile-time (it does not change per
+ * `data-theme`) and is what Tailwind reads to generate utility classes
+ * (`bg-orange-500`, `rounded-lg`, `font-sans`, …). Components must never
+ * reference these primitives directly — only the semantic layer in
+ * `tokens.css` may. See `tokens.css` for the semantic aliases that *do*
+ * change per theme.
+ *
+ * The default Tailwind spacing scale (`--spacing: 0.25rem` per step) is
+ * kept as-is: it already matches this project's original spacing scale
+ * exactly (`p-1` = 4px … `p-8` = 32px), so it is intentionally not
+ * overridden here.
+ */
+@theme {
+  /* Neutrals */
+  --color-white: #fff;
+  --color-black: #0b0d10;
+  --color-gray-50: #f6f7f8;
+  --color-gray-100: #eceef1;
+  --color-gray-200: #d7dbe0;
+  --color-gray-300: #b7bfc9;
+  --color-gray-400: #8b96a3;
+  --color-gray-500: #626d7a;
+  --color-gray-600: #454e59;
+  --color-gray-700: #2f363f;
+  --color-gray-800: #1d2229;
+  --color-gray-900: #12151a;
+
+  /* Brand / accent: orange */
+  --color-orange-50: #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #f97316;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
+  --color-orange-800: #9a3412;
+  --color-orange-900: #7c2d12;
+  --color-orange-950: #431407;
+
+  /* Feedback */
+  --color-red-500: #e5484d;
+  --color-green-500: #30a46c;
+
+  /* Radii — override Tailwind's defaults so `rounded-*` matches this
+     project's original radius scale exactly. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 19px;
+  --text-xl: 24px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 550;
+  --font-weight-bold: 700;
+}
+
+/**
+ * `dark:` variant driven by the same `data-theme` attribute the semantic
+ * layer already keys off, instead of Tailwind v4's default
+ * `prefers-color-scheme` media query. This keeps `dark:` utilities in sync
+ * with the theme switcher's `light` / `dark` / `system` resolution rather
+ * than the raw OS preference.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));

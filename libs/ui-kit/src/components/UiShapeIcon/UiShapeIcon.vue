@@ -17,7 +17,7 @@ const style = computed(() => ({ width: `${props.size}px`, height: `${props.size}
   <svg
     :viewBox="viewBox"
     :style="style"
-    class="ui-shape-icon"
+    class="ui-shape-icon inline-block text-inherit"
     fill="none"
     stroke="currentColor"
     stroke-width="1.4"
@@ -50,10 +50,3 @@ const style = computed(() => ({ width: `${props.size}px`, height: `${props.size}
     </template>
   </svg>
 </template>
-
-<style scoped>
-.ui-shape-icon {
-  display: inline-block;
-  color: inherit;
-}
-</style>

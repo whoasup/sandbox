@@ -2,7 +2,7 @@
 import { classNames } from '../../helpers';
 import type { ToggleOption } from './types';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     modelValue: TValue;
     options: readonly ToggleOption<TValue>[];
@@ -17,20 +17,40 @@ function select(option: ToggleOption<TValue>): void {
   if (option.disabled) return;
   emit('update:modelValue', option.value);
 }
+
+/**
+ * The `ui-toggle-group*` BEM classes below are kept as stable
+ * selectors for tests/CSS escape hatches (see `UiToggleGroup.spec.ts`) —
+ * they carry no styling of their own now that Tailwind utilities do.
+ */
+const rootClasses = classNames(
+  'ui-toggle-group',
+  `ui-toggle-group--${props.size}`,
+  'inline-flex gap-0.5 rounded-md bg-surface-sunken p-[3px]',
+);
+
+function itemClasses(option: ToggleOption<TValue>): string {
+  const active = option.value === props.modelValue;
+  return classNames(
+    'ui-toggle-group__item',
+    'cursor-pointer rounded-sm border-0 bg-transparent font-sans font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+    props.size === 'md' ? 'px-4 py-2 text-sm' : 'px-3 py-1 text-xs',
+    {
+      'ui-toggle-group__item--active bg-primary text-on-primary': active,
+      'text-text-muted enabled:hover:bg-surface-raised enabled:hover:text-text': !active,
+    },
+  );
+}
 </script>
 
 <template>
-  <div :class="classNames('ui-toggle-group', `ui-toggle-group--${size}`)" role="tablist">
+  <div :class="rootClasses" role="tablist">
     <button
       v-for="option in options"
       :key="option.value"
       type="button"
       role="tab"
-      :class="
-        classNames('ui-toggle-group__item', {
-          'ui-toggle-group__item--active': option.value === modelValue,
-        })
-      "
+      :class="itemClasses(option)"
       :aria-selected="option.value === modelValue"
       :disabled="option.disabled"
       @click="select(option)"
@@ -39,51 +59,3 @@ function select(option: ToggleOption<TValue>): void {
     </button>
   </div>
 </template>
-
-<style scoped>
-.ui-toggle-group {
-  display: inline-flex;
-  padding: 3px;
-  background-color: var(--ui-color-surface-sunken);
-  border-radius: var(--ui-radius-md);
-  gap: 2px;
-}
-
-.ui-toggle-group__item {
-  border: none;
-  background: transparent;
-  color: var(--ui-color-text-muted);
-  font-family: var(--ui-font-family-base);
-  font-weight: var(--ui-font-weight-medium);
-  border-radius: var(--ui-radius-sm);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.ui-toggle-group--md .ui-toggle-group__item {
-  padding: var(--ui-space-2) var(--ui-space-4);
-  font-size: var(--ui-font-size-sm);
-}
-
-.ui-toggle-group--sm .ui-toggle-group__item {
-  padding: var(--ui-space-1) var(--ui-space-3);
-  font-size: var(--ui-font-size-xs);
-}
-
-.ui-toggle-group__item:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ui-toggle-group__item:hover:not(:disabled, .ui-toggle-group__item--active) {
-  color: var(--ui-color-text);
-  background-color: var(--ui-color-surface-raised);
-}
-
-.ui-toggle-group__item--active {
-  color: var(--ui-color-text-on-primary);
-  background-color: var(--ui-color-primary);
-}
-</style>

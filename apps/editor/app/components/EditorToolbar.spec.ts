@@ -1,12 +1,26 @@
+import { createThemeContext } from '@sandbox/ui-kit';
 import { mount } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditorDocumentContext } from '../composables/useEditorDocument';
 import EditorToolbar from './EditorToolbar.vue';
+
+function stubMatchMedia(): void {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
 
 function mountToolbar() {
   const Harness = defineComponent({
     setup() {
+      // `EditorToolbar` renders `UiThemeSwitcher`, which `inject()`s the
+      // theme context — `createThemeContext()` here stands in for the real
+      // `provide()` call made in `app.vue`.
+      createThemeContext();
       const ctx = createEditorDocumentContext();
       return { ctx };
     },
@@ -16,6 +30,10 @@ function mountToolbar() {
   });
   return mount(Harness);
 }
+
+beforeEach(() => {
+  stubMatchMedia();
+});
 
 describe('EditorToolbar', () => {
   it('adds a shape when a shape button is clicked', async () => {

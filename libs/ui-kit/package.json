@@ -19,7 +19,9 @@
     "./styles.css": {
       "@sandbox/source": "./src/styles/index.css",
       "default": "./dist/index.css"
-    }
+    },
+    "./styles/theme.css": "./src/styles/theme.css",
+    "./styles/tokens.css": "./src/styles/tokens.css"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

@@ -37,11 +37,39 @@ See [`apps/editor/README.md`](apps/editor/README.md) for scripts and structure.
 
 Framework building blocks shared by the editor (and any future app):
 `UiButton`, `UiText`, `UiToggleGroup`, `UiShapeIcon`, `UiTextureSwatch`,
-two-layer design tokens (CSS variables + a typed mirror), and small
-dependency-free helpers/utils (`EventEmitter`, `classNames`, `createId`,
-`clamp`, color helpers). Documented and tested in Storybook + Vitest.
+`UiThemeSwitcher`, two-layer design tokens (Tailwind `@theme` + a typed
+mirror), and small dependency-free helpers/utils (`EventEmitter`,
+`classNames`, `createId`, `clamp`, color helpers). Documented and tested in
+Storybook + Vitest.
 
 See [`libs/ui-kit/README.md`](libs/ui-kit/README.md) for scripts and structure.
+
+## Styling & theming
+
+Both projects are styled with **Tailwind CSS v4** (`@tailwindcss/vite`,
+CSS-first config — no `tailwind.config.js`). The two-layer token model is
+unchanged, just re-hosted:
+
+- **Primitives** (`libs/ui-kit/src/styles/theme.css`) — an orange accent
+  scale plus grays/feedback colors, radii, and typography, defined in an
+  `@theme` block Tailwind reads to generate utilities (`bg-orange-500`,
+  `rounded-lg`, `font-sans`, …).
+- **Semantic aliases** (`libs/ui-kit/src/styles/tokens.css`) — `--ui-color-*`
+  variables that flip per `[data-theme='light'|'dark']`, bridged into
+  Tailwind's utility namespace via `@theme inline` so `bg-primary`,
+  `text-text-muted`, etc. resolve live when the theme changes, no rebuild
+  needed. Components only ever consume this layer, never the primitives.
+- **Theme switcher** — `useTheme()`/`createThemeContext()` (provided once
+  from `app.vue`) plus `UiThemeSwitcher` support three states: `light`,
+  `dark`, `system`. The preference persists to `localStorage` and an inline
+  boot script (`apps/editor/nuxt.config.ts`) resolves it before hydration
+  to avoid a flash of the wrong theme.
+- Each package (`libs/ui-kit`, `apps/editor`) runs its **own** Tailwind
+  compilation, explicitly scoped to its own sources via `source(...)`, and
+  imports the same `theme.css`/`tokens.css` partials so both stay visually
+  identical. See
+  [`docs/tailwind-migration-plan.md`](docs/tailwind-migration-plan.md) for
+  the full rationale.
 
 ## Tooling
 
@@ -51,7 +79,8 @@ See [`libs/ui-kit/README.md`](libs/ui-kit/README.md) for scripts and structure.
   Nuxt's dev/build pipeline).
 - **Linting**: ESLint (flat config, `@nx/eslint-plugin` + `eslint-plugin-vue`
   + `eslint-plugin-storybook` for `*.stories.ts`) and Stylelint
-  (`stylelint-config-standard` + Vue SFC `<style>` support).
+  (`stylelint-config-standard` + `stylelint-config-tailwindcss` + Vue SFC
+  `<style>` support).
 - **Formatting**: Prettier, run as an ESLint rule (`eslint-plugin-prettier`)
   for `.ts`/`.js`/`.vue`, and directly for plain `.css`. `pnpm lint --fix`
   fixes both lint issues and formatting in one pass.
