@@ -1,6 +1,16 @@
 # Tailwind CSS migration plan
 
-Status: **proposal / not yet implemented**
+Status: **implemented** — see the `feat/tailwind-migration-*` branch/PR.
+This document is kept as the design rationale (token architecture, theme
+switcher design, contrast decisions, multi-package Tailwind wiring); code
+comments throughout `libs/ui-kit/src/styles/` and `useTheme.ts` reference
+it by name. The plan below was written before implementation and mostly
+matches what shipped; where implementation diverged (component-by-component
+commit granularity was consolidated, `--ui-space-*`/`--ui-radius-*` were
+dropped rather than kept as transitional aliases, `libs/ui-kit`'s own
+`dist/index.css` was fixed to actually bundle the compiled Tailwind output),
+the code and its own comments are the source of truth.
+
 Owners: ui-kit (`libs/ui-kit`) + editor (`apps/editor`)
 
 ## 1. Goals

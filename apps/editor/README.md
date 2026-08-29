@@ -26,6 +26,12 @@ are plain TypeScript classes with no Vue dependency — they can be unit
 tested in isolation (see the co-located `*.spec.ts` files) and are only
 wired into Vue's reactivity inside `useEditorDocument.ts`.
 
+Styling is Tailwind CSS v4 (see the root [`README.md`](../../README.md#styling--theming)).
+`app.vue` calls `createThemeContext()` once at the app root; `EditorToolbar`
+mounts `UiThemeSwitcher` (light/dark/system) next to the delete button.
+`app/assets/css/styles.css` is this app's own Tailwind entry point, scoped
+to `app/**` and sharing `libs/ui-kit`'s design tokens.
+
 ## Scripts
 
 Run from the repo root:
