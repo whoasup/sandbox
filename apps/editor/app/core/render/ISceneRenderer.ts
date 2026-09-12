@@ -33,7 +33,12 @@ export interface RendererInteractionEvents {
   onAddWall?: (start: Point2, end: Point2) => void;
   onAddOpening?: (type: 'door' | 'window', point: Point2, wallId?: string) => void;
   /** Optional snap helper used while drawing walls in 2D. */
-  snapPoint?: (point: Point2) => Point2;
+  snapPoint?: (point: Point2, angleFrom?: Point2 | null) => Point2;
+  /** Fired when a drag gesture starts / ends (for history coalescing). */
+  onMoveGestureStart?: () => void;
+  onMoveGestureEnd?: () => void;
+  /** Live wall-draft length in meters (null when not drawing). */
+  onWallDraftLength?: (length: number | null) => void;
 }
 
 export interface RendererToolState {

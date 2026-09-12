@@ -1,12 +1,14 @@
 import type { InjectionKey, Ref, ShallowRef } from 'vue';
-import { inject, provide, reactive, ref, shallowRef } from 'vue';
+import { computed, inject, provide, reactive, ref, shallowRef } from 'vue';
 import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
+import { HistoryStack } from '../core/history/HistoryStack';
+import { SnapshotCommand, captureSnapshotCommand } from '../core/history/SnapshotCommand';
 import { SceneDocument } from '../core/model/SceneDocument';
 import type { Opening, OpeningType } from '../core/model/Opening';
 import type { Room } from '../core/model/Room';
 import type { SceneObject } from '../core/model/SceneObject';
 import type { SceneSettings, SceneSettingsPatch } from '../core/model/SceneSettings';
-import type { SelectionRef } from '../core/model/types';
+import type { SceneSnapshot, SelectionRef } from '../core/model/types';
 import type { Point2, WallObject } from '../core/model/WallObject';
 import type { EditorTool } from '../core/render/ISceneRenderer';
 
@@ -19,14 +21,22 @@ export interface WallDefaults {
   thickness: number;
 }
 
+export interface EditorClipboard {
+  kind: 'shape' | 'wall' | 'opening';
+  snapshot: SceneSnapshot;
+  entityId: string;
+}
+
 export interface EditorDocumentContext {
   document: SceneDocument;
+  history: HistoryStack;
+  canUndo: Ref<boolean>;
+  canRedo: Ref<boolean>;
   objects: ShallowRef<SceneObject[]>;
   walls: ShallowRef<WallObject[]>;
   rooms: ShallowRef<Room[]>;
   openings: ShallowRef<Opening[]>;
   selection: ShallowRef<SelectionRef>;
-  /** Convenience mirror of `selection.value?.id ?? null` for existing callers. */
   selectedId: ShallowRef<string | null>;
   settings: ShallowRef<SceneSettings>;
   mode: ShallowRef<EditorMode>;
@@ -34,6 +44,7 @@ export interface EditorDocumentContext {
   wallDefaults: WallDefaults;
   activeSurface: ShallowRef<SurfaceKind>;
   activeColor: ShallowRef<string>;
+  wallDraftLength: Ref<number | null>;
   addShape: (kind: ShapeKind) => void;
   addWall: (start: Point2, end: Point2) => void;
   addOpeningAtPoint: (type: OpeningType, point: Point2, wallId?: string) => void;
@@ -47,6 +58,8 @@ export interface EditorDocumentContext {
   selectShape: (id: string | null) => void;
   moveShape: (id: string, x: number, z: number) => void;
   moveWall: (id: string, x: number, z: number) => void;
+  beginMoveGesture: () => void;
+  endMoveGesture: (label?: string) => void;
   setSelectedWallHeight: (height: number) => void;
   setSelectedWallThickness: (thickness: number) => void;
   setSelectedRoomName: (name: string) => void;
@@ -56,7 +69,13 @@ export interface EditorDocumentContext {
   setSelectedScale: (scale: number) => void;
   duplicateSelected: () => void;
   patchSettings: (patch: SceneSettingsPatch) => void;
-  snapPoint: (point: Point2) => Point2;
+  snapPoint: (point: Point2, angleFrom?: Point2 | null) => Point2;
+  undo: () => void;
+  redo: () => void;
+  nudgeSelected: (dx: number, dz: number) => void;
+  copySelected: () => void;
+  pasteClipboard: () => void;
+  setWallDraftLength: (length: number | null) => void;
 }
 
 const EDITOR_DOCUMENT_KEY: InjectionKey<EditorDocumentContext> = Symbol('editor-document');
@@ -71,6 +90,8 @@ function nextPlacement(existingCount: number): { x: number; z: number } {
 /** Creates the shared editor state and makes it available to descendants via `provide`. Call once, from the page root. */
 export function createEditorDocumentContext(): EditorDocumentContext {
   const document = new SceneDocument();
+  const history = new HistoryStack(100);
+  const historyTick = ref(0);
   const objects = shallowRef<SceneObject[]>(document.list());
   const walls = shallowRef<WallObject[]>(document.listWalls());
   const rooms = shallowRef<Room[]>(document.listRooms());
@@ -83,6 +104,18 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const wallDefaults = reactive<WallDefaults>({ height: 2.5, thickness: 0.2 });
   const activeSurface = shallowRef<SurfaceKind>('wood');
   const activeColor = shallowRef<string>('#c9945f');
+  const wallDraftLength = ref<number | null>(null);
+  let clipboard: EditorClipboard | null = null;
+  let gestureBefore: SceneSnapshot | null = null;
+
+  const bumpHistory = () => {
+    historyTick.value += 1;
+  };
+
+  const run = (label: string, mutate: () => void) => {
+    history.pushExecuted(captureSnapshotCommand(document, label, mutate));
+    bumpHistory();
+  };
 
   document.on('change', (payload) => {
     objects.value = payload.objects;
@@ -117,8 +150,20 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     }
   });
 
+  const canUndo = computed(() => {
+    void historyTick.value;
+    return history.canUndo;
+  });
+  const canRedo = computed(() => {
+    void historyTick.value;
+    return history.canRedo;
+  });
+
   const context: EditorDocumentContext = {
     document,
+    history,
+    canUndo,
+    canRedo,
     objects,
     walls,
     rooms,
@@ -131,55 +176,66 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     wallDefaults,
     activeSurface,
     activeColor,
+    wallDraftLength,
     addShape(kind) {
       const { x, z } = nextPlacement(document.list().length);
-      document.addShape(kind, {
-        position: { x, z },
-        surface: activeSurface.value,
-        color: activeColor.value,
+      run('Добавить фигуру', () => {
+        document.addShape(kind, {
+          position: { x, z },
+          surface: activeSurface.value,
+          color: activeColor.value,
+        });
       });
     },
     addWall(start, end) {
-      document.addWall({
-        start,
-        end,
-        height: wallDefaults.height,
-        thickness: wallDefaults.thickness,
-        surface: activeSurface.value,
-        color: activeColor.value,
+      run('Добавить стену', () => {
+        document.addWall({
+          start,
+          end,
+          height: wallDefaults.height,
+          thickness: wallDefaults.thickness,
+          surface: activeSurface.value,
+          color: activeColor.value,
+        });
       });
     },
     addOpeningAtPoint(type, point, wallId) {
-      document.addOpeningAtPoint(type, point, wallId);
+      run(type === 'door' ? 'Добавить дверь' : 'Добавить окно', () => {
+        document.addOpeningAtPoint(type, point, wallId);
+      });
     },
     updateSelectedOpening(patch) {
       if (selection.value?.type !== 'opening') return;
-      document.updateOpening(selection.value.id, patch);
+      const id = selection.value.id;
+      run('Изменить проём', () => {
+        document.updateOpening(id, patch);
+      });
     },
     removeSelected() {
-      document.removeSelected();
+      if (!selection.value) return;
+      run('Удалить', () => {
+        document.removeSelected();
+      });
     },
     applySurfaceToSelection(surface) {
       activeSurface.value = surface;
       if (!selection.value) return;
-      if (selection.value.type === 'shape') {
-        document.setSurface(selection.value.id, surface);
-      } else if (selection.value.type === 'wall') {
-        document.setWallSurface(selection.value.id, surface);
-      } else if (selection.value.type === 'room') {
-        document.setRoomFloorSurface(selection.value.id, surface);
-      }
+      const sel = selection.value;
+      run('Поверхность', () => {
+        if (sel.type === 'shape') document.setSurface(sel.id, surface);
+        else if (sel.type === 'wall') document.setWallSurface(sel.id, surface);
+        else if (sel.type === 'room') document.setRoomFloorSurface(sel.id, surface);
+      });
     },
     applyColorToSelection(color) {
       activeColor.value = color;
       if (!selection.value) return;
-      if (selection.value.type === 'shape') {
-        document.setColor(selection.value.id, color);
-      } else if (selection.value.type === 'wall') {
-        document.setWallColor(selection.value.id, color);
-      } else if (selection.value.type === 'room') {
-        document.setRoomFloorColor(selection.value.id, color);
-      }
+      const sel = selection.value;
+      run('Цвет', () => {
+        if (sel.type === 'shape') document.setColor(sel.id, color);
+        else if (sel.type === 'wall') document.setWallColor(sel.id, color);
+        else if (sel.type === 'room') document.setRoomFloorColor(sel.id, color);
+      });
     },
     selectEntity(next) {
       document.select(next);
@@ -193,43 +249,134 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     moveWall(id, x, z) {
       document.moveWall(id, x, z);
     },
+    beginMoveGesture() {
+      if (!gestureBefore) gestureBefore = document.toSnapshot();
+    },
+    endMoveGesture(label = 'Переместить') {
+      if (!gestureBefore) return;
+      const after = document.toSnapshot();
+      history.pushExecuted(new SnapshotCommand(label, document, gestureBefore, after));
+      gestureBefore = null;
+      bumpHistory();
+    },
     setSelectedWallHeight(height) {
       if (selection.value?.type !== 'wall') return;
-      document.setWallHeight(selection.value.id, height);
+      const id = selection.value.id;
+      run('Высота стены', () => document.setWallHeight(id, height));
     },
     setSelectedWallThickness(thickness) {
       if (selection.value?.type !== 'wall') return;
-      document.setWallThickness(selection.value.id, thickness);
+      const id = selection.value.id;
+      run('Толщина стены', () => document.setWallThickness(id, thickness));
     },
     setSelectedRoomName(name) {
       if (selection.value?.type !== 'room') return;
-      document.setRoomName(selection.value.id, name);
+      const id = selection.value.id;
+      run('Имя комнаты', () => document.setRoomName(id, name));
     },
     setSelectedRoomFloorSurface(surface) {
       if (selection.value?.type !== 'room') return;
-      document.setRoomFloorSurface(selection.value.id, surface);
+      const id = selection.value.id;
+      run('Пол комнаты', () => document.setRoomFloorSurface(id, surface));
     },
     replaceSelectedKind(kind) {
       if (selection.value?.type !== 'shape') return;
-      document.replaceKind(selection.value.id, kind);
+      const id = selection.value.id;
+      run('Сменить фигуру', () => document.replaceKind(id, kind));
     },
     setSelectedRotation(rotationY) {
       if (selection.value?.type !== 'shape') return;
-      document.setRotationY(selection.value.id, rotationY);
+      const id = selection.value.id;
+      run('Поворот', () => document.setRotationY(id, rotationY));
     },
     setSelectedScale(scale) {
       if (selection.value?.type !== 'shape') return;
-      document.setScale(selection.value.id, scale);
+      const id = selection.value.id;
+      run('Масштаб', () => document.setScale(id, scale));
     },
     duplicateSelected() {
       if (selection.value?.type !== 'shape') return;
-      document.duplicate(selection.value.id);
+      const id = selection.value.id;
+      run('Дублировать', () => document.duplicate(id));
     },
     patchSettings(patch) {
-      document.patchSettings(patch);
+      run('Настройки сцены', () => document.patchSettings(patch));
     },
-    snapPoint(point) {
-      return document.snapPoint(point);
+    snapPoint(point, angleFrom = null) {
+      return document.snapPoint(point, 0.35, angleFrom);
+    },
+    undo() {
+      history.undo();
+      bumpHistory();
+    },
+    redo() {
+      history.redo();
+      bumpHistory();
+    },
+    nudgeSelected(dx, dz) {
+      const sel = selection.value;
+      if (!sel) return;
+      run('Сдвиг', () => {
+        if (sel.type === 'shape') {
+          const shape = document.get(sel.id);
+          if (!shape) return;
+          document.moveShape(sel.id, shape.position.x + dx, shape.position.z + dz);
+        } else if (sel.type === 'wall') {
+          const wall = document.getWall(sel.id);
+          if (!wall) return;
+          document.moveWall(sel.id, wall.midpoint.x + dx, wall.midpoint.z + dz);
+        }
+      });
+    },
+    copySelected() {
+      const sel = selection.value;
+      if (!sel || sel.type === 'room') return;
+      clipboard = {
+        kind: sel.type,
+        snapshot: document.toSnapshot(),
+        entityId: sel.id,
+      };
+    },
+    pasteClipboard() {
+      if (!clipboard) return;
+      const step = document.settings.field.gridStep || 0.5;
+      const src = clipboard;
+      run('Вставить', () => {
+        if (src.kind === 'shape') {
+          const shape = src.snapshot.objects.find((o) => o.id === src.entityId);
+          if (!shape) return;
+          document.addShape(shape.kind, {
+            position: { x: shape.position.x + step, z: shape.position.z + step },
+            rotationY: shape.rotationY,
+            scale: shape.scale,
+            surface: shape.surface,
+            color: shape.color,
+          });
+        } else if (src.kind === 'wall') {
+          const wall = src.snapshot.walls.find((w) => w.id === src.entityId);
+          if (!wall) return;
+          document.addWall({
+            start: { x: wall.start.x + step, z: wall.start.z + step },
+            end: { x: wall.end.x + step, z: wall.end.z + step },
+            height: wall.height,
+            thickness: wall.thickness,
+            surface: wall.surface,
+            color: wall.color,
+          });
+        } else if (src.kind === 'opening') {
+          const opening = src.snapshot.openings.find((o) => o.id === src.entityId);
+          if (!opening || !document.getWall(opening.wallId)) return;
+          document.addOpening(opening.wallId, opening.type, {
+            t: Math.min(0.9, opening.t + 0.1),
+            width: opening.width,
+            height: opening.height,
+            sill: opening.sill,
+          });
+        }
+      });
+    },
+    setWallDraftLength(length) {
+      wallDraftLength.value = length;
     },
   };
 

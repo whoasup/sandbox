@@ -12,6 +12,7 @@ import {
 import { Opening, type OpeningInit, type OpeningType } from './Opening';
 import { Room, type RoomSnapshot } from './Room';
 import { detectRooms } from './rooms/detectRooms';
+import { snapPointPipeline } from '../snap/snapPoint';
 import type { SceneObjectInit, SceneSnapshot, SelectionRef, ShapeKind, SurfaceKind } from './types';
 import { WallObject, type Point2, type WallObjectInit } from './WallObject';
 
@@ -392,24 +393,15 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.emit('settings', this.settings);
   }
 
-  /** Snap a floor-plane point to the grid and/or nearest wall endpoint. */
-  public snapPoint(point: Point2, endpointSnapRadius = 0.35): Point2 {
+  /** Snap a floor-plane point: grid → endpoints → optional 45° from `angleFrom`. */
+  public snapPoint(point: Point2, endpointSnapRadius = 0.35, angleFrom?: Point2 | null): Point2 {
     const { snap, gridStep } = this.sceneSettings.field;
-    let x = snap ? roundToStep(point.x, gridStep) : point.x;
-    let z = snap ? roundToStep(point.z, gridStep) : point.z;
-
-    let bestDist = endpointSnapRadius;
-    for (const wall of this.walls.values()) {
-      for (const endpoint of [wall.start, wall.end]) {
-        const dist = Math.hypot(point.x - endpoint.x, point.z - endpoint.z);
-        if (dist <= bestDist) {
-          bestDist = dist;
-          x = endpoint.x;
-          z = endpoint.z;
-        }
-      }
-    }
-    return { x, z };
+    return snapPointPipeline(point, this.listWalls(), {
+      snapEnabled: snap,
+      gridStep,
+      endpointRadius: endpointSnapRadius,
+      angleFrom: angleFrom ?? null,
+    });
   }
 
   public toSnapshot(): SceneSnapshot {

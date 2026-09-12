@@ -1,6 +1,6 @@
 # Epic 09 — History and precision
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/09-history-precision`  
 Depends on: Epic 03 (strongly preferred after Epic 06 so wall/opening
 commands are included)  
@@ -95,12 +95,12 @@ class HistoryStack {
 
 ## 7. Definition of Done
 
-- [ ] Chain wall → opening → move undoes/redoes correctly
-- [ ] Shortcuts work when editor is focused
-- [ ] Measurements visible for selection / wall draw
-- [ ] Snap respects grid + wall ends + 45° where applicable
-- [ ] History unit tests without DOM
-- [ ] Green lint / typecheck / test / build
+- [x] Chain wall → opening → move undoes/redoes correctly
+- [x] Shortcuts work when editor is focused
+- [x] Measurements visible for selection / wall draw
+- [x] Snap respects grid + wall ends + 45° where applicable
+- [x] History unit tests without DOM
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

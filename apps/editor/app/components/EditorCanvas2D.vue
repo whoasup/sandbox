@@ -17,6 +17,9 @@ const {
   addWall,
   addOpeningAtPoint,
   snapPoint,
+  beginMoveGesture,
+  endMoveGesture,
+  setWallDraftLength,
 } = useEditorDocument();
 
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -29,7 +32,10 @@ onMounted(() => {
     onMoveWall: (id, x, z) => moveWall(id, x, z),
     onAddWall: (start, end) => addWall(start, end),
     onAddOpening: (type, point, wallId) => addOpeningAtPoint(type, point, wallId),
-    snapPoint: (point) => snapPoint(point),
+    snapPoint: (point, angleFrom) => snapPoint(point, angleFrom),
+    onMoveGestureStart: () => beginMoveGesture(),
+    onMoveGestureEnd: () => endMoveGesture(),
+    onWallDraftLength: (length) => setWallDraftLength(length),
   });
   if (containerRef.value) {
     renderer.mount(containerRef.value);

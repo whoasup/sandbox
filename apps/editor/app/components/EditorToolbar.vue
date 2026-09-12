@@ -26,10 +26,14 @@ const {
   activeSurface,
   activeColor,
   selection,
+  canUndo,
+  canRedo,
   addShape,
   removeSelected,
   applySurfaceToSelection,
   applyColorToSelection,
+  undo,
+  redo,
 } = useEditorDocument();
 
 const modeOptions = [
@@ -150,6 +154,10 @@ function onWallThicknessInput(event: Event): void {
     </div>
 
     <div class="ml-auto flex items-center gap-2">
+      <UiButton variant="ghost" :disabled="!canUndo" title="Ctrl+Z" @click="undo"
+        >Отменить</UiButton
+      >
+      <UiButton variant="ghost" :disabled="!canRedo" title="Ctrl+Y" @click="redo">Повтор</UiButton>
       <UiButton variant="ghost" :disabled="!hasSelection" @click="removeSelected">Удалить</UiButton>
     </div>
   </header>
