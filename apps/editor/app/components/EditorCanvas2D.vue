@@ -3,23 +3,43 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { SvgRenderer } from '../core/render/svg';
 import { useEditorDocument } from '../composables/useEditorDocument';
 
-const { objects, selectedId, settings, selectShape, moveShape } = useEditorDocument();
+const {
+  objects,
+  walls,
+  selection,
+  settings,
+  tool,
+  selectEntity,
+  moveShape,
+  moveWall,
+  addWall,
+  snapPoint,
+} = useEditorDocument();
+
 const containerRef = ref<HTMLDivElement | null>(null);
 let renderer: SvgRenderer | null = null;
 
 onMounted(() => {
   renderer = new SvgRenderer({
-    onSelect: (id) => selectShape(id),
-    onMove: (id, x, z) => moveShape(id, x, z),
+    onSelect: (next) => selectEntity(next),
+    onMoveShape: (id, x, z) => moveShape(id, x, z),
+    onMoveWall: (id, x, z) => moveWall(id, x, z),
+    onAddWall: (start, end) => addWall(start, end),
+    snapPoint: (point) => snapPoint(point),
   });
   if (containerRef.value) {
     renderer.mount(containerRef.value);
-    renderer.render(objects.value, selectedId.value, settings.value);
+    renderer.setTool(tool.value);
+    renderer.render(objects.value, walls.value, selection.value, settings.value);
   }
 });
 
-watch([objects, selectedId, settings], () => {
-  renderer?.render(objects.value, selectedId.value, settings.value);
+watch([objects, walls, selection, settings], () => {
+  renderer?.render(objects.value, walls.value, selection.value, settings.value);
+});
+
+watch(tool, (next) => {
+  renderer?.setTool(next);
 });
 
 onUnmounted(() => {

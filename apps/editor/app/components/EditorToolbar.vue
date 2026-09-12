@@ -21,9 +21,11 @@ const props = withDefaults(
 
 const {
   mode,
+  tool,
+  wallDefaults,
   activeSurface,
   activeColor,
-  selectedId,
+  selection,
   addShape,
   removeSelected,
   applySurfaceToSelection,
@@ -35,11 +37,25 @@ const modeOptions = [
   { value: '3d' as const, label: '3D' },
 ];
 
-const hasSelection = computed(() => selectedId.value !== null);
+const toolOptions = [
+  { value: 'select' as const, label: 'Выбор' },
+  { value: 'wall' as const, label: 'Стена' },
+];
+
+const hasSelection = computed(() => selection.value !== null);
+const showWallDefaults = computed(() => tool.value === 'wall' && mode.value === '2d');
 
 function onColorInput(event: Event): void {
   const value = (event.target as HTMLInputElement).value;
   applyColorToSelection(value);
+}
+
+function onWallHeightInput(event: Event): void {
+  wallDefaults.height = Math.max(0.5, Number((event.target as HTMLInputElement).value) || 2.5);
+}
+
+function onWallThicknessInput(event: Event): void {
+  wallDefaults.thickness = Math.max(0.05, Number((event.target as HTMLInputElement).value) || 0.2);
 }
 </script>
 
@@ -55,7 +71,10 @@ function onColorInput(event: Event): void {
         }}</UiText>
       </div>
       <slot name="status" />
-      <UiToggleGroup v-model="mode" :options="modeOptions" />
+      <div class="flex flex-wrap items-center gap-3">
+        <UiToggleGroup v-model="mode" :options="modeOptions" />
+        <UiToggleGroup v-model="tool" :options="toolOptions" />
+      </div>
     </div>
 
     <div class="flex flex-col gap-1">
@@ -77,6 +96,34 @@ function onColorInput(event: Event): void {
       </div>
     </div>
 
+    <div v-if="showWallDefaults" class="flex flex-col gap-1">
+      <UiText size="xs" tone="muted" as="span">Стена по умолчанию</UiText>
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-1 text-xs text-text-muted">
+          H
+          <input
+            class="w-16 rounded-sm border border-border bg-surface px-1 py-0.5 text-sm"
+            type="number"
+            min="0.5"
+            step="0.1"
+            :value="wallDefaults.height"
+            @input="onWallHeightInput"
+          />
+        </label>
+        <label class="flex items-center gap-1 text-xs text-text-muted">
+          T
+          <input
+            class="w-16 rounded-sm border border-border bg-surface px-1 py-0.5 text-sm"
+            type="number"
+            min="0.05"
+            step="0.05"
+            :value="wallDefaults.thickness"
+            @input="onWallThicknessInput"
+          />
+        </label>
+      </div>
+    </div>
+
     <div class="flex flex-col gap-1">
       <UiText size="xs" tone="muted" as="span">Поверхность</UiText>
       <div class="flex items-center gap-2">
@@ -94,7 +141,7 @@ function onColorInput(event: Event): void {
           class="h-[34px] w-[34px] cursor-pointer rounded-sm border border-border bg-none p-0"
           type="color"
           :value="activeColor"
-          title="Цвет фигуры"
+          title="Цвет"
           @input="onColorInput"
         />
       </div>

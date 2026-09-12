@@ -1,7 +1,7 @@
 import type { SceneSnapshot } from '../model/types';
 
 /** Bump when Epics 06+ change the persisted snapshot shape. */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export interface ProjectRecord {
   id: string;

@@ -52,6 +52,17 @@ describe('createEditorDocumentContext', () => {
       ctx.removeSelected();
       expect(ctx.objects.value).toHaveLength(0);
       expect(ctx.selectedId.value).toBeNull();
+      expect(ctx.selection.value).toBeNull();
+    });
+  });
+
+  it('adds and removes walls via the document bridge', () => {
+    mountWithContext((ctx) => {
+      ctx.addWall({ x: 0, z: 0 }, { x: 3, z: 0 });
+      expect(ctx.walls.value).toHaveLength(1);
+      expect(ctx.selection.value?.type).toBe('wall');
+      ctx.removeSelected();
+      expect(ctx.walls.value).toHaveLength(0);
     });
   });
 

@@ -1,6 +1,8 @@
+import { createId } from '@sandbox/ui-kit';
 import { ShapeFactory } from '../model/ShapeFactory';
 import { createDefaultSceneSettings, type SceneSettings } from '../model/SceneSettings';
 import type { SceneSnapshot } from '../model/types';
+import type { WallObjectSnapshot } from '../model/WallObject';
 import { CURRENT_SCHEMA_VERSION, type ProjectRecord } from './ProjectStore';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -44,16 +46,45 @@ function ensureSettings(value: unknown): SceneSettings {
   };
 }
 
+function parseWallSnapshot(value: unknown): WallObjectSnapshot | null {
+  if (!isRecord(value)) return null;
+  const start = isRecord(value.start) ? value.start : {};
+  const end = isRecord(value.end) ? value.end : {};
+  const surface =
+    value.surface === 'wood' || value.surface === 'fabric' || value.surface === 'stone'
+      ? value.surface
+      : 'stone';
+  return {
+    id: typeof value.id === 'string' && value.id.length > 0 ? value.id : createId('wall'),
+    start: {
+      x: Number(start.x) || 0,
+      z: Number(start.z) || 0,
+    },
+    end: {
+      x: Number(end.x) || 0,
+      z: Number(end.z) || 0,
+    },
+    height: typeof value.height === 'number' && Number.isFinite(value.height) ? value.height : 2.5,
+    thickness:
+      typeof value.thickness === 'number' && Number.isFinite(value.thickness)
+        ? value.thickness
+        : 0.2,
+    surface,
+    color: typeof value.color === 'string' ? value.color : '#d8d2c8',
+  };
+}
+
 export function createEmptySnapshot(): SceneSnapshot {
   return {
     objects: [],
+    walls: [],
     settings: createDefaultSceneSettings(),
   };
 }
 
 /**
  * Normalize a raw record (or partial import) up to the current schema.
- * Version 1 is the baseline — future bumps add transform steps here.
+ * v0→v1: ensure settings exist. v1→v2: ensure walls array.
  */
 export function migrateProjectRecord(raw: unknown): ProjectRecord {
   if (!isRecord(raw)) {
@@ -77,6 +108,8 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
 
   const snapshotRaw = isRecord(raw.snapshot) ? raw.snapshot : {};
   const objects = Array.isArray(snapshotRaw.objects) ? snapshotRaw.objects : [];
+  // v1 → v2: projects without walls get an empty array.
+  const wallsRaw = Array.isArray(snapshotRaw.walls) ? snapshotRaw.walls : [];
 
   const snapshot: SceneSnapshot = {
     objects: objects
@@ -97,10 +130,12 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
         surface: object.surface as SceneSnapshot['objects'][number]['surface'],
         color: typeof object.color === 'string' ? object.color : '#c9945f',
       })),
+    walls: wallsRaw
+      .map(parseWallSnapshot)
+      .filter((wall): wall is WallObjectSnapshot => wall !== null),
     settings: ensureSettings(snapshotRaw.settings),
   };
 
-  // schemaVersion 0 → 1: ensure settings exist (handled by ensureSettings).
   return {
     id,
     name,
