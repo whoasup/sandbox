@@ -126,4 +126,28 @@ describe('SceneDocument', () => {
     expect(shape.scale).toBe(2);
     expect(shape.position.y).toBe(shape.restingHeight);
   });
+
+  it('patchSettings emits settings and is included in toSnapshot', () => {
+    const doc = new SceneDocument();
+    const events: boolean[] = [];
+    doc.on('settings', (settings) => events.push(settings.field.snap));
+
+    doc.patchSettings({ field: { snap: true, gridStep: 0.5 } });
+
+    expect(events).toEqual([true]);
+    expect(doc.settings.field.snap).toBe(true);
+    expect(doc.settings.field.gridStep).toBe(0.5);
+    expect(doc.toSnapshot().settings.field.snap).toBe(true);
+  });
+
+  it('moveShape snaps to the grid when snap is enabled', () => {
+    const doc = new SceneDocument();
+    const shape = doc.addShape('cube');
+    doc.patchSettings({ field: { snap: true, gridStep: 1 } });
+
+    doc.moveShape(shape.id, 1.4, -1.6);
+
+    expect(shape.position.x).toBe(1);
+    expect(shape.position.z).toBe(-2);
+  });
 });

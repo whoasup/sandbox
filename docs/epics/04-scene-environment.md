@@ -1,6 +1,6 @@
 # Epic 04 — Scene background and field settings
 
-Status: **planned**  
+Status: **implemented** — branch `epic/04-scene-environment`  
 Branch: `epic/04-scene-environment`  
 Depends on: Epic 01  
 Owners: `apps/editor`
@@ -98,12 +98,12 @@ When `mode === 'color'`, use `background.color` directly.
 
 ## 7. Definition of Done
 
-- [ ] Background and field size update in both views without reload
-- [ ] Grid visibility / step / axes behave as configured
-- [ ] Snap affects drag when enabled
-- [ ] Settings are part of the in-memory document snapshot API ready for
+- [x] Background and field size update in both views without reload
+- [x] Grid visibility / step / axes behave as configured
+- [x] Snap affects drag when enabled
+- [x] Settings are part of the in-memory document snapshot API ready for
       Epic 05
-- [ ] Green lint / typecheck / test / build
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

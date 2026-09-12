@@ -1,11 +1,15 @@
 import type { SceneObject } from '../../model/SceneObject';
+import {
+  createDefaultSceneSettings,
+  resolveBackgroundColor,
+  type SceneSettings,
+} from '../../model/SceneSettings';
 import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { Svg2DShapeView } from './Svg2DShapeView';
 import { createSurfacePatternDefs } from './svgTexturePatterns';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PX_PER_UNIT = 46;
-const GRID_STEP_UNITS = 1;
 
 /**
  * OOP wrapper around a top-down SVG scene. Structurally mirrors
@@ -14,7 +18,9 @@ const GRID_STEP_UNITS = 1;
  */
 export class SvgRenderer implements ISceneRenderer {
   private readonly svg: SVGSVGElement;
+  private readonly fieldGroup: SVGGElement;
   private readonly gridGroup: SVGGElement;
+  private readonly axesGroup: SVGGElement;
   private readonly shapesGroup: SVGGElement;
   private readonly shapeViews = new Map<string, Svg2DShapeView>();
 
@@ -25,18 +31,20 @@ export class SvgRenderer implements ISceneRenderer {
   private draggingId: string | null = null;
   private latestObjects: readonly SceneObject[] = [];
   private latestSelectedId: string | null = null;
+  private latestSettings: SceneSettings = createDefaultSceneSettings();
 
   public constructor(private readonly interactions: RendererInteractionEvents = {}) {
     this.svg = document.createElementNS(SVG_NS, 'svg') as SVGSVGElement;
     this.svg.style.display = 'block';
     this.svg.style.width = '100%';
     this.svg.style.height = '100%';
-    this.svg.style.backgroundColor = '#eceef1';
     this.svg.appendChild(createSurfacePatternDefs());
 
+    this.fieldGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.gridGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+    this.axesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.shapesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
-    this.svg.append(this.gridGroup, this.shapesGroup);
+    this.svg.append(this.fieldGroup, this.gridGroup, this.axesGroup, this.shapesGroup);
   }
 
   public mount(container: HTMLElement): void {
@@ -60,9 +68,19 @@ export class SvgRenderer implements ISceneRenderer {
     this.resizeObserver.observe(container);
   }
 
-  public render(objects: readonly SceneObject[], selectedId: string | null): void {
+  public render(
+    objects: readonly SceneObject[],
+    selectedId: string | null,
+    settings: SceneSettings,
+  ): void {
     this.latestObjects = objects;
     this.latestSelectedId = selectedId;
+    this.latestSettings = settings;
+    this.svg.style.backgroundColor = resolveBackgroundColor(settings.background);
+    this.drawField(settings);
+    this.drawGrid(settings);
+    this.drawAxes(settings);
+
     const seen = new Set<string>();
 
     for (const object of objects) {
@@ -108,35 +126,85 @@ export class SvgRenderer implements ISceneRenderer {
     this.width = width;
     this.height = height;
     this.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    this.drawGrid();
-    this.render(this.latestObjects, this.latestSelectedId);
+    this.render(this.latestObjects, this.latestSelectedId, this.latestSettings);
   }
 
-  private drawGrid(): void {
-    this.gridGroup.replaceChildren();
-    const stepPx = PX_PER_UNIT * GRID_STEP_UNITS;
-    const { x: originX, y: originY } = this.origin;
+  private drawField(settings: SceneSettings): void {
+    this.fieldGroup.replaceChildren();
+    const { width, depth } = settings.field;
+    const { x: ox, y: oy } = this.origin;
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', String(ox - (width * PX_PER_UNIT) / 2));
+    rect.setAttribute('y', String(oy - (depth * PX_PER_UNIT) / 2));
+    rect.setAttribute('width', String(width * PX_PER_UNIT));
+    rect.setAttribute('height', String(depth * PX_PER_UNIT));
+    rect.setAttribute('fill', settings.floor.color);
+    rect.setAttribute('opacity', '0.55');
+    this.fieldGroup.appendChild(rect);
+  }
 
-    for (let x = originX % stepPx; x <= this.width; x += stepPx) {
-      const line = document.createElementNS(SVG_NS, 'line');
-      line.setAttribute('x1', String(x));
-      line.setAttribute('y1', '0');
-      line.setAttribute('x2', String(x));
-      line.setAttribute('y2', String(this.height));
-      line.setAttribute('stroke', '#d7dbe0');
-      line.setAttribute('stroke-width', '1');
-      this.gridGroup.appendChild(line);
+  private drawGrid(settings: SceneSettings): void {
+    this.gridGroup.replaceChildren();
+    if (!settings.field.gridVisible) return;
+
+    const step = Math.max(settings.field.gridStep, 0.1);
+    const stepPx = PX_PER_UNIT * step;
+    const { x: originX, y: originY } = this.origin;
+    const halfW = (settings.field.width * PX_PER_UNIT) / 2;
+    const halfD = (settings.field.depth * PX_PER_UNIT) / 2;
+    const minX = originX - halfW;
+    const maxX = originX + halfW;
+    const minY = originY - halfD;
+    const maxY = originY + halfD;
+
+    for (let x = originX; x <= maxX + 0.01; x += stepPx) {
+      this.appendGridLine(x, minY, x, maxY);
     }
-    for (let y = originY % stepPx; y <= this.height; y += stepPx) {
-      const line = document.createElementNS(SVG_NS, 'line');
-      line.setAttribute('x1', '0');
-      line.setAttribute('y1', String(y));
-      line.setAttribute('x2', String(this.width));
-      line.setAttribute('y2', String(y));
-      line.setAttribute('stroke', '#d7dbe0');
-      line.setAttribute('stroke-width', '1');
-      this.gridGroup.appendChild(line);
+    for (let x = originX - stepPx; x >= minX - 0.01; x -= stepPx) {
+      this.appendGridLine(x, minY, x, maxY);
     }
+    for (let y = originY; y <= maxY + 0.01; y += stepPx) {
+      this.appendGridLine(minX, y, maxX, y);
+    }
+    for (let y = originY - stepPx; y >= minY - 0.01; y -= stepPx) {
+      this.appendGridLine(minX, y, maxX, y);
+    }
+  }
+
+  private appendGridLine(x1: number, y1: number, x2: number, y2: number): void {
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', String(x1));
+    line.setAttribute('y1', String(y1));
+    line.setAttribute('x2', String(x2));
+    line.setAttribute('y2', String(y2));
+    line.setAttribute('stroke', '#b7bfc9');
+    line.setAttribute('stroke-width', '1');
+    this.gridGroup.appendChild(line);
+  }
+
+  private drawAxes(settings: SceneSettings): void {
+    this.axesGroup.replaceChildren();
+    if (!settings.field.axesVisible) return;
+    const { x: ox, y: oy } = this.origin;
+    const axisLen = Math.min(settings.field.width, settings.field.depth) * PX_PER_UNIT * 0.45;
+
+    const xAxis = document.createElementNS(SVG_NS, 'line');
+    xAxis.setAttribute('x1', String(ox));
+    xAxis.setAttribute('y1', String(oy));
+    xAxis.setAttribute('x2', String(ox + axisLen));
+    xAxis.setAttribute('y2', String(oy));
+    xAxis.setAttribute('stroke', '#e5484d');
+    xAxis.setAttribute('stroke-width', '2');
+    this.axesGroup.appendChild(xAxis);
+
+    const zAxis = document.createElementNS(SVG_NS, 'line');
+    zAxis.setAttribute('x1', String(ox));
+    zAxis.setAttribute('y1', String(oy));
+    zAxis.setAttribute('x2', String(ox));
+    zAxis.setAttribute('y2', String(oy + axisLen));
+    zAxis.setAttribute('stroke', '#3b7ded');
+    zAxis.setAttribute('stroke-width', '2');
+    this.axesGroup.appendChild(zAxis);
   }
 
   private resolveShapeIdFromEvent(event: PointerEvent): string | null {

@@ -1,24 +1,35 @@
 import { EventEmitter } from '@sandbox/ui-kit';
 import { ShapeFactory } from './ShapeFactory';
 import type { SceneObject } from './SceneObject';
-import type { SceneObjectInit, ShapeKind, SurfaceKind } from './types';
+import {
+  cloneSceneSettings,
+  createDefaultSceneSettings,
+  mergeSceneSettings,
+  roundToStep,
+  type SceneSettings,
+  type SceneSettingsPatch,
+} from './SceneSettings';
+import type { SceneObjectInit, SceneSnapshot, ShapeKind, SurfaceKind } from './types';
 
 // A type literal (not an `interface`) so it structurally satisfies the
 // `EventMap` (`Record<string, unknown>`) constraint on `EventEmitter`.
 export type SceneDocumentEvents = {
   change: SceneObject[];
   select: string | null;
+  settings: SceneSettings;
 };
 
 /**
  * The single source of truth for the editor: a flat collection of
- * `SceneObject`s plus a selection cursor. Both the 2D (`SvgRenderer`) and
- * 3D (`ThreeRenderer`) views subscribe to the same document, so switching
- * modes never loses state — only the active renderer changes.
+ * `SceneObject`s, document-level `SceneSettings`, plus a selection cursor.
+ * Both the 2D (`SvgRenderer`) and 3D (`ThreeRenderer`) views subscribe to
+ * the same document, so switching modes never loses state — only the
+ * active renderer changes.
  */
 export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly objects = new Map<string, SceneObject>();
   private selectedId: string | null = null;
+  private sceneSettings: SceneSettings = createDefaultSceneSettings();
 
   public list(): SceneObject[] {
     return [...this.objects.values()];
@@ -30,6 +41,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public get selected(): SceneObject | null {
     return this.selectedId ? (this.objects.get(this.selectedId) ?? null) : null;
+  }
+
+  public get settings(): SceneSettings {
+    return cloneSceneSettings(this.sceneSettings);
   }
 
   public addShape(kind: ShapeKind, init?: SceneObjectInit): SceneObject {
@@ -59,7 +74,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   public moveShape(id: string, x: number, z: number): void {
     const shape = this.objects.get(id);
     if (!shape) return;
-    shape.moveTo(x, z);
+    const { snap, gridStep } = this.sceneSettings.field;
+    const nextX = snap ? roundToStep(x, gridStep) : x;
+    const nextZ = snap ? roundToStep(z, gridStep) : z;
+    shape.moveTo(nextX, nextZ);
     this.notifyChange();
   }
 
@@ -132,6 +150,23 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       color: snap.color,
     });
     return clone;
+  }
+
+  public patchSettings(patch: SceneSettingsPatch): void {
+    this.sceneSettings = mergeSceneSettings(this.sceneSettings, patch);
+    this.emit('settings', this.settings);
+  }
+
+  public updateSettings(next: SceneSettings): void {
+    this.sceneSettings = cloneSceneSettings(next);
+    this.emit('settings', this.settings);
+  }
+
+  public toSnapshot(): SceneSnapshot {
+    return {
+      objects: this.list().map((object) => object.toSnapshot()),
+      settings: this.settings,
+    };
   }
 
   public clear(): void {

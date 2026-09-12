@@ -3,6 +3,7 @@ import { inject, provide, shallowRef } from 'vue';
 import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
 import { SceneDocument } from '../core/model/SceneDocument';
 import type { SceneObject } from '../core/model/SceneObject';
+import type { SceneSettings, SceneSettingsPatch } from '../core/model/SceneSettings';
 
 export type EditorMode = '2d' | '3d';
 
@@ -12,6 +13,7 @@ export interface EditorDocumentContext {
   document: SceneDocument;
   objects: ShallowRef<SceneObject[]>;
   selectedId: ShallowRef<string | null>;
+  settings: ShallowRef<SceneSettings>;
   mode: ShallowRef<EditorMode>;
   activeSurface: ShallowRef<SurfaceKind>;
   activeColor: ShallowRef<string>;
@@ -25,6 +27,7 @@ export interface EditorDocumentContext {
   setSelectedRotation: (rotationY: number) => void;
   setSelectedScale: (scale: number) => void;
   duplicateSelected: () => void;
+  patchSettings: (patch: SceneSettingsPatch) => void;
 }
 
 const EDITOR_DOCUMENT_KEY: InjectionKey<EditorDocumentContext> = Symbol('editor-document');
@@ -41,12 +44,16 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const document = new SceneDocument();
   const objects = shallowRef<SceneObject[]>(document.list());
   const selectedId = shallowRef<string | null>(null);
+  const settings = shallowRef<SceneSettings>(document.settings);
   const mode = shallowRef<EditorMode>('3d');
   const activeSurface = shallowRef<SurfaceKind>('wood');
   const activeColor = shallowRef<string>('#c9945f');
 
   document.on('change', (list) => {
     objects.value = list;
+  });
+  document.on('settings', (next) => {
+    settings.value = next;
   });
   document.on('select', (id) => {
     selectedId.value = id;
@@ -61,6 +68,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     document,
     objects,
     selectedId,
+    settings,
     mode,
     activeSurface,
     activeColor,
@@ -104,6 +112,9 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     duplicateSelected() {
       if (!selectedId.value) return;
       document.duplicate(selectedId.value);
+    },
+    patchSettings(patch) {
+      document.patchSettings(patch);
     },
   };
 

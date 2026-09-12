@@ -3,6 +3,7 @@ import { createEditorDocumentContext } from '../../composables/useEditorDocument
 import EditorCanvas2D from '../../components/EditorCanvas2D.vue';
 import EditorCanvas3D from '../../components/EditorCanvas3D.vue';
 import EditorInspector from '../../components/EditorInspector.vue';
+import EditorScenePanel from '../../components/EditorScenePanel.vue';
 import EditorToolbar from '../../components/EditorToolbar.vue';
 
 const { mode } = createEditorDocumentContext();
@@ -15,6 +16,7 @@ const projectId = computed(() => String(route.params.projectId ?? 'draft'));
   <div class="flex h-full min-h-0 flex-col bg-surface-sunken" data-testid="editor-page">
     <EditorToolbar :project-id="projectId" />
     <div class="flex min-h-0 flex-1">
+      <EditorScenePanel />
       <main class="relative min-h-0 min-w-0 flex-1">
         <ClientOnly>
           <EditorCanvas2D v-if="mode === '2d'" />
