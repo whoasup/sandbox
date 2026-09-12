@@ -1,12 +1,11 @@
 # Editor product roadmap
 
-Status: **Phase 1 complete** on `main` (epics 01–10). Phase 2
-(`epic/11-furniture-catalog` … `epic/15-domain-lib-perf`) is next —
-furniture, stairs, export, CI/E2E, and domain extraction. Each epic has a
-dedicated spec under [`docs/epics/`](./epics/).
+Status: **Phase 1 + Phase 2 complete** on `main` (epics 01–15). Furniture,
+stairs, PNG/SVG/glTF export, CI/Playwright, and `@sandbox/editor-core` are
+landed. Each epic has a dedicated spec under [`docs/epics/`](./epics/).
 
-Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) where noted;
-Phase 2 also owns `libs/editor-core` (Epic 15) and CI (Epic 14).
+Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
+`libs/editor-core` (Epic 15) and CI (Epic 14).
 
 ## 1. Goals
 
@@ -61,10 +60,10 @@ Phase 2 also owns `libs/editor-core` (Epic 15) and CI (Epic 14).
   `UiShapeIcon`, `UiTextureSwatch`, `UiThemeSwitcher`), helpers/utils,
   two-layer tokens, Storybook autodocs. **No in-app docs page.**
 - **Storage**: none. Scene lives only in memory for the session.
-- **CI / E2E**: none yet (Phase 2 Epic 14).
+- **CI / E2E**: GitHub Actions + Playwright smoke + coverage gates (Epic 14).
 
-Phase 1 epics describe the path from this audit to the architecture
-below; Phase 2 assumes Phase 1 is implemented when those branches start.
+Section 2 is the **pre-Phase-1 audit** snapshot. Phases 1–2 closed the
+gaps above; see epic specs for what shipped.
 
 ## 3. Product decisions (locked)
 
