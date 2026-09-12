@@ -1,6 +1,6 @@
 # Epic 10 — Camera modes and floors
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/10-camera-floors`  
 Depends on: Epic 07  
 Owners: `apps/editor`
@@ -94,11 +94,11 @@ in IndexedDB.
 
 ## 7. Definition of Done
 
-- [ ] Two floors with different rooms persist and switch correctly
-- [ ] Walk mode stays on floor and is blocked by walls (basic)
-- [ ] Orbit and top modes remain usable for editing
-- [ ] Snapshot schema includes `floors`; migration from prior version
-- [ ] Green lint / typecheck / test / build
+- [x] Two floors with different rooms persist and switch correctly
+- [x] Walk mode stays on floor and is blocked by walls (basic)
+- [x] Orbit and top modes remain usable for editing
+- [x] Snapshot schema includes `floors`; migration from prior version
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

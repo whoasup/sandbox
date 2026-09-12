@@ -1,21 +1,29 @@
 import { createId } from '@sandbox/ui-kit';
-import { CURRENT_SCHEMA_VERSION, type ProjectRecord } from './ProjectStore';
-import { createEmptySnapshot, migrateProjectRecord } from './migrations';
+import { CURRENT_SCHEMA_VERSION, type FloorRecord, type ProjectRecord } from './ProjectStore';
+import { createDefaultFloor, createEmptySnapshot, migrateProjectRecord } from './migrations';
 
 /** Portable JSON shape (id is reassigned on import). */
 export interface ProjectExportPayload {
   name: string;
   schemaVersion: number;
-  snapshot: ProjectRecord['snapshot'];
+  floors: FloorRecord[];
+  activeFloorId?: string;
 }
 
-export function createProjectRecord(name: string, snapshot = createEmptySnapshot()): ProjectRecord {
+export function createProjectRecord(
+  name: string,
+  snapshotOrFloors?: ReturnType<typeof createEmptySnapshot> | FloorRecord[],
+): ProjectRecord {
+  const floors = Array.isArray(snapshotOrFloors)
+    ? snapshotOrFloors
+    : [createDefaultFloor(snapshotOrFloors ?? createEmptySnapshot(), 1)];
   return {
     id: createId('project'),
     name: name.trim() || 'Без названия',
     updatedAt: Date.now(),
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    snapshot,
+    floors,
+    activeFloorId: floors[0]?.id,
   };
 }
 
@@ -23,7 +31,8 @@ export function serializeProject(record: ProjectRecord): string {
   const payload: ProjectExportPayload = {
     name: record.name,
     schemaVersion: record.schemaVersion,
-    snapshot: record.snapshot,
+    floors: record.floors,
+    activeFloorId: record.activeFloorId,
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
 }
@@ -54,4 +63,9 @@ export function downloadProjectJson(record: ProjectRecord): void {
   anchor.download = `${safeName}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+export function getActiveFloor(record: ProjectRecord): FloorRecord {
+  const id = record.activeFloorId;
+  return record.floors.find((f) => f.id === id) ?? record.floors[0]!;
 }

@@ -14,8 +14,12 @@ import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRendere
 import { ThreeMeshFactory } from './ThreeMeshFactory';
 import { ThreeRoomFloorMesh } from './ThreeRoomFloorMesh';
 import { ThreeWallMesh } from './ThreeWallMesh';
+import { resolveWalkMove } from './camera/walkCollision';
 
 const DEFAULT_CAMERA_POSITION = new THREE.Vector3(6, 6, 8);
+const EYE_HEIGHT = 1.6;
+
+export type CameraMode = 'orbit' | 'top' | 'walk';
 
 /**
  * OOP wrapper around a three.js scene graph: owns the renderer, camera,
@@ -41,6 +45,16 @@ export class ThreeRenderer implements ISceneRenderer {
   private selectionHelper: THREE.BoxHelper | null = null;
   private dragging: { type: 'shape'; id: string } | { type: 'wall'; id: string } | null = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
+  private latestWalls: readonly WallObject[] = [];
+  private cameraMode: CameraMode = 'orbit';
+  private floorElevation = 0;
+  private showCeiling = false;
+  private ceilingMesh: THREE.Mesh | null = null;
+  private belowFloorGroup: THREE.Group | null = null;
+  private readonly keysDown = new Set<string>();
+  private walkYaw = 0;
+  private walkPitch = 0;
+  private pointerLocked = false;
 
   private gridHelper: THREE.GridHelper | null = null;
   private ground: THREE.Mesh | null = null;
@@ -57,6 +71,87 @@ export class ThreeRenderer implements ISceneRenderer {
     this.applyEnvironment(this.latestSettings);
   }
 
+  public setCameraMode(mode: CameraMode): void {
+    this.cameraMode = mode;
+    if (mode === 'orbit') {
+      this.exitPointerLock();
+      this.controls.enabled = true;
+      this.controls.enableRotate = true;
+      this.camera.position.copy(DEFAULT_CAMERA_POSITION);
+      this.camera.lookAt(0, this.floorElevation, 0);
+      this.controls.target.set(0, this.floorElevation, 0);
+    } else if (mode === 'top') {
+      this.exitPointerLock();
+      this.controls.enabled = true;
+      this.controls.enableRotate = false;
+      this.camera.position.set(0, this.floorElevation + 18, 0.01);
+      this.controls.target.set(0, this.floorElevation, 0);
+      this.camera.lookAt(0, this.floorElevation, 0);
+    } else {
+      this.controls.enabled = false;
+      this.camera.position.set(0, this.floorElevation + EYE_HEIGHT, 4);
+      this.walkYaw = 0;
+      this.walkPitch = 0;
+      this.applyWalkLook();
+    }
+  }
+
+  public setFloorElevation(elevation: number): void {
+    this.floorElevation = elevation;
+    this.dragPlane.constant = -elevation;
+  }
+
+  public setShowCeiling(show: boolean): void {
+    this.showCeiling = show;
+    this.syncCeiling();
+  }
+
+  public setBelowFloor(
+    walls: readonly WallObject[],
+    rooms: readonly Room[],
+    openings: readonly Opening[],
+  ): void {
+    if (this.belowFloorGroup) {
+      this.scene.remove(this.belowFloorGroup);
+      this.belowFloorGroup.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose();
+          if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
+          else (obj.material as THREE.Material).dispose();
+        }
+      });
+      this.belowFloorGroup = null;
+    }
+    if (walls.length === 0 && rooms.length === 0) return;
+
+    const group = new THREE.Group();
+    group.position.y = -3;
+    for (const room of rooms) {
+      const mesh = new ThreeRoomFloorMesh(room);
+      const mat = mesh.mesh.material as THREE.MeshStandardMaterial;
+      mat.transparent = true;
+      mat.opacity = 0.35;
+      group.add(mesh.mesh);
+    }
+    for (const wall of walls) {
+      const view = new ThreeWallMesh(wall);
+      view.update(
+        wall,
+        openings.filter((o) => o.wallId === wall.id),
+      );
+      view.mesh.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          const mat = obj.material as THREE.MeshStandardMaterial;
+          mat.transparent = true;
+          mat.opacity = 0.35;
+        }
+      });
+      group.add(view.mesh);
+    }
+    this.belowFloorGroup = group;
+    this.scene.add(group);
+  }
+
   public mount(container: HTMLElement): void {
     if (this.container) {
       throw new Error('ThreeRenderer is already mounted; call dispose() before mounting again.');
@@ -70,6 +165,10 @@ export class ThreeRenderer implements ISceneRenderer {
     this.renderer.domElement.addEventListener('pointermove', this.handlePointerMove);
     this.renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
     this.renderer.domElement.addEventListener('pointerleave', this.handlePointerUp);
+    window.addEventListener('keydown', this.handleKeyDown);
+    window.addEventListener('keyup', this.handleKeyUp);
+    document.addEventListener('pointerlockchange', this.handlePointerLockChange);
+    this.renderer.domElement.addEventListener('mousemove', this.handleMouseLook);
 
     this.resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -89,10 +188,12 @@ export class ThreeRenderer implements ISceneRenderer {
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
+    this.latestWalls = walls;
     this.applyEnvironment(settings);
     this.syncRooms(rooms);
     this.syncShapes(objects);
     this.syncWalls(walls, openings);
+    this.syncCeiling();
     this.updateSelection(selection);
   }
 
@@ -103,6 +204,18 @@ export class ThreeRenderer implements ISceneRenderer {
     this.renderer.domElement.removeEventListener('pointermove', this.handlePointerMove);
     this.renderer.domElement.removeEventListener('pointerup', this.handlePointerUp);
     this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerUp);
+    window.removeEventListener('keydown', this.handleKeyDown);
+    window.removeEventListener('keyup', this.handleKeyUp);
+    document.removeEventListener('pointerlockchange', this.handlePointerLockChange);
+    this.renderer.domElement.removeEventListener('mousemove', this.handleMouseLook);
+    this.exitPointerLock();
+    this.setBelowFloor([], [], []);
+    if (this.ceilingMesh) {
+      this.scene.remove(this.ceilingMesh);
+      this.ceilingMesh.geometry.dispose();
+      (this.ceilingMesh.material as THREE.Material).dispose();
+      this.ceilingMesh = null;
+    }
 
     for (const mesh of this.meshes.values()) {
       mesh.geometry.dispose();
@@ -285,13 +398,95 @@ export class ThreeRenderer implements ISceneRenderer {
   }
 
   private startLoop(): void {
+    const clock = new THREE.Clock();
     const tick = () => {
-      this.controls.update();
+      const dt = Math.min(clock.getDelta(), 0.05);
+      if (this.cameraMode === 'walk') this.updateWalk(dt);
+      else this.controls.update();
       this.renderer.render(this.scene, this.camera);
       this.frameHandle = requestAnimationFrame(tick);
     };
     tick();
   }
+
+  private syncCeiling(): void {
+    if (this.ceilingMesh) {
+      this.scene.remove(this.ceilingMesh);
+      this.ceilingMesh.geometry.dispose();
+      (this.ceilingMesh.material as THREE.Material).dispose();
+      this.ceilingMesh = null;
+    }
+    if (!this.showCeiling) return;
+    const { width, depth } = this.latestSettings.field;
+    const geo = new THREE.PlaneGeometry(width, depth);
+    const mat = new THREE.MeshStandardMaterial({
+      color: '#e8e4dc',
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide,
+    });
+    this.ceilingMesh = new THREE.Mesh(geo, mat);
+    this.ceilingMesh.rotation.x = Math.PI / 2;
+    this.ceilingMesh.position.y = this.floorElevation + 2.5;
+    this.scene.add(this.ceilingMesh);
+  }
+
+  private updateWalk(dt: number): void {
+    const speed =
+      (this.keysDown.has('ShiftLeft') || this.keysDown.has('ShiftRight') ? 4.5 : 2.4) * dt;
+    let forward = 0;
+    let strafe = 0;
+    if (this.keysDown.has('KeyW') || this.keysDown.has('ArrowUp')) forward += 1;
+    if (this.keysDown.has('KeyS') || this.keysDown.has('ArrowDown')) forward -= 1;
+    if (this.keysDown.has('KeyA') || this.keysDown.has('ArrowLeft')) strafe -= 1;
+    if (this.keysDown.has('KeyD') || this.keysDown.has('ArrowRight')) strafe += 1;
+    if (forward !== 0 || strafe !== 0) {
+      const sin = Math.sin(this.walkYaw);
+      const cos = Math.cos(this.walkYaw);
+      const dx = (forward * sin + strafe * cos) * speed;
+      const dz = (forward * cos - strafe * sin) * speed;
+      const from = { x: this.camera.position.x, z: this.camera.position.z };
+      const to = { x: from.x + dx, z: from.z + dz };
+      const resolved = resolveWalkMove(from, to, this.latestWalls);
+      this.camera.position.x = resolved.x;
+      this.camera.position.z = resolved.z;
+    }
+    this.camera.position.y = this.floorElevation + EYE_HEIGHT;
+  }
+
+  private applyWalkLook(): void {
+    const euler = new THREE.Euler(this.walkPitch, this.walkYaw, 0, 'YXZ');
+    this.camera.quaternion.setFromEuler(euler);
+  }
+
+  private exitPointerLock(): void {
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.pointerLocked = false;
+  }
+
+  private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    this.keysDown.add(event.code);
+    if (event.key === 'Escape' && this.cameraMode === 'walk') {
+      this.setCameraMode('orbit');
+      this.interactions.onCameraModeChange?.('orbit');
+    }
+  };
+
+  private readonly handleKeyUp = (event: KeyboardEvent): void => {
+    this.keysDown.delete(event.code);
+  };
+
+  private readonly handlePointerLockChange = (): void => {
+    this.pointerLocked = document.pointerLockElement === this.renderer.domElement;
+  };
+
+  private readonly handleMouseLook = (event: MouseEvent): void => {
+    if (this.cameraMode !== 'walk' || !this.pointerLocked) return;
+    this.walkYaw -= event.movementX * 0.0025;
+    this.walkPitch -= event.movementY * 0.0025;
+    this.walkPitch = Math.max(-1.2, Math.min(1.2, this.walkPitch));
+    this.applyWalkLook();
+  };
 
   private updateSelection(selection: SelectionRef): void {
     if (this.selectionHelper) {
@@ -345,6 +540,10 @@ export class ThreeRenderer implements ISceneRenderer {
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
+    if (this.cameraMode === 'walk') {
+      this.renderer.domElement.requestPointerLock();
+      return;
+    }
     this.updatePointer(event);
     const selection = this.pickSelection();
     this.interactions.onSelect?.(selection);

@@ -3,6 +3,13 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { ThreeRenderer } from '../core/render/three';
 import { useEditorDocument } from '../composables/useEditorDocument';
 
+const props = defineProps<{
+  floorElevation?: number;
+  belowWalls?: unknown;
+  belowRooms?: unknown;
+  belowOpenings?: unknown;
+}>();
+
 const {
   objects,
   walls,
@@ -10,6 +17,8 @@ const {
   openings,
   selection,
   settings,
+  cameraMode,
+  showCeiling,
   selectEntity,
   moveShape,
   moveWall,
@@ -27,9 +36,15 @@ onMounted(() => {
     onMoveWall: (id, x, z) => moveWall(id, x, z),
     onMoveGestureStart: () => beginMoveGesture(),
     onMoveGestureEnd: () => endMoveGesture(),
+    onCameraModeChange: (mode) => {
+      cameraMode.value = mode;
+    },
   });
   if (containerRef.value) {
     renderer.mount(containerRef.value);
+    renderer.setFloorElevation(props.floorElevation ?? 0);
+    renderer.setShowCeiling(showCeiling.value);
+    renderer.setCameraMode(cameraMode.value);
     renderer.render(
       objects.value,
       walls.value,
@@ -51,6 +66,33 @@ watch([objects, walls, rooms, openings, selection, settings], () => {
     settings.value,
   );
 });
+
+watch(cameraMode, (mode) => {
+  renderer?.setCameraMode(mode);
+});
+
+watch(showCeiling, (show) => {
+  renderer?.setShowCeiling(show);
+});
+
+watch(
+  () => props.floorElevation,
+  (elevation) => {
+    renderer?.setFloorElevation(elevation ?? 0);
+  },
+);
+
+watch(
+  () => [props.belowWalls, props.belowRooms, props.belowOpenings] as const,
+  () => {
+    renderer?.setBelowFloor(
+      (props.belowWalls as never) ?? [],
+      (props.belowRooms as never) ?? [],
+      (props.belowOpenings as never) ?? [],
+    );
+  },
+  { deep: true },
+);
 
 onUnmounted(() => {
   renderer?.dispose();

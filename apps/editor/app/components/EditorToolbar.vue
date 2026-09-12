@@ -21,6 +21,8 @@ const props = withDefaults(
 
 const {
   mode,
+  cameraMode,
+  showCeiling,
   tool,
   wallDefaults,
   activeSurface,
@@ -41,6 +43,12 @@ const modeOptions = [
   { value: '3d' as const, label: '3D' },
 ];
 
+const cameraOptions = [
+  { value: 'orbit' as const, label: 'Орбита' },
+  { value: 'top' as const, label: 'Сверху' },
+  { value: 'walk' as const, label: 'Ходьба' },
+];
+
 const toolOptions = [
   { value: 'select' as const, label: 'Выбор' },
   { value: 'wall' as const, label: 'Стена' },
@@ -50,6 +58,7 @@ const toolOptions = [
 
 const hasSelection = computed(() => selection.value !== null);
 const showWallDefaults = computed(() => tool.value === 'wall' && mode.value === '2d');
+const showCamera = computed(() => mode.value === '3d');
 
 function onColorInput(event: Event): void {
   const value = (event.target as HTMLInputElement).value;
@@ -62,6 +71,10 @@ function onWallHeightInput(event: Event): void {
 
 function onWallThicknessInput(event: Event): void {
   wallDefaults.thickness = Math.max(0.05, Number((event.target as HTMLInputElement).value) || 0.2);
+}
+
+function toggleCeiling(): void {
+  showCeiling.value = !showCeiling.value;
 }
 </script>
 
@@ -79,7 +92,16 @@ function onWallThicknessInput(event: Event): void {
       <slot name="status" />
       <div class="flex flex-wrap items-center gap-3">
         <UiToggleGroup v-model="mode" :options="modeOptions" />
+        <UiToggleGroup v-if="showCamera" v-model="cameraMode" :options="cameraOptions" />
         <UiToggleGroup v-model="tool" :options="toolOptions" />
+        <UiButton
+          v-if="showCamera"
+          size="sm"
+          :variant="showCeiling ? 'primary' : 'secondary'"
+          @click="toggleCeiling"
+        >
+          Потолок
+        </UiButton>
       </div>
     </div>
 
