@@ -32,6 +32,7 @@ const {
   showCeiling,
   rooms,
   document: sceneDocument,
+  clearHistory,
 } = createEditorDocumentContext();
 useEditorHotkeys();
 
@@ -76,6 +77,9 @@ function applyProjectRecord(record: ProjectRecord): void {
   floorElevation.value = floor.elevation;
   showCeiling.value = floor.showCeiling === true;
   sceneDocument.fromSnapshot(floor.snapshot);
+  // Floor switches replace the document; undo stacks from another floor
+  // must not rewrite the active floor.
+  clearHistory();
   refreshBelowFloor();
 }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import {
   SHAPE_CATALOG,
   TEXTURE_LIST,
@@ -59,6 +59,13 @@ const toolOptions = [
 const hasSelection = computed(() => selection.value !== null);
 const showWallDefaults = computed(() => tool.value === 'wall' && mode.value === '2d');
 const showCamera = computed(() => mode.value === '3d');
+
+/** Draw tools only work in the 2D plan — switch automatically. */
+watch(tool, (next) => {
+  if (next === 'wall' || next === 'door' || next === 'window') {
+    mode.value = '2d';
+  }
+});
 
 function onColorInput(event: Event): void {
   const value = (event.target as HTMLInputElement).value;

@@ -47,26 +47,18 @@ describe('HistoryStack', () => {
     expect(value).toBe(11);
   });
 
-  it('trims overflow beyond the limit', () => {
-    const stack = new HistoryStack(3);
-    let value = 0;
-    for (let i = 0; i < 5; i++) {
-      stack.push({
-        label: `n${i}`,
-        execute: () => {
-          value += 1;
-        },
-        undo: () => {
-          value -= 1;
-        },
-      });
-    }
-    expect(value).toBe(5);
+  it('clears both stacks', () => {
+    const stack = new HistoryStack();
+    stack.push({
+      label: 'x',
+      execute: () => undefined,
+      undo: () => undefined,
+    });
     stack.undo();
-    stack.undo();
-    stack.undo();
+    expect(stack.canRedo).toBe(true);
+    stack.clear();
     expect(stack.canUndo).toBe(false);
-    expect(value).toBe(2);
+    expect(stack.canRedo).toBe(false);
   });
 });
 

@@ -76,6 +76,7 @@ export interface EditorDocumentContext {
   snapPoint: (point: Point2, angleFrom?: Point2 | null) => Point2;
   undo: () => void;
   redo: () => void;
+  clearHistory: () => void;
   nudgeSelected: (dx: number, dz: number) => void;
   copySelected: () => void;
   pasteClipboard: () => void;
@@ -319,6 +320,10 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     },
     redo() {
       history.redo();
+      bumpHistory();
+    },
+    clearHistory() {
+      history.clear();
       bumpHistory();
     },
     nudgeSelected(dx, dz) {
