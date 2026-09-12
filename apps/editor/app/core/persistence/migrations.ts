@@ -136,42 +136,14 @@ export function createEmptySnapshot(): SceneSnapshot {
   };
 }
 
-/**
- * Normalize a raw record (or partial import) up to the current schema.
- * v0→v1: ensure settings exist. v1→v2: ensure walls array.
- * v2→v3: ensure rooms array (revalidated on document load).
- * v3→v4: ensure openings array.
- */
-export function migrateProjectRecord(raw: unknown): ProjectRecord {
-  if (!isRecord(raw)) {
-    throw new Error('Invalid project record');
-  }
-
-  const id = typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : null;
-  const name = typeof raw.name === 'string' && raw.name.trim().length > 0 ? raw.name.trim() : null;
-  if (!id || !name) {
-    throw new Error('Project record requires id and name');
-  }
-
-  const schemaVersion =
-    typeof raw.schemaVersion === 'number' && Number.isFinite(raw.schemaVersion)
-      ? raw.schemaVersion
-      : 0;
-
-  if (schemaVersion > CURRENT_SCHEMA_VERSION) {
-    throw new Error(`Unsupported schemaVersion ${schemaVersion} (max ${CURRENT_SCHEMA_VERSION})`);
-  }
-
-  const snapshotRaw = isRecord(raw.snapshot) ? raw.snapshot : {};
+function parseSceneSnapshot(raw: unknown): SceneSnapshot {
+  const snapshotRaw = isRecord(raw) ? raw : {};
   const objects = Array.isArray(snapshotRaw.objects) ? snapshotRaw.objects : [];
-  // v1 → v2: projects without walls get an empty array.
   const wallsRaw = Array.isArray(snapshotRaw.walls) ? snapshotRaw.walls : [];
-  // v2 → v3: projects without rooms get an empty array.
   const roomsRaw = Array.isArray(snapshotRaw.rooms) ? snapshotRaw.rooms : [];
-  // v3 → v4: projects without openings get an empty array.
   const openingsRaw = Array.isArray(snapshotRaw.openings) ? snapshotRaw.openings : [];
 
-  const snapshot: SceneSnapshot = {
+  return {
     objects: objects
       .filter(isRecord)
       .filter((object) => typeof object.kind === 'string' && ShapeFactory.supports(object.kind))
@@ -199,6 +171,73 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
       .filter((opening): opening is OpeningSnapshot => opening !== null),
     settings: ensureSettings(snapshotRaw.settings),
   };
+}
+
+export function createDefaultFloor(snapshot = createEmptySnapshot(), index = 1) {
+  return {
+    id: createId('floor'),
+    name: `Этаж ${index}`,
+    elevation: (index - 1) * 3,
+    snapshot,
+    showCeiling: false,
+  };
+}
+
+/**
+ * Normalize a raw record (or partial import) up to the current schema.
+ * v0→v1: ensure settings exist. v1→v2: ensure walls array.
+ * v2→v3: ensure rooms array. v3→v4: ensure openings array.
+ * v4→v5: wrap flat snapshot into floors[].
+ */
+export function migrateProjectRecord(raw: unknown): ProjectRecord {
+  if (!isRecord(raw)) {
+    throw new Error('Invalid project record');
+  }
+
+  const id = typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : null;
+  const name = typeof raw.name === 'string' && raw.name.trim().length > 0 ? raw.name.trim() : null;
+  if (!id || !name) {
+    throw new Error('Project record requires id and name');
+  }
+
+  const schemaVersion =
+    typeof raw.schemaVersion === 'number' && Number.isFinite(raw.schemaVersion)
+      ? raw.schemaVersion
+      : 0;
+
+  if (schemaVersion > CURRENT_SCHEMA_VERSION) {
+    throw new Error(`Unsupported schemaVersion ${schemaVersion} (max ${CURRENT_SCHEMA_VERSION})`);
+  }
+
+  let floors: ProjectRecord['floors'];
+
+  if (Array.isArray(raw.floors) && raw.floors.length > 0) {
+    floors = raw.floors.filter(isRecord).map((floor, index) => ({
+      id: typeof floor.id === 'string' && floor.id ? floor.id : createId('floor'),
+      name:
+        typeof floor.name === 'string' && floor.name.trim()
+          ? floor.name.trim()
+          : `Этаж ${index + 1}`,
+      elevation:
+        typeof floor.elevation === 'number' && Number.isFinite(floor.elevation)
+          ? floor.elevation
+          : index * 3,
+      snapshot: parseSceneSnapshot(floor.snapshot),
+      showCeiling: floor.showCeiling === true,
+    }));
+  } else {
+    // Legacy flat snapshot → single floor.
+    floors = [createDefaultFloor(parseSceneSnapshot(raw.snapshot), 1)];
+  }
+
+  if (floors.length === 0) {
+    floors = [createDefaultFloor()];
+  }
+
+  const activeFloorId =
+    typeof raw.activeFloorId === 'string' && floors.some((f) => f.id === raw.activeFloorId)
+      ? raw.activeFloorId
+      : floors[0]!.id;
 
   return {
     id,
@@ -208,6 +247,7 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
         ? raw.updatedAt
         : Date.now(),
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    snapshot,
+    floors,
+    activeFloorId,
   };
 }

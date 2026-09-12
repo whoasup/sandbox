@@ -138,8 +138,9 @@ async function onImportFile(event: Event): Promise<void> {
           <div>
             <UiText weight="bold" as="p">{{ project.name }}</UiText>
             <UiText size="sm" tone="muted" as="p" class="mt-1">
-              {{ formatRelativeUpdatedAt(project.updatedAt) }} ·
-              {{ project.snapshot.objects.length }} объектов
+              {{ formatRelativeUpdatedAt(project.updatedAt) }} · {{ project.floors.length }} эт. ·
+              {{ project.floors.reduce((sum, floor) => sum + floor.snapshot.objects.length, 0) }}
+              объектов
             </UiText>
           </div>
           <div class="flex flex-wrap gap-2">

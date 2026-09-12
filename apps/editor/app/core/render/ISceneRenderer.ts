@@ -39,6 +39,7 @@ export interface RendererInteractionEvents {
   onMoveGestureEnd?: () => void;
   /** Live wall-draft length in meters (null when not drawing). */
   onWallDraftLength?: (length: number | null) => void;
+  onCameraModeChange?: (mode: 'orbit' | 'top' | 'walk') => void;
 }
 
 export interface RendererToolState {

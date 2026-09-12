@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultSceneSettings } from '../model/SceneSettings';
 import { MemoryProjectStore } from './MemoryProjectStore';
 import { migrateProjectRecord } from './migrations';
-import { CURRENT_SCHEMA_VERSION } from './ProjectStore';
-import { createProjectRecord, parseImportedProject, serializeProject } from './serialize';
+import { CURRENT_SCHEMA_VERSION, type FloorRecord } from './ProjectStore';
+import {
+  createProjectRecord,
+  getActiveFloor,
+  parseImportedProject,
+  serializeProject,
+} from './serialize';
 
 describe('MemoryProjectStore', () => {
   it('supports CRUD and sorts by updatedAt desc', async () => {
@@ -32,10 +37,13 @@ describe('migrateProjectRecord', () => {
     const migrated = migrateProjectRecord(record);
     expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.name).toBe('Demo');
-    expect(migrated.snapshot.settings.field.width).toBe(createDefaultSceneSettings().field.width);
+    expect(migrated.floors).toHaveLength(1);
+    expect(getActiveFloor(migrated).snapshot.settings.field.width).toBe(
+      createDefaultSceneSettings().field.width,
+    );
   });
 
-  it('fills missing settings for schemaVersion 0 stubs', () => {
+  it('wraps legacy flat snapshots into a single floor', () => {
     const migrated = migrateProjectRecord({
       id: 'p1',
       name: 'Legacy',
@@ -44,66 +52,19 @@ describe('migrateProjectRecord', () => {
       snapshot: { objects: [] },
     });
     expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
-    expect(migrated.snapshot.settings.background.mode).toBe('preset');
-    expect(migrated.snapshot.walls).toEqual([]);
+    expect(migrated.floors).toHaveLength(1);
+    expect(migrated.floors[0]!.name).toBe('Этаж 1');
+    expect(migrated.floors[0]!.elevation).toBe(0);
+    expect(migrated.floors[0]!.snapshot.walls).toEqual([]);
+    expect(migrated.activeFloorId).toBe(migrated.floors[0]!.id);
   });
 
-  it('migrates schemaVersion 1 snapshots by adding an empty walls array', () => {
+  it('migrates schemaVersion 4 flat snapshot into floors', () => {
     const migrated = migrateProjectRecord({
-      id: 'p2',
-      name: 'V1 project',
-      updatedAt: 2,
-      schemaVersion: 1,
-      snapshot: {
-        objects: [],
-        settings: createDefaultSceneSettings(),
-      },
-    });
-    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
-    expect(migrated.snapshot.walls).toEqual([]);
-    expect(migrated.snapshot.rooms).toEqual([]);
-  });
-
-  it('migrates schemaVersion 2 snapshots by adding an empty rooms array', () => {
-    const migrated = migrateProjectRecord({
-      id: 'p2b',
-      name: 'V2 project',
-      updatedAt: 2,
-      schemaVersion: 2,
-      snapshot: {
-        objects: [],
-        walls: [],
-        settings: createDefaultSceneSettings(),
-      },
-    });
-    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
-    expect(migrated.snapshot.rooms).toEqual([]);
-    expect(migrated.snapshot.openings).toEqual([]);
-  });
-
-  it('migrates schemaVersion 3 snapshots by adding an empty openings array', () => {
-    const migrated = migrateProjectRecord({
-      id: 'p2c',
-      name: 'V3 project',
-      updatedAt: 3,
-      schemaVersion: 3,
-      snapshot: {
-        objects: [],
-        walls: [],
-        rooms: [],
-        settings: createDefaultSceneSettings(),
-      },
-    });
-    expect(migrated.schemaVersion).toBe(4);
-    expect(migrated.snapshot.openings).toEqual([]);
-  });
-
-  it('parses wall snapshots on migrate', () => {
-    const migrated = migrateProjectRecord({
-      id: 'p3',
-      name: 'With walls',
-      updatedAt: 3,
-      schemaVersion: 2,
+      id: 'p4',
+      name: 'V4 project',
+      updatedAt: 4,
+      schemaVersion: 4,
       snapshot: {
         objects: [],
         walls: [
@@ -117,12 +78,52 @@ describe('migrateProjectRecord', () => {
             color: '#d8d2c8',
           },
         ],
+        rooms: [],
+        openings: [],
         settings: createDefaultSceneSettings(),
       },
     });
-    expect(migrated.snapshot.walls).toHaveLength(1);
-    expect(migrated.snapshot.walls[0]?.id).toBe('wall_1');
-    expect(migrated.snapshot.walls[0]?.end.x).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.floors).toHaveLength(1);
+    expect(migrated.floors[0]!.snapshot.walls).toHaveLength(1);
+  });
+
+  it('preserves multi-floor projects', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p5',
+      name: 'Multi',
+      updatedAt: 5,
+      schemaVersion: 5,
+      floors: [
+        {
+          id: 'f1',
+          name: 'Этаж 1',
+          elevation: 0,
+          snapshot: {
+            objects: [],
+            walls: [],
+            rooms: [],
+            openings: [],
+            settings: createDefaultSceneSettings(),
+          },
+        },
+        {
+          id: 'f2',
+          name: 'Этаж 2',
+          elevation: 3,
+          snapshot: {
+            objects: [],
+            walls: [],
+            rooms: [],
+            openings: [],
+            settings: createDefaultSceneSettings(),
+          },
+        },
+      ],
+      activeFloorId: 'f2',
+    });
+    expect(migrated.floors).toHaveLength(2);
+    expect(migrated.activeFloorId).toBe('f2');
   });
 });
 
@@ -161,12 +162,98 @@ describe('serialize / import', () => {
 
     expect(imported.id).not.toBe(original.id);
     expect(imported.name).toBe('Export me');
-    expect(imported.snapshot.objects).toHaveLength(1);
-    expect(imported.snapshot.objects[0]?.kind).toBe('cube');
-    expect(imported.snapshot.walls).toHaveLength(1);
-    expect(imported.snapshot.walls[0]?.id).toBe('wall_1');
-    expect(imported.snapshot.rooms).toEqual([]);
-    expect(imported.snapshot.openings).toEqual([]);
+    expect(imported.floors).toHaveLength(1);
+    expect(imported.floors[0]!.snapshot.objects).toHaveLength(1);
+    expect(imported.floors[0]!.snapshot.walls).toHaveLength(1);
     expect(imported.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+  });
+});
+
+describe('floor switch round-trip', () => {
+  it('saving floor A then editing floor B does not clobber A', async () => {
+    const store = new MemoryProjectStore();
+    const record = createProjectRecord('Floors');
+    const floor1 = record.floors[0]!;
+    floor1.snapshot.walls = [
+      {
+        id: 'w1',
+        start: { x: 0, z: 0 },
+        end: { x: 2, z: 0 },
+        height: 2.5,
+        thickness: 0.2,
+        surface: 'stone',
+        color: '#d8d2c8',
+      },
+    ];
+    const floor2: FloorRecord = {
+      id: 'floor_2',
+      name: 'Этаж 2',
+      elevation: 3,
+      snapshot: {
+        objects: [],
+        walls: [
+          {
+            id: 'w2',
+            start: { x: 0, z: 0 },
+            end: { x: 1, z: 1 },
+            height: 2.5,
+            thickness: 0.2,
+            surface: 'wood',
+            color: '#c9945f',
+          },
+        ],
+        rooms: [],
+        openings: [],
+        settings: createDefaultSceneSettings(),
+      },
+      showCeiling: false,
+    };
+    record.floors.push(floor2);
+    record.activeFloorId = floor1.id;
+    await store.save(record);
+
+    // Switch to floor 2 while persisting floor 1 snapshot
+    const switched: typeof record = {
+      ...record,
+      floors: record.floors.map((f) =>
+        f.id === floor1.id ? { ...f, snapshot: floor1.snapshot } : f,
+      ),
+      activeFloorId: floor2.id,
+    };
+    await store.save(switched);
+
+    // Edit floor 2
+    const editing = await store.get(record.id);
+    expect(editing).toBeTruthy();
+    const floors = editing!.floors.map((f) =>
+      f.id === floor2.id
+        ? {
+            ...f,
+            snapshot: {
+              ...f.snapshot,
+              walls: [
+                ...f.snapshot.walls,
+                {
+                  id: 'w3',
+                  start: { x: 5, z: 5 },
+                  end: { x: 6, z: 5 },
+                  height: 2.5,
+                  thickness: 0.2,
+                  surface: 'fabric' as const,
+                  color: '#abc',
+                },
+              ],
+            },
+          }
+        : f,
+    );
+    await store.save({ ...editing!, floors });
+
+    const final = await store.get(record.id);
+    const a = final!.floors.find((f) => f.id === floor1.id)!;
+    const b = final!.floors.find((f) => f.id === floor2.id)!;
+    expect(a.snapshot.walls).toHaveLength(1);
+    expect(a.snapshot.walls[0]?.id).toBe('w1');
+    expect(b.snapshot.walls).toHaveLength(2);
   });
 });

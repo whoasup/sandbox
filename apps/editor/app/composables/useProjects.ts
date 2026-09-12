@@ -1,9 +1,11 @@
 import { IndexedDbProjectStore } from '../core/persistence/IndexedDbProjectStore';
 import { MemoryProjectStore } from '../core/persistence/MemoryProjectStore';
-import type { ProjectRecord, ProjectStore } from '../core/persistence/ProjectStore';
+import type { FloorRecord, ProjectRecord, ProjectStore } from '../core/persistence/ProjectStore';
+import { createDefaultFloor } from '../core/persistence/migrations';
 import {
   createProjectRecord,
   downloadProjectJson,
+  getActiveFloor,
   parseImportedProject,
 } from '../core/persistence/serialize';
 import type { SceneSnapshot } from '../core/model/types';
@@ -67,17 +69,88 @@ export async function saveProjectSnapshot(
   id: string,
   snapshot: SceneSnapshot,
   name?: string,
+  floorId?: string,
+): Promise<ProjectRecord | null> {
+  const existing = await getProjectStore().get(id);
+  if (!existing) return null;
+  const targetFloorId = floorId ?? existing.activeFloorId ?? existing.floors[0]?.id;
+  const floors = existing.floors.map((floor) =>
+    floor.id === targetFloorId ? { ...floor, snapshot } : floor,
+  );
+  const next: ProjectRecord = {
+    ...existing,
+    name: name ?? existing.name,
+    updatedAt: Date.now(),
+    floors,
+    activeFloorId: targetFloorId,
+  };
+  await getProjectStore().save(next);
+  rememberLastProjectId(id);
+  return next;
+}
+
+export async function saveProjectRecord(record: ProjectRecord): Promise<ProjectRecord> {
+  const next = { ...record, updatedAt: Date.now() };
+  await getProjectStore().save(next);
+  rememberLastProjectId(next.id);
+  return next;
+}
+
+export async function addFloorToProject(id: string, name?: string): Promise<ProjectRecord | null> {
+  const existing = await getProjectStore().get(id);
+  if (!existing) return null;
+  const index = existing.floors.length + 1;
+  const floor = createDefaultFloor(undefined, index);
+  if (name) floor.name = name;
+  const next: ProjectRecord = {
+    ...existing,
+    floors: [...existing.floors, floor],
+    activeFloorId: floor.id,
+    updatedAt: Date.now(),
+  };
+  await getProjectStore().save(next);
+  return next;
+}
+
+export async function setActiveFloor(
+  id: string,
+  floorId: string,
+  currentSnapshot?: SceneSnapshot,
+): Promise<ProjectRecord | null> {
+  const existing = await getProjectStore().get(id);
+  if (!existing) return null;
+  if (!existing.floors.some((f) => f.id === floorId)) return existing;
+
+  let floors = existing.floors;
+  if (currentSnapshot && existing.activeFloorId) {
+    floors = floors.map((f) =>
+      f.id === existing.activeFloorId ? { ...f, snapshot: currentSnapshot } : f,
+    );
+  }
+
+  const next: ProjectRecord = {
+    ...existing,
+    floors,
+    activeFloorId: floorId,
+    updatedAt: Date.now(),
+  };
+  await getProjectStore().save(next);
+  return next;
+}
+
+export async function updateFloorMeta(
+  id: string,
+  floorId: string,
+  patch: Partial<Pick<FloorRecord, 'name' | 'showCeiling' | 'elevation'>>,
 ): Promise<ProjectRecord | null> {
   const existing = await getProjectStore().get(id);
   if (!existing) return null;
   const next: ProjectRecord = {
     ...existing,
-    name: name ?? existing.name,
+    floors: existing.floors.map((f) => (f.id === floorId ? { ...f, ...patch } : f)),
     updatedAt: Date.now(),
-    snapshot,
   };
   await getProjectStore().save(next);
-  rememberLastProjectId(id);
   return next;
 }
 
@@ -94,7 +167,14 @@ export async function renameProject(id: string, name: string): Promise<ProjectRe
 export async function duplicateProject(id: string): Promise<ProjectRecord | null> {
   const existing = await getProjectStore().get(id);
   if (!existing) return null;
-  const copy = createProjectRecord(`${existing.name} (копия)`, existing.snapshot);
+  const copy = createProjectRecord(
+    `${existing.name} (копия)`,
+    existing.floors.map((f) => ({
+      ...f,
+      id: `${f.id}_copy`,
+      snapshot: structuredClone(f.snapshot),
+    })),
+  );
   await getProjectStore().save(copy);
   return copy;
 }
@@ -116,6 +196,8 @@ export async function importProjectFromJson(json: string): Promise<ProjectRecord
   rememberLastProjectId(record.id);
   return record;
 }
+
+export { getActiveFloor };
 
 export function formatRelativeUpdatedAt(updatedAt: number, now = Date.now()): string {
   const delta = Math.max(0, now - updatedAt);

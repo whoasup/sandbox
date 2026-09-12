@@ -1,14 +1,25 @@
 import type { SceneSnapshot } from '../model/types';
 
 /** Bump when Epics 06+ change the persisted snapshot shape. */
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
+
+export interface FloorRecord {
+  id: string;
+  name: string;
+  /** Meters relative to ground. */
+  elevation: number;
+  snapshot: SceneSnapshot;
+  showCeiling?: boolean;
+}
 
 export interface ProjectRecord {
   id: string;
   name: string;
   updatedAt: number;
   schemaVersion: number;
-  snapshot: SceneSnapshot;
+  floors: FloorRecord[];
+  /** Preference for which floor the editor opens. */
+  activeFloorId?: string;
 }
 
 export interface ProjectStore {

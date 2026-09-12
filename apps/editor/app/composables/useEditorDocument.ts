@@ -11,8 +11,10 @@ import type { SceneSettings, SceneSettingsPatch } from '../core/model/SceneSetti
 import type { SceneSnapshot, SelectionRef } from '../core/model/types';
 import type { Point2, WallObject } from '../core/model/WallObject';
 import type { EditorTool } from '../core/render/ISceneRenderer';
+import type { CameraMode } from '../core/render/three/ThreeRenderer';
 
 export type EditorMode = '2d' | '3d';
+export type { CameraMode };
 
 const PLACEMENT_RADIUS = 2.2;
 
@@ -40,7 +42,9 @@ export interface EditorDocumentContext {
   selectedId: ShallowRef<string | null>;
   settings: ShallowRef<SceneSettings>;
   mode: ShallowRef<EditorMode>;
+  cameraMode: Ref<CameraMode>;
   tool: Ref<EditorTool>;
+  showCeiling: Ref<boolean>;
   wallDefaults: WallDefaults;
   activeSurface: ShallowRef<SurfaceKind>;
   activeColor: ShallowRef<string>;
@@ -100,6 +104,8 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const selectedId = shallowRef<string | null>(null);
   const settings = shallowRef<SceneSettings>(document.settings);
   const mode = shallowRef<EditorMode>('3d');
+  const cameraMode = ref<CameraMode>('orbit');
+  const showCeiling = ref(false);
   const tool = ref<EditorTool>('select');
   const wallDefaults = reactive<WallDefaults>({ height: 2.5, thickness: 0.2 });
   const activeSurface = shallowRef<SurfaceKind>('wood');
@@ -172,6 +178,8 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     selectedId,
     settings,
     mode,
+    cameraMode,
+    showCeiling,
     tool,
     wallDefaults,
     activeSurface,
