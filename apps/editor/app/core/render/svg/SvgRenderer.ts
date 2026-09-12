@@ -1,4 +1,5 @@
 import type { FurnitureObject } from '../../model/FurnitureObject';
+import type { StairObject } from '../../model/StairObject';
 import type { Opening } from '../../model/Opening';
 import type { Room } from '../../model/Room';
 import type { SceneObject } from '../../model/SceneObject';
@@ -11,6 +12,7 @@ import type { SelectionRef } from '../../model/types';
 import type { Point2, WallObject } from '../../model/WallObject';
 import type { EditorTool, ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { Svg2DFurnitureView } from './Svg2DFurnitureView';
+import { Svg2DStairView } from './Svg2DStairView';
 import { Svg2DRoomView } from './Svg2DRoomView';
 import { Svg2DShapeView } from './Svg2DShapeView';
 import { Svg2DWallView } from './Svg2DWallView';
@@ -33,10 +35,12 @@ export class SvgRenderer implements ISceneRenderer {
   private readonly roomsGroup: SVGGElement;
   private readonly shapesGroup: SVGGElement;
   private readonly furnitureGroup: SVGGElement;
+  private readonly stairsGroup: SVGGElement;
   private readonly wallsGroup: SVGGElement;
   private readonly overlayGroup: SVGGElement;
   private readonly shapeViews = new Map<string, Svg2DShapeView>();
   private readonly furnitureViews = new Map<string, Svg2DFurnitureView>();
+  private readonly stairViews = new Map<string, Svg2DStairView>();
   private readonly wallViews = new Map<string, Svg2DWallView>();
   private readonly roomViews = new Map<string, Svg2DRoomView>();
 
@@ -48,6 +52,7 @@ export class SvgRenderer implements ISceneRenderer {
     | { type: 'shape'; id: string }
     | { type: 'wall'; id: string }
     | { type: 'furniture'; id: string }
+    | { type: 'stair'; id: string }
     | null = null;
   private wallDraftStart: Point2 | null = null;
   private rubberBand: SVGLineElement | null = null;
@@ -58,6 +63,7 @@ export class SvgRenderer implements ISceneRenderer {
   private latestRooms: readonly Room[] = [];
   private latestOpenings: readonly Opening[] = [];
   private latestFurniture: readonly FurnitureObject[] = [];
+  private latestStairs: readonly StairObject[] = [];
   private latestSelection: SelectionRef = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -75,6 +81,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.wallsGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.shapesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.furnitureGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+    this.stairsGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.overlayGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.svg.append(
       this.fieldGroup,
@@ -84,6 +91,7 @@ export class SvgRenderer implements ISceneRenderer {
       this.wallsGroup,
       this.shapesGroup,
       this.furnitureGroup,
+      this.stairsGroup,
       this.overlayGroup,
     );
   }
@@ -92,7 +100,9 @@ export class SvgRenderer implements ISceneRenderer {
     this.tool = tool;
     if (tool !== 'wall') this.cancelWallDraft();
     this.svg.style.cursor =
-      tool === 'wall' || tool === 'door' || tool === 'window' ? 'crosshair' : '';
+      tool === 'wall' || tool === 'door' || tool === 'window' || tool === 'stair'
+        ? 'crosshair'
+        : '';
   }
 
   public mount(container: HTMLElement): void {
@@ -107,6 +117,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.svg.addEventListener('pointermove', this.handlePointerMove);
     this.svg.addEventListener('pointerup', this.handlePointerUp);
     this.svg.addEventListener('pointerleave', this.handlePointerUp);
+    this.svg.addEventListener('dblclick', this.handleDoubleClick);
     this.svg.addEventListener('keydown', this.handleKeyDown);
     this.svg.setAttribute('tabindex', '0');
 
@@ -124,6 +135,7 @@ export class SvgRenderer implements ISceneRenderer {
     rooms: readonly Room[],
     openings: readonly Opening[],
     furniture: readonly FurnitureObject[],
+    stairs: readonly StairObject[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
@@ -132,6 +144,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.latestRooms = rooms;
     this.latestOpenings = openings;
     this.latestFurniture = furniture;
+    this.latestStairs = stairs;
     this.latestSelection = selection;
     this.latestSettings = settings;
     this.svg.style.backgroundColor = resolveBackgroundColor(settings.background);
@@ -141,6 +154,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.syncRooms(rooms, selection);
     this.syncShapes(objects, selection);
     this.syncFurniture(furniture, selection);
+    this.syncStairs(stairs, selection);
     this.syncWalls(walls, openings, selection);
   }
 
@@ -151,8 +165,10 @@ export class SvgRenderer implements ISceneRenderer {
     this.svg.removeEventListener('pointerup', this.handlePointerUp);
     this.svg.removeEventListener('pointerleave', this.handlePointerUp);
     this.svg.removeEventListener('keydown', this.handleKeyDown);
+    this.svg.removeEventListener('dblclick', this.handleDoubleClick);
     this.shapeViews.clear();
     this.furnitureViews.clear();
+    this.stairViews.clear();
     this.wallViews.clear();
     this.roomViews.clear();
     this.cancelWallDraft();
@@ -244,6 +260,28 @@ export class SvgRenderer implements ISceneRenderer {
     }
   }
 
+  private syncStairs(stairs: readonly StairObject[], selection: SelectionRef): void {
+    const seen = new Set<string>();
+    const selectedId = selection?.type === 'stair' ? selection.id : null;
+
+    for (const stair of stairs) {
+      seen.add(stair.id);
+      let view = this.stairViews.get(stair.id);
+      if (!view) {
+        view = new Svg2DStairView(stair);
+        this.stairViews.set(stair.id, view);
+        this.stairsGroup.appendChild(view.group);
+      }
+      view.update(stair, PX_PER_UNIT, this.origin, stair.id === selectedId);
+    }
+
+    for (const [id, view] of this.stairViews) {
+      if (seen.has(id)) continue;
+      view.group.remove();
+      this.stairViews.delete(id);
+    }
+  }
+
   private syncRooms(rooms: readonly Room[], selection: SelectionRef): void {
     const seen = new Set<string>();
     const selectedRoomId = selection?.type === 'room' ? selection.id : null;
@@ -281,6 +319,7 @@ export class SvgRenderer implements ISceneRenderer {
       this.latestRooms,
       this.latestOpenings,
       this.latestFurniture,
+      this.latestStairs,
       this.latestSelection,
       this.latestSettings,
     );
@@ -364,11 +403,15 @@ export class SvgRenderer implements ISceneRenderer {
     this.axesGroup.appendChild(zAxis);
   }
 
-  private resolveSelectionFromEvent(event: PointerEvent): SelectionRef {
+  private resolveSelectionFromEvent(event: MouseEvent): SelectionRef {
     const target = event.target as Element | null;
     const openingGroup = target?.closest<SVGGElement>('[data-opening-id]');
     if (openingGroup?.dataset.openingId) {
       return { type: 'opening', id: openingGroup.dataset.openingId };
+    }
+    const stairGroup = target?.closest<SVGGElement>('[data-stair-id]');
+    if (stairGroup?.dataset.stairId) {
+      return { type: 'stair', id: stairGroup.dataset.stairId };
     }
     const furnitureGroup = target?.closest<SVGGElement>('[data-furniture-id]');
     if (furnitureGroup?.dataset.furnitureId) {
@@ -467,6 +510,12 @@ export class SvgRenderer implements ISceneRenderer {
       return;
     }
 
+    if (this.tool === 'stair') {
+      const point = this.snapWorld(this.eventToWorld(event));
+      this.interactions.onAddStair?.(point);
+      return;
+    }
+
     if (this.tool === 'wall') {
       const snapped = this.snapWorld(this.eventToWorld(event));
       if (!this.wallDraftStart) {
@@ -492,7 +541,10 @@ export class SvgRenderer implements ISceneRenderer {
     const selection = this.resolveSelectionFromEvent(event);
     this.interactions.onSelect?.(selection);
     this.dragging =
-      selection?.type === 'shape' || selection?.type === 'wall' || selection?.type === 'furniture'
+      selection?.type === 'shape' ||
+      selection?.type === 'wall' ||
+      selection?.type === 'furniture' ||
+      selection?.type === 'stair'
         ? selection
         : null;
     if (this.dragging) this.interactions.onMoveGestureStart?.();
@@ -521,13 +573,22 @@ export class SvgRenderer implements ISceneRenderer {
       this.interactions.onMoveShape?.(this.dragging.id, x, z);
     } else if (this.dragging.type === 'wall') {
       this.interactions.onMoveWall?.(this.dragging.id, x, z);
-    } else {
+    } else if (this.dragging.type === 'furniture') {
       this.interactions.onMoveFurniture?.(this.dragging.id, x, z);
+    } else {
+      this.interactions.onMoveStair?.(this.dragging.id, x, z);
     }
   };
 
   private readonly handlePointerUp = (): void => {
     if (this.dragging) this.interactions.onMoveGestureEnd?.();
     this.dragging = null;
+  };
+
+  private readonly handleDoubleClick = (event: MouseEvent): void => {
+    const selection = this.resolveSelectionFromEvent(event);
+    if (selection?.type === 'stair') {
+      this.interactions.onActivateStair?.(selection.id);
+    }
   };
 }

@@ -3,6 +3,7 @@ import type { FurnitureObjectSnapshot } from './FurnitureObject';
 import type { OpeningSnapshot } from './Opening';
 import type { RoomSnapshot } from './Room';
 import type { SceneSettings } from './SceneSettings';
+import type { StairObjectSnapshot } from './StairObject';
 import type { WallObjectSnapshot } from './WallObject';
 
 export type { ShapeKind, SurfaceKind };
@@ -37,13 +38,14 @@ export interface SceneObjectInit {
   color?: string;
 }
 
-/** Selection cursor pointing at a shape, wall, room, opening, or furniture. */
+/** Selection cursor pointing at a shape, wall, room, opening, furniture, or stair. */
 export type SelectionRef =
   | { type: 'shape'; id: string }
   | { type: 'wall'; id: string }
   | { type: 'room'; id: string }
   | { type: 'opening'; id: string }
   | { type: 'furniture'; id: string }
+  | { type: 'stair'; id: string }
   | null;
 
 /** In-memory / IndexedDB snapshot shape. */
@@ -53,5 +55,6 @@ export interface SceneSnapshot {
   rooms: RoomSnapshot[];
   openings: OpeningSnapshot[];
   furniture: FurnitureObjectSnapshot[];
+  stairs: StairObjectSnapshot[];
   settings: SceneSettings;
 }

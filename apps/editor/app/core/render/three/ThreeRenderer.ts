@@ -9,12 +9,14 @@ import {
   resolveBackgroundColor,
   type SceneSettings,
 } from '../../model/SceneSettings';
+import type { StairObject } from '../../model/StairObject';
 import type { SelectionRef } from '../../model/types';
 import type { WallObject } from '../../model/WallObject';
 import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { ThreeFurnitureMesh } from './ThreeFurnitureMesh';
 import { ThreeMeshFactory } from './ThreeMeshFactory';
 import { ThreeRoomFloorMesh } from './ThreeRoomFloorMesh';
+import { ThreeStairMesh } from './ThreeStairMesh';
 import { ThreeWallMesh } from './ThreeWallMesh';
 import { resolveWalkMove } from './camera/walkCollision';
 
@@ -41,6 +43,7 @@ export class ThreeRenderer implements ISceneRenderer {
   private readonly wallMeshes = new Map<string, ThreeWallMesh>();
   private readonly roomMeshes = new Map<string, ThreeRoomFloorMesh>();
   private readonly furnitureMeshes = new Map<string, ThreeFurnitureMesh>();
+  private readonly stairMeshes = new Map<string, ThreeStairMesh>();
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -50,6 +53,7 @@ export class ThreeRenderer implements ISceneRenderer {
     | { type: 'shape'; id: string }
     | { type: 'wall'; id: string }
     | { type: 'furniture'; id: string }
+    | { type: 'stair'; id: string }
     | null = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
   private latestWalls: readonly WallObject[] = [];
@@ -172,6 +176,7 @@ export class ThreeRenderer implements ISceneRenderer {
     this.renderer.domElement.addEventListener('pointermove', this.handlePointerMove);
     this.renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
     this.renderer.domElement.addEventListener('pointerleave', this.handlePointerUp);
+    this.renderer.domElement.addEventListener('dblclick', this.handleDoubleClick);
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
     document.addEventListener('pointerlockchange', this.handlePointerLockChange);
@@ -193,6 +198,7 @@ export class ThreeRenderer implements ISceneRenderer {
     rooms: readonly Room[],
     openings: readonly Opening[],
     furniture: readonly FurnitureObject[],
+    stairs: readonly StairObject[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
@@ -202,6 +208,7 @@ export class ThreeRenderer implements ISceneRenderer {
     this.syncShapes(objects);
     this.syncWalls(walls, openings);
     this.syncFurniture(furniture);
+    this.syncStairs(stairs);
     this.syncCeiling();
     this.updateSelection(selection);
   }
@@ -213,6 +220,7 @@ export class ThreeRenderer implements ISceneRenderer {
     this.renderer.domElement.removeEventListener('pointermove', this.handlePointerMove);
     this.renderer.domElement.removeEventListener('pointerup', this.handlePointerUp);
     this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerUp);
+    this.renderer.domElement.removeEventListener('dblclick', this.handleDoubleClick);
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
     document.removeEventListener('pointerlockchange', this.handlePointerLockChange);
@@ -245,6 +253,11 @@ export class ThreeRenderer implements ISceneRenderer {
       item.dispose();
     }
     this.furnitureMeshes.clear();
+    for (const stair of this.stairMeshes.values()) {
+      this.scene.remove(stair.mesh);
+      stair.dispose();
+    }
+    this.stairMeshes.clear();
     this.clearEnvironment();
     this.controls.dispose();
     this.renderer.dispose();
@@ -348,6 +361,29 @@ export class ThreeRenderer implements ISceneRenderer {
       this.scene.remove(view.mesh);
       view.dispose();
       this.furnitureMeshes.delete(id);
+    }
+  }
+
+  private syncStairs(stairs: readonly StairObject[]): void {
+    const seen = new Set<string>();
+
+    for (const stair of stairs) {
+      seen.add(stair.id);
+      let view = this.stairMeshes.get(stair.id);
+      if (!view) {
+        view = new ThreeStairMesh(stair);
+        this.stairMeshes.set(stair.id, view);
+        this.scene.add(view.mesh);
+      } else {
+        view.update(stair);
+      }
+    }
+
+    for (const [id, view] of this.stairMeshes) {
+      if (seen.has(id)) continue;
+      this.scene.remove(view.mesh);
+      view.dispose();
+      this.stairMeshes.delete(id);
     }
   }
 
@@ -536,6 +572,7 @@ export class ThreeRenderer implements ISceneRenderer {
     else if (selection.type === 'wall') target = this.wallMeshes.get(selection.id)?.mesh;
     else if (selection.type === 'room') target = this.roomMeshes.get(selection.id)?.mesh;
     else if (selection.type === 'furniture') target = this.furnitureMeshes.get(selection.id)?.mesh;
+    else if (selection.type === 'stair') target = this.stairMeshes.get(selection.id)?.mesh;
     else if (selection.type === 'opening') {
       for (const view of this.wallMeshes.values()) {
         const found = view.mesh.children.find(
@@ -552,7 +589,7 @@ export class ThreeRenderer implements ISceneRenderer {
     this.scene.add(this.selectionHelper);
   }
 
-  private updatePointer(event: PointerEvent): void {
+  private updatePointer(event: MouseEvent): void {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -564,6 +601,7 @@ export class ThreeRenderer implements ISceneRenderer {
       ...this.meshes.values(),
       ...[...this.roomMeshes.values()].map((view) => view.mesh),
       ...[...this.furnitureMeshes.values()].map((view) => view.mesh),
+      ...[...this.stairMeshes.values()].map((view) => view.mesh),
     ];
     for (const view of this.wallMeshes.values()) {
       candidates.push(...view.mesh.children);
@@ -573,11 +611,12 @@ export class ThreeRenderer implements ISceneRenderer {
     let current: THREE.Object3D | null = hit.object;
     while (current) {
       const entityType = current.userData.entityType as
-        'shape' | 'wall' | 'room' | 'opening' | 'furniture' | undefined;
+        'shape' | 'wall' | 'room' | 'opening' | 'furniture' | 'stair' | undefined;
       if (entityType === 'wall') return { type: 'wall', id: current.name };
       if (entityType === 'room') return { type: 'room', id: current.name };
       if (entityType === 'opening') return { type: 'opening', id: current.name };
       if (entityType === 'furniture') return { type: 'furniture', id: current.name };
+      if (entityType === 'stair') return { type: 'stair', id: current.name };
       if (entityType === 'shape' || (!entityType && this.meshes.has(current.name))) {
         return { type: 'shape', id: current.name };
       }
@@ -596,7 +635,10 @@ export class ThreeRenderer implements ISceneRenderer {
     this.interactions.onSelect?.(selection);
     if (
       selection &&
-      (selection.type === 'shape' || selection.type === 'wall' || selection.type === 'furniture')
+      (selection.type === 'shape' ||
+        selection.type === 'wall' ||
+        selection.type === 'furniture' ||
+        selection.type === 'stair')
     ) {
       this.dragging = selection;
       this.controls.enabled = false;
@@ -614,8 +656,10 @@ export class ThreeRenderer implements ISceneRenderer {
         this.interactions.onMoveShape?.(this.dragging.id, point.x, point.z);
       } else if (this.dragging.type === 'wall') {
         this.interactions.onMoveWall?.(this.dragging.id, point.x, point.z);
-      } else {
+      } else if (this.dragging.type === 'furniture') {
         this.interactions.onMoveFurniture?.(this.dragging.id, point.x, point.z);
+      } else {
+        this.interactions.onMoveStair?.(this.dragging.id, point.x, point.z);
       }
     }
   };
@@ -624,5 +668,14 @@ export class ThreeRenderer implements ISceneRenderer {
     if (this.dragging) this.interactions.onMoveGestureEnd?.();
     this.dragging = null;
     this.controls.enabled = true;
+  };
+
+  private readonly handleDoubleClick = (event: MouseEvent): void => {
+    if (this.cameraMode === 'walk') return;
+    this.updatePointer(event);
+    const selection = this.pickSelection();
+    if (selection?.type === 'stair') {
+      this.interactions.onActivateStair?.(selection.id);
+    }
   };
 }

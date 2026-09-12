@@ -1,6 +1,6 @@
 # Epic 12 — Stairs between floors
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/12-stairs`  
 Depends on: Epic 10  
 Owners: `apps/editor`
@@ -53,6 +53,12 @@ interface StairObject {
   the other — document the chosen approach in the PR and test it.
 - No CSG hole in the slab; visual opening is optional/simple.
 
+### Pair approach (shipped)
+
+Shared `linkId` on both ends. `upsertStairPair` writes a mirrored marker
+(inverted `direction`) on the target floor; `removeStairPair` deletes
+every stair with that `linkId` across floors.
+
 ### Document / project API
 
 - `addStair`, `updateStair`, `removeStair`
@@ -93,10 +99,10 @@ interface StairObject {
 
 ## 7. Definition of Done
 
-- [ ] Stair links two floors and is visible in 2D and 3D
-- [ ] Activating stair switches floor without data loss
-- [ ] Save / load preserves stairs
-- [ ] Green lint / typecheck / test / build
+- [x] Stair links two floors and is visible in 2D and 3D
+- [x] Activating stair switches floor without data loss
+- [x] Save / load preserves stairs
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

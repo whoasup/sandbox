@@ -5,6 +5,7 @@ import type { FurnitureObjectSnapshot } from '../model/FurnitureObject';
 import type { OpeningSnapshot, OpeningType } from '../model/Opening';
 import type { RoomSnapshot } from '../model/Room';
 import { fingerprintPolygon } from '../model/Room';
+import type { StairDirection, StairObjectSnapshot } from '../model/StairObject';
 import type { SceneSnapshot } from '../model/types';
 import type { WallObjectSnapshot } from '../model/WallObject';
 import { CURRENT_SCHEMA_VERSION, type ProjectRecord } from './ProjectStore';
@@ -158,6 +159,31 @@ function parseFurnitureSnapshot(value: unknown): FurnitureObjectSnapshot | null 
   };
 }
 
+function parseStairSnapshot(value: unknown): StairObjectSnapshot | null {
+  if (!isRecord(value)) return null;
+  const floorId = typeof value.floorId === 'string' ? value.floorId : '';
+  const targetFloorId = typeof value.targetFloorId === 'string' ? value.targetFloorId : '';
+  if (!floorId || !targetFloorId || floorId === targetFloorId) return null;
+  const position = isRecord(value.position) ? value.position : {};
+  const direction: StairDirection = value.direction === 'down' ? 'down' : 'up';
+  return {
+    id: typeof value.id === 'string' && value.id.length > 0 ? value.id : createId('stair'),
+    linkId: typeof value.linkId === 'string' && value.linkId ? value.linkId : createId('stairlink'),
+    floorId,
+    targetFloorId,
+    position: { x: Number(position.x) || 0, z: Number(position.z) || 0 },
+    rotationY:
+      typeof value.rotationY === 'number' && Number.isFinite(value.rotationY) ? value.rotationY : 0,
+    width: typeof value.width === 'number' && Number.isFinite(value.width) ? value.width : 1,
+    depth: typeof value.depth === 'number' && Number.isFinite(value.depth) ? value.depth : 2.5,
+    stepCount:
+      typeof value.stepCount === 'number' && Number.isFinite(value.stepCount)
+        ? Math.max(3, Math.round(value.stepCount))
+        : 12,
+    direction,
+  };
+}
+
 export function createEmptySnapshot(): SceneSnapshot {
   return {
     objects: [],
@@ -165,6 +191,7 @@ export function createEmptySnapshot(): SceneSnapshot {
     rooms: [],
     openings: [],
     furniture: [],
+    stairs: [],
     settings: createDefaultSceneSettings(),
   };
 }
@@ -176,6 +203,7 @@ function parseSceneSnapshot(raw: unknown): SceneSnapshot {
   const roomsRaw = Array.isArray(snapshotRaw.rooms) ? snapshotRaw.rooms : [];
   const openingsRaw = Array.isArray(snapshotRaw.openings) ? snapshotRaw.openings : [];
   const furnitureRaw = Array.isArray(snapshotRaw.furniture) ? snapshotRaw.furniture : [];
+  const stairsRaw = Array.isArray(snapshotRaw.stairs) ? snapshotRaw.stairs : [];
 
   return {
     objects: objects
@@ -206,6 +234,9 @@ function parseSceneSnapshot(raw: unknown): SceneSnapshot {
     furniture: furnitureRaw
       .map(parseFurnitureSnapshot)
       .filter((item): item is FurnitureObjectSnapshot => item !== null),
+    stairs: stairsRaw
+      .map(parseStairSnapshot)
+      .filter((stair): stair is StairObjectSnapshot => stair !== null),
     settings: ensureSettings(snapshotRaw.settings),
   };
 }
@@ -226,6 +257,7 @@ export function createDefaultFloor(snapshot = createEmptySnapshot(), index = 1) 
  * v2→v3: ensure rooms array. v3→v4: ensure openings array.
  * v4→v5: wrap flat snapshot into floors[].
  * v5→v6: ensure furniture array on each floor snapshot.
+ * v6→v7: ensure stairs array on each floor snapshot.
  */
 export function migrateProjectRecord(raw: unknown): ProjectRecord {
   if (!isRecord(raw)) {
