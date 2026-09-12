@@ -43,6 +43,14 @@
           "cwd": "libs/ui-kit",
           "command": "test-storybook"
         }
+      },
+      "build-storybook": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "libs/ui-kit",
+          "command": "storybook build --output-dir ../../apps/editor/public/docs-storybook"
+        }
       }
     }
   }

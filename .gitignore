@@ -11,6 +11,7 @@ nx-cloud.env
 dist
 out-tsc
 storybook-static
+apps/editor/public/docs-storybook
 test-output
 *.tsbuildinfo
 

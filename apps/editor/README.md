@@ -8,11 +8,20 @@ Nuxt 4 app: a minimal planner5d-style 2D/3D room editor.
 |------|------|
 | `/` | Project library stub (draft card until Epic 05) |
 | `/editor/:projectId` | Room editor (toolbar + 2D/3D canvases) |
-| `/docs` | ui-kit docs hub stub (full docs in Epic 02) |
+| `/docs` | ui-kit docs hub (overview) |
+| `/docs/foundations` | Tokens, shapes, textures |
+| `/docs/components` | Component index + live demos |
+| `/docs/storybook` | Storybook iframe (dev `:4400` / prod static) |
 
 Shell: `app/layouts/default.vue` + `AppSidebar` (Проекты / Редактор /
 Документация) with `UiThemeSwitcher`. Editor document context is created
 only on `/editor/:projectId`.
+
+Build static Storybook into the editor public folder:
+
+```bash
+pnpm build:storybook   # → apps/editor/public/docs-storybook
+```
 
 ## Structure
 
