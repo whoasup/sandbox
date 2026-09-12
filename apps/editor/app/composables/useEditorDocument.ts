@@ -1,9 +1,10 @@
 import type { InjectionKey, Ref, ShallowRef } from 'vue';
 import { computed, inject, provide, reactive, ref, shallowRef } from 'vue';
-import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
+import type { FurnitureCatalogId, ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
 import { HistoryStack } from '../core/history/HistoryStack';
 import { SnapshotCommand, captureSnapshotCommand } from '../core/history/SnapshotCommand';
 import { SceneDocument } from '../core/model/SceneDocument';
+import type { FurnitureObject } from '../core/model/FurnitureObject';
 import type { Opening, OpeningType } from '../core/model/Opening';
 import type { Room } from '../core/model/Room';
 import type { SceneObject } from '../core/model/SceneObject';
@@ -24,7 +25,7 @@ export interface WallDefaults {
 }
 
 export interface EditorClipboard {
-  kind: 'shape' | 'wall' | 'opening';
+  kind: 'shape' | 'wall' | 'opening' | 'furniture';
   snapshot: SceneSnapshot;
   entityId: string;
 }
@@ -38,6 +39,7 @@ export interface EditorDocumentContext {
   walls: ShallowRef<WallObject[]>;
   rooms: ShallowRef<Room[]>;
   openings: ShallowRef<Opening[]>;
+  furniture: ShallowRef<FurnitureObject[]>;
   selection: ShallowRef<SelectionRef>;
   selectedId: ShallowRef<string | null>;
   settings: ShallowRef<SceneSettings>;
@@ -50,6 +52,7 @@ export interface EditorDocumentContext {
   activeColor: ShallowRef<string>;
   wallDraftLength: Ref<number | null>;
   addShape: (kind: ShapeKind) => void;
+  addFurniture: (catalogId: FurnitureCatalogId) => void;
   addWall: (start: Point2, end: Point2) => void;
   addOpeningAtPoint: (type: OpeningType, point: Point2, wallId?: string) => void;
   updateSelectedOpening: (
@@ -62,6 +65,7 @@ export interface EditorDocumentContext {
   selectShape: (id: string | null) => void;
   moveShape: (id: string, x: number, z: number) => void;
   moveWall: (id: string, x: number, z: number) => void;
+  moveFurniture: (id: string, x: number, z: number) => void;
   beginMoveGesture: () => void;
   endMoveGesture: (label?: string) => void;
   setSelectedWallHeight: (height: number) => void;
@@ -83,7 +87,8 @@ export interface EditorDocumentContext {
   setWallDraftLength: (length: number | null) => void;
 }
 
-const EDITOR_DOCUMENT_KEY: InjectionKey<EditorDocumentContext> = Symbol('editor-document');
+const EDITOR_DOCUMENT_KEY: InjectionKey<EditorDocumentContext> =
+  Symbol.for('sandbox.editor-document');
 
 function nextPlacement(existingCount: number): { x: number; z: number } {
   if (existingCount === 0) return { x: 0, z: 0 };
@@ -101,6 +106,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const walls = shallowRef<WallObject[]>(document.listWalls());
   const rooms = shallowRef<Room[]>(document.listRooms());
   const openings = shallowRef<Opening[]>(document.listOpenings());
+  const furniture = shallowRef<FurnitureObject[]>(document.listFurniture());
   const selection = shallowRef<SelectionRef>(null);
   const selectedId = shallowRef<string | null>(null);
   const settings = shallowRef<SceneSettings>(document.settings);
@@ -129,6 +135,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     walls.value = payload.walls;
     rooms.value = payload.rooms;
     openings.value = payload.openings;
+    furniture.value = payload.furniture;
   });
   document.on('settings', (next) => {
     settings.value = next;
@@ -154,6 +161,12 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         if (room.floorSurface) activeSurface.value = room.floorSurface;
         activeColor.value = room.floorColor;
       }
+    } else if (ref?.type === 'furniture') {
+      const item = document.getFurniture(ref.id);
+      if (item) {
+        activeSurface.value = item.surface;
+        activeColor.value = item.color;
+      }
     }
   });
 
@@ -175,6 +188,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     walls,
     rooms,
     openings,
+    furniture,
     selection,
     selectedId,
     settings,
@@ -187,9 +201,19 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     activeColor,
     wallDraftLength,
     addShape(kind) {
-      const { x, z } = nextPlacement(document.list().length);
+      const { x, z } = nextPlacement(document.list().length + document.listFurniture().length);
       run('Добавить фигуру', () => {
         document.addShape(kind, {
+          position: { x, z },
+          surface: activeSurface.value,
+          color: activeColor.value,
+        });
+      });
+    },
+    addFurniture(catalogId) {
+      const { x, z } = nextPlacement(document.list().length + document.listFurniture().length);
+      run('Добавить мебель', () => {
+        document.addFurniture(catalogId, {
           position: { x, z },
           surface: activeSurface.value,
           color: activeColor.value,
@@ -234,6 +258,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         if (sel.type === 'shape') document.setSurface(sel.id, surface);
         else if (sel.type === 'wall') document.setWallSurface(sel.id, surface);
         else if (sel.type === 'room') document.setRoomFloorSurface(sel.id, surface);
+        else if (sel.type === 'furniture') document.setFurnitureMaterial(sel.id, { surface });
       });
     },
     applyColorToSelection(color) {
@@ -244,6 +269,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         if (sel.type === 'shape') document.setColor(sel.id, color);
         else if (sel.type === 'wall') document.setWallColor(sel.id, color);
         else if (sel.type === 'room') document.setRoomFloorColor(sel.id, color);
+        else if (sel.type === 'furniture') document.setFurnitureMaterial(sel.id, { color });
       });
     },
     selectEntity(next) {
@@ -257,6 +283,9 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     },
     moveWall(id, x, z) {
       document.moveWall(id, x, z);
+    },
+    moveFurniture(id, x, z) {
+      document.moveFurniture(id, x, z);
     },
     beginMoveGesture() {
       if (!gestureBefore) gestureBefore = document.toSnapshot();
@@ -294,19 +323,31 @@ export function createEditorDocumentContext(): EditorDocumentContext {
       run('Сменить фигуру', () => document.replaceKind(id, kind));
     },
     setSelectedRotation(rotationY) {
-      if (selection.value?.type !== 'shape') return;
-      const id = selection.value.id;
-      run('Поворот', () => document.setRotationY(id, rotationY));
+      const sel = selection.value;
+      if (!sel) return;
+      if (sel.type === 'shape') {
+        run('Поворот', () => document.setRotationY(sel.id, rotationY));
+      } else if (sel.type === 'furniture') {
+        run('Поворот', () => document.setFurnitureTransform(sel.id, { rotationY }));
+      }
     },
     setSelectedScale(scale) {
-      if (selection.value?.type !== 'shape') return;
-      const id = selection.value.id;
-      run('Масштаб', () => document.setScale(id, scale));
+      const sel = selection.value;
+      if (!sel) return;
+      if (sel.type === 'shape') {
+        run('Масштаб', () => document.setScale(sel.id, scale));
+      } else if (sel.type === 'furniture') {
+        run('Масштаб', () => document.setFurnitureTransform(sel.id, { scale }));
+      }
     },
     duplicateSelected() {
-      if (selection.value?.type !== 'shape') return;
-      const id = selection.value.id;
-      run('Дублировать', () => document.duplicate(id));
+      const sel = selection.value;
+      if (!sel) return;
+      if (sel.type === 'shape') {
+        run('Дублировать', () => document.duplicate(sel.id));
+      } else if (sel.type === 'furniture') {
+        run('Дублировать', () => document.duplicateFurniture(sel.id));
+      }
     },
     patchSettings(patch) {
       run('Настройки сцены', () => document.patchSettings(patch));
@@ -338,6 +379,10 @@ export function createEditorDocumentContext(): EditorDocumentContext {
           const wall = document.getWall(sel.id);
           if (!wall) return;
           document.moveWall(sel.id, wall.midpoint.x + dx, wall.midpoint.z + dz);
+        } else if (sel.type === 'furniture') {
+          const item = document.getFurniture(sel.id);
+          if (!item) return;
+          document.moveFurniture(sel.id, item.position.x + dx, item.position.z + dz);
         }
       });
     },
@@ -384,6 +429,16 @@ export function createEditorDocumentContext(): EditorDocumentContext {
             width: opening.width,
             height: opening.height,
             sill: opening.sill,
+          });
+        } else if (src.kind === 'furniture') {
+          const item = src.snapshot.furniture.find((f) => f.id === src.entityId);
+          if (!item) return;
+          document.addFurniture(item.catalogId, {
+            position: { x: item.position.x + step, z: item.position.z + step },
+            rotationY: item.rotationY,
+            scale: item.scale,
+            surface: item.surface,
+            color: item.color,
           });
         }
       });

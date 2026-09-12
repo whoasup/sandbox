@@ -8,12 +8,14 @@ const {
   walls,
   rooms,
   openings,
+  furniture,
   selection,
   settings,
   tool,
   selectEntity,
   moveShape,
   moveWall,
+  moveFurniture,
   addWall,
   addOpeningAtPoint,
   snapPoint,
@@ -30,6 +32,7 @@ onMounted(() => {
     onSelect: (next) => selectEntity(next),
     onMoveShape: (id, x, z) => moveShape(id, x, z),
     onMoveWall: (id, x, z) => moveWall(id, x, z),
+    onMoveFurniture: (id, x, z) => moveFurniture(id, x, z),
     onAddWall: (start, end) => addWall(start, end),
     onAddOpening: (type, point, wallId) => addOpeningAtPoint(type, point, wallId),
     snapPoint: (point, angleFrom) => snapPoint(point, angleFrom),
@@ -45,18 +48,20 @@ onMounted(() => {
       walls.value,
       rooms.value,
       openings.value,
+      furniture.value,
       selection.value,
       settings.value,
     );
   }
 });
 
-watch([objects, walls, rooms, openings, selection, settings], () => {
+watch([objects, walls, rooms, openings, furniture, selection, settings], () => {
   renderer?.render(
     objects.value,
     walls.value,
     rooms.value,
     openings.value,
+    furniture.value,
     selection.value,
     settings.value,
   );

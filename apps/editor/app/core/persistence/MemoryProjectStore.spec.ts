@@ -83,9 +83,36 @@ describe('migrateProjectRecord', () => {
         settings: createDefaultSceneSettings(),
       },
     });
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.floors).toHaveLength(1);
     expect(migrated.floors[0]!.snapshot.walls).toHaveLength(1);
+    expect(migrated.floors[0]!.snapshot.furniture).toEqual([]);
+  });
+
+  it('adds empty furniture arrays when migrating schemaVersion 5', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p5-furn',
+      name: 'V5 no furniture',
+      updatedAt: 5,
+      schemaVersion: 5,
+      floors: [
+        {
+          id: 'f1',
+          name: 'Этаж 1',
+          elevation: 0,
+          snapshot: {
+            objects: [],
+            walls: [],
+            rooms: [],
+            openings: [],
+            settings: createDefaultSceneSettings(),
+          },
+        },
+      ],
+      activeFloorId: 'f1',
+    });
+    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.floors[0]!.snapshot.furniture).toEqual([]);
   });
 
   it('preserves multi-floor projects', () => {
@@ -154,6 +181,7 @@ describe('serialize / import', () => {
       ],
       rooms: [],
       openings: [],
+      furniture: [],
       settings: createDefaultSceneSettings(),
     });
 
@@ -204,6 +232,7 @@ describe('floor switch round-trip', () => {
         ],
         rooms: [],
         openings: [],
+        furniture: [],
         settings: createDefaultSceneSettings(),
       },
       showCeiling: false,

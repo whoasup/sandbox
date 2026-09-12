@@ -10,6 +10,7 @@ import {
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
 import type { BackgroundPreset } from '../core/model/SceneSettings';
+import EditorCatalogPanel from './EditorCatalogPanel.vue';
 
 const { settings, patchSettings } = useEditorDocument();
 
@@ -182,5 +183,7 @@ function setFloorSurface(surface: SurfaceKind): void {
         />
       </div>
     </div>
+
+    <EditorCatalogPanel />
   </aside>
 </template>

@@ -49,4 +49,18 @@ describe('EditorInspector', () => {
 
     expect(harness.ctx.objects.value[0]?.kind).toBe('sphere');
   });
+
+  it('enables furniture controls when furniture is selected', async () => {
+    const wrapper = mountInspector();
+    const harness = wrapper.vm as unknown as {
+      ctx: ReturnType<typeof createEditorDocumentContext>;
+    };
+    harness.ctx.addFurniture('table');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-testid="furniture-inspector"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Стол');
+    expect(wrapper.text()).toContain('Поворот');
+    expect(wrapper.text()).toContain('Дублировать');
+  });
 });

@@ -1,6 +1,6 @@
 # Epic 11 — Furniture catalog
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/11-furniture-catalog`  
 Depends on: Epic 10  
 Owners: `apps/editor` + `libs/ui-kit` (catalog icons / preset metadata)
@@ -106,11 +106,11 @@ interface FurnitureObject {
 
 ## 7. Definition of Done
 
-- [ ] All four presets placeable in 2D and 3D
-- [ ] Inspector edits transform/material; delete/duplicate work
-- [ ] Save / load keeps furniture
-- [ ] `schemaVersion` bumped with migration
-- [ ] Green lint / typecheck / test / build
+- [x] All four presets placeable in 2D and 3D
+- [x] Inspector edits transform/material; delete/duplicate work
+- [x] Save / load keeps furniture
+- [x] `schemaVersion` bumped with migration
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 
