@@ -114,6 +114,8 @@ pnpm install
 pnpm dev         # nx run editor:serve   — http://localhost:4300
 pnpm storybook   # nx run ui-kit:storybook — http://localhost:4400
 pnpm build:storybook  # static Storybook → apps/editor/public/docs-storybook
+pnpm build:pages      # SPA for GitHub Pages → apps/editor/.output/public
+                      # (set DEPLOY_TARGET; run build:storybook first for /docs/storybook)
 
 pnpm build       # nx run-many -t build
 pnpm test        # nx run-many -t test
@@ -121,7 +123,21 @@ pnpm lint        # nx run-many -t lint
 pnpm lint:style  # stylelint "**/*.{css,vue}"
 pnpm format      # eslint --fix (incl. Prettier) + stylelint --fix + prettier --write, repo-wide
 pnpm typecheck   # nx run-many -t typecheck
+pnpm e2e         # Playwright smoke against nuxt preview (after pnpm build)
 ```
+
+## GitHub Pages
+
+Production URL: **https://whoasup.github.io/sandbox/**
+
+- Workflow: [`.github/workflows/pages.yml`](.github/workflows/pages.yml) — on push to
+  `main` (and `workflow_dispatch`): `build:storybook` → `build:pages` →
+  `actions/deploy-pages`.
+- Local static build uses `DEPLOY_TARGET=github-pages`, SPA (`ssr: false`),
+  and `app.baseURL=/sandbox/`. Everyday `pnpm dev` / `pnpm build` stay on `/`
+  with SSR for Playwright preview.
+- One-time repo setup: **Settings → Pages → Source: GitHub Actions** (not a
+  `gh-pages` branch).
 
 Editor routes (after Epic 01–02): `/` projects, `/editor/:projectId` editor,
 `/docs` kit docs (foundations, components, Storybook). See

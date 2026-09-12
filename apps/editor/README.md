@@ -17,11 +17,17 @@ Shell: `app/layouts/default.vue` + `AppSidebar` (Проекты / Редакто
 Документация) with `UiThemeSwitcher`. Editor document context is created
 only on `/editor/:projectId`.
 
-Build static Storybook into the editor public folder:
+Build static Storybook into the editor public folder (required before
+`build:pages` so `/docs/storybook` is included in the Pages artifact):
 
 ```bash
 pnpm build:storybook   # → apps/editor/public/docs-storybook
+pnpm build:pages       # SPA + baseURL=/sandbox/ → apps/editor/.output/public
 ```
+
+Production site: https://whoasup.github.io/sandbox/ (GitHub Actions workflow
+`pages.yml`). Local `nx run editor:serve` / `editor:build` keep SSR and
+`baseURL=/`.
 
 ## Structure
 
@@ -68,7 +74,8 @@ Run from the repo root:
 
 ```bash
 npx nx run editor:serve      # dev server, http://localhost:4300
-npx nx run editor:build      # production build
+npx nx run editor:build      # production SSR build (CI / Playwright preview)
+pnpm build:pages             # GitHub Pages SPA under /sandbox/
 npx nx run editor:test       # vitest
 npx nx run editor:lint       # eslint
 npx nx run editor:typecheck  # nuxt prepare + vue-tsc

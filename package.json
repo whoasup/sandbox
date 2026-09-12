@@ -10,6 +10,7 @@
     "dev": "nx run editor:serve",
     "storybook": "nx run ui-kit:storybook",
     "build:storybook": "nx run ui-kit:build-storybook",
+    "build:pages": "DEPLOY_TARGET=github-pages NUXT_APP_BASE_URL=/sandbox/ pnpm exec nuxt build --cwd apps/editor --preset github_pages",
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",
