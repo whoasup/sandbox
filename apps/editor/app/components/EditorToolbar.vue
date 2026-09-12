@@ -40,6 +40,8 @@ const modeOptions = [
 const toolOptions = [
   { value: 'select' as const, label: 'Выбор' },
   { value: 'wall' as const, label: 'Стена' },
+  { value: 'door' as const, label: 'Дверь' },
+  { value: 'window' as const, label: 'Окно' },
 ];
 
 const hasSelection = computed(() => selection.value !== null);

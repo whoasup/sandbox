@@ -1,3 +1,4 @@
+import type { Opening } from '../model/Opening';
 import type { Room } from '../model/Room';
 import type { SceneObject } from '../model/SceneObject';
 import type { SceneSettings } from '../model/SceneSettings';
@@ -16,19 +17,21 @@ export interface ISceneRenderer {
     objects: readonly SceneObject[],
     walls: readonly WallObject[],
     rooms: readonly Room[],
+    openings: readonly Opening[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void;
   dispose(): void;
 }
 
-export type EditorTool = 'select' | 'wall';
+export type EditorTool = 'select' | 'wall' | 'door' | 'window';
 
 export interface RendererInteractionEvents {
   onSelect?: (selection: SelectionRef) => void;
   onMoveShape?: (id: string, x: number, z: number) => void;
   onMoveWall?: (id: string, x: number, z: number) => void;
   onAddWall?: (start: Point2, end: Point2) => void;
+  onAddOpening?: (type: 'door' | 'window', point: Point2, wallId?: string) => void;
   /** Optional snap helper used while drawing walls in 2D. */
   snapPoint?: (point: Point2) => Point2;
 }

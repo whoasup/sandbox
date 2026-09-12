@@ -1,6 +1,6 @@
 # Epic 08 — Doors and windows
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/08-openings`  
 Depends on: Epic 06 (can land in parallel with Epic 07)  
 Owners: `apps/editor`
@@ -89,11 +89,11 @@ Prefer **segmenting** the wall mesh into solid spans around the opening
 
 ## 7. Definition of Done
 
-- [ ] Door and window coexist on one wall
-- [ ] Reload preserves openings
-- [ ] Opening cannot extend past wall ends
-- [ ] 2D and 3D both show openings without CSG
-- [ ] Green lint / typecheck / test / build
+- [x] Door and window coexist on one wall
+- [x] Reload preserves openings
+- [x] Opening cannot extend past wall ends
+- [x] 2D and 3D both show openings without CSG
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

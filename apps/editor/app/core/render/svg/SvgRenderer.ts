@@ -1,3 +1,4 @@
+import type { Opening } from '../../model/Opening';
 import type { Room } from '../../model/Room';
 import type { SceneObject } from '../../model/SceneObject';
 import {
@@ -47,6 +48,7 @@ export class SvgRenderer implements ISceneRenderer {
   private latestObjects: readonly SceneObject[] = [];
   private latestWalls: readonly WallObject[] = [];
   private latestRooms: readonly Room[] = [];
+  private latestOpenings: readonly Opening[] = [];
   private latestSelection: SelectionRef = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -78,7 +80,8 @@ export class SvgRenderer implements ISceneRenderer {
   public setTool(tool: EditorTool): void {
     this.tool = tool;
     if (tool !== 'wall') this.cancelWallDraft();
-    this.svg.style.cursor = tool === 'wall' ? 'crosshair' : '';
+    this.svg.style.cursor =
+      tool === 'wall' || tool === 'door' || tool === 'window' ? 'crosshair' : '';
   }
 
   public mount(container: HTMLElement): void {
@@ -108,12 +111,14 @@ export class SvgRenderer implements ISceneRenderer {
     objects: readonly SceneObject[],
     walls: readonly WallObject[],
     rooms: readonly Room[],
+    openings: readonly Opening[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
     this.latestObjects = objects;
     this.latestWalls = walls;
     this.latestRooms = rooms;
+    this.latestOpenings = openings;
     this.latestSelection = selection;
     this.latestSettings = settings;
     this.svg.style.backgroundColor = resolveBackgroundColor(settings.background);
@@ -122,7 +127,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.drawAxes(settings);
     this.syncRooms(rooms, selection);
     this.syncShapes(objects, selection);
-    this.syncWalls(walls, selection);
+    this.syncWalls(walls, openings, selection);
   }
 
   public dispose(): void {
@@ -167,9 +172,14 @@ export class SvgRenderer implements ISceneRenderer {
     }
   }
 
-  private syncWalls(walls: readonly WallObject[], selection: SelectionRef): void {
+  private syncWalls(
+    walls: readonly WallObject[],
+    openings: readonly Opening[],
+    selection: SelectionRef,
+  ): void {
     const seen = new Set<string>();
     const selectedWallId = selection?.type === 'wall' ? selection.id : null;
+    const selectedOpeningId = selection?.type === 'opening' ? selection.id : null;
 
     for (const wall of walls) {
       seen.add(wall.id);
@@ -179,7 +189,15 @@ export class SvgRenderer implements ISceneRenderer {
         this.wallViews.set(wall.id, view);
         this.wallsGroup.appendChild(view.group);
       }
-      view.update(wall, PX_PER_UNIT, this.origin, wall.id === selectedWallId);
+      const wallOpenings = openings.filter((o) => o.wallId === wall.id);
+      view.update(
+        wall,
+        wallOpenings,
+        PX_PER_UNIT,
+        this.origin,
+        wall.id === selectedWallId,
+        selectedOpeningId,
+      );
     }
 
     for (const [id, view] of this.wallViews) {
@@ -224,6 +242,7 @@ export class SvgRenderer implements ISceneRenderer {
       this.latestObjects,
       this.latestWalls,
       this.latestRooms,
+      this.latestOpenings,
       this.latestSelection,
       this.latestSettings,
     );
@@ -309,6 +328,10 @@ export class SvgRenderer implements ISceneRenderer {
 
   private resolveSelectionFromEvent(event: PointerEvent): SelectionRef {
     const target = event.target as Element | null;
+    const openingGroup = target?.closest<SVGGElement>('[data-opening-id]');
+    if (openingGroup?.dataset.openingId) {
+      return { type: 'opening', id: openingGroup.dataset.openingId };
+    }
     const wallGroup = target?.closest<SVGGElement>('[data-wall-id]');
     if (wallGroup?.dataset.wallId) {
       return { type: 'wall', id: wallGroup.dataset.wallId };
@@ -392,6 +415,14 @@ export class SvgRenderer implements ISceneRenderer {
   };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
+    if (this.tool === 'door' || this.tool === 'window') {
+      const point = this.snapWorld(this.eventToWorld(event));
+      const wallHit = this.resolveSelectionFromEvent(event);
+      const wallId = wallHit?.type === 'wall' ? wallHit.id : undefined;
+      this.interactions.onAddOpening?.(this.tool, point, wallId);
+      return;
+    }
+
     if (this.tool === 'wall') {
       const snapped = this.snapWorld(this.eventToWorld(event));
       if (!this.wallDraftStart) {

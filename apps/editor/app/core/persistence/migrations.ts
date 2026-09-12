@@ -1,6 +1,7 @@
 import { createId, type SurfaceKind } from '@sandbox/ui-kit';
 import { ShapeFactory } from '../model/ShapeFactory';
 import { createDefaultSceneSettings, type SceneSettings } from '../model/SceneSettings';
+import type { OpeningSnapshot, OpeningType } from '../model/Opening';
 import type { RoomSnapshot } from '../model/Room';
 import { fingerprintPolygon } from '../model/Room';
 import type { SceneSnapshot } from '../model/types';
@@ -107,11 +108,30 @@ function parseRoomSnapshot(value: unknown): RoomSnapshot | null {
   };
 }
 
+function parseOpeningSnapshot(value: unknown): OpeningSnapshot | null {
+  if (!isRecord(value)) return null;
+  const type: OpeningType | null =
+    value.type === 'door' || value.type === 'window' ? value.type : null;
+  if (!type) return null;
+  const wallId = typeof value.wallId === 'string' ? value.wallId : '';
+  if (!wallId) return null;
+  return {
+    id: typeof value.id === 'string' && value.id.length > 0 ? value.id : createId('opening'),
+    wallId,
+    type,
+    t: typeof value.t === 'number' && Number.isFinite(value.t) ? value.t : 0.5,
+    width: typeof value.width === 'number' && Number.isFinite(value.width) ? value.width : 0.9,
+    height: typeof value.height === 'number' && Number.isFinite(value.height) ? value.height : 2.1,
+    sill: typeof value.sill === 'number' && Number.isFinite(value.sill) ? value.sill : 0,
+  };
+}
+
 export function createEmptySnapshot(): SceneSnapshot {
   return {
     objects: [],
     walls: [],
     rooms: [],
+    openings: [],
     settings: createDefaultSceneSettings(),
   };
 }
@@ -120,6 +140,7 @@ export function createEmptySnapshot(): SceneSnapshot {
  * Normalize a raw record (or partial import) up to the current schema.
  * v0→v1: ensure settings exist. v1→v2: ensure walls array.
  * v2→v3: ensure rooms array (revalidated on document load).
+ * v3→v4: ensure openings array.
  */
 export function migrateProjectRecord(raw: unknown): ProjectRecord {
   if (!isRecord(raw)) {
@@ -147,6 +168,8 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
   const wallsRaw = Array.isArray(snapshotRaw.walls) ? snapshotRaw.walls : [];
   // v2 → v3: projects without rooms get an empty array.
   const roomsRaw = Array.isArray(snapshotRaw.rooms) ? snapshotRaw.rooms : [];
+  // v3 → v4: projects without openings get an empty array.
+  const openingsRaw = Array.isArray(snapshotRaw.openings) ? snapshotRaw.openings : [];
 
   const snapshot: SceneSnapshot = {
     objects: objects
@@ -171,6 +194,9 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
       .map(parseWallSnapshot)
       .filter((wall): wall is WallObjectSnapshot => wall !== null),
     rooms: roomsRaw.map(parseRoomSnapshot).filter((room): room is RoomSnapshot => room !== null),
+    openings: openingsRaw
+      .map(parseOpeningSnapshot)
+      .filter((opening): opening is OpeningSnapshot => opening !== null),
     settings: ensureSettings(snapshotRaw.settings),
   };
 
