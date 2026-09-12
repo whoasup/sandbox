@@ -230,7 +230,7 @@ function onActivateStair(): void {
 
 <template>
   <aside
-    class="editor-inspector flex w-64 shrink-0 flex-col gap-4 border-l border-border bg-surface p-4"
+    class="editor-inspector flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface p-4 lg:w-64"
     data-testid="editor-inspector"
   >
     <UiText weight="bold" as="h2">Инспектор</UiText>

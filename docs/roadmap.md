@@ -1,8 +1,9 @@
 # Editor product roadmap
 
-Status: **Phase 1 + Phase 2 complete** on `main` (epics 01–15). Furniture,
-stairs, PNG/SVG/glTF export, CI/Playwright, and `@sandbox/editor-core` are
-landed. Each epic has a dedicated spec under [`docs/epics/`](./epics/).
+Status: **Phase 1 + Phase 2 complete** on `main` (epics 01–15). **Phase 3**
+starts with Epic 16 (mobile-first responsive shell). Furniture, stairs,
+PNG/SVG/glTF export, CI/Playwright, and `@sandbox/editor-core` are landed.
+Each epic has a dedicated spec under [`docs/epics/`](./epics/).
 
 Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
 `libs/editor-core` (Epic 15) and CI (Epic 14).
@@ -33,6 +34,11 @@ Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
 8. Harden the platform: **CI + Playwright smoke + coverage**, then extract
    framework-agnostic domain into `libs/editor-core` and cut the three.js
    main-chunk cost.
+
+### Phase 3
+
+9. Ship a **mobile-first responsive shell** (viewport breakpoints): drawer
+   nav and editor sheets below `lg`, desktop dual-panel layout at `lg+`.
 
 ## 2. Current state (audit)
 
@@ -139,6 +145,12 @@ ProjectRecord
 | 14 | CI, E2E, quality gates | `epic/14-ci-e2e` | 05 | [14-ci-e2e.md](./epics/14-ci-e2e.md) |
 | 15 | Domain lib + perf / tech debt | `epic/15-domain-lib-perf` | 10, 11 | [15-domain-lib-perf.md](./epics/15-domain-lib-perf.md) |
 
+### Phase 3
+
+| # | Slug | Branch | Depends on | Spec |
+|---|------|--------|------------|------|
+| 16 | Responsive layout (mobile-first) | `epic/16-responsive-layout` | 01, 03, 04 | [16-responsive-layout.md](./epics/16-responsive-layout.md) |
+
 ### Dependency graph (Phase 1)
 
 ```mermaid
@@ -217,6 +229,10 @@ flowchart TB
 11. `epic/13-export`
 12. `epic/15-domain-lib-perf` after 11 (furniture already in the domain)
 
+**Phase 3**
+
+13. `epic/16-responsive-layout` after Phase 2 shell/editor chrome is stable
+
 ## 6. Branch and PR rules
 
 - Branch name: `epic/NN-slug` matching the tables above.
@@ -245,7 +261,6 @@ flowchart TB
 - Backend API or auth
 - Furniture **marketplace**, user-uploaded meshes, parametric kitchens
 - Photorealistic / path-traced rendering
-- Mobile-first layout polish (desktop editor remains primary)
 - Replacing Storybook with MDX-only docs
 - PDF print packs with annotations; cloud share links
 - Elevators; spiral stairs; full slab CSG for stair openings

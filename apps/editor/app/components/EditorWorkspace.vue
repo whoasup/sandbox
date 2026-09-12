@@ -73,6 +73,7 @@ const showCeiling = computed({
 });
 const rooms = computed(() => ctx?.rooms.value ?? []);
 const objects = computed(() => ctx?.objects.value ?? []);
+const selection = computed(() => ctx?.selection.value ?? null);
 const sceneDocument = ctx?.document ?? new SceneDocument();
 const clearHistory = () => ctx?.clearHistory();
 const setFloorContext = (floorCtx: Parameters<NonNullable<typeof ctx>['setFloorContext']>[0]) =>
@@ -303,14 +304,41 @@ setStairProjectHooks({
   },
 });
 
+const sceneSheetOpen = ref(false);
+const inspectorSheetOpen = ref(false);
+/** Desktop dual-panel layout (`lg+`). Below that we use sheets only. */
+const isLgLayout = ref(false);
+
+let unsubLgMedia: (() => void) | null = null;
+
+watch(selection, (next) => {
+  // On narrow layouts the inspector is a sheet — open it when something is selected.
+  if (next && !isLgLayout.value) {
+    inspectorSheetOpen.value = true;
+  }
+});
+
 onMounted(() => {
   if (!bootError.value) void loadProject();
+  if (!import.meta.client) return;
+  const mq = window.matchMedia('(min-width: 1024px)');
+  const syncLg = (): void => {
+    isLgLayout.value = mq.matches;
+    if (mq.matches) {
+      sceneSheetOpen.value = false;
+      inspectorSheetOpen.value = false;
+    }
+  };
+  syncLg();
+  mq.addEventListener('change', syncLg);
+  unsubLgMedia = () => mq.removeEventListener('change', syncLg);
 });
 
 onUnmounted(() => {
   if (autosaveTimer) clearTimeout(autosaveTimer);
   unsubChange?.();
   unsubSettings?.();
+  unsubLgMedia?.();
   exportService.value?.setLivePngCapture(null);
 });
 
@@ -392,7 +420,7 @@ const statusLabel = computed(() => {
       </UiText>
 
       <div
-        class="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-5 py-2"
+        class="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2 sm:px-5"
         data-testid="floor-switcher"
       >
         <UiText size="xs" tone="muted" as="span">Этажи</UiText>
@@ -406,10 +434,30 @@ const statusLabel = computed(() => {
           {{ floor.name }}
         </UiButton>
         <UiButton size="sm" variant="ghost" @click="addFloor">+ Этаж</UiButton>
+        <div class="ml-auto flex gap-2 lg:hidden">
+          <UiButton
+            size="sm"
+            variant="secondary"
+            class="min-h-11"
+            data-testid="editor-open-scene"
+            @click="sceneSheetOpen = true"
+          >
+            Сцена
+          </UiButton>
+          <UiButton
+            size="sm"
+            variant="secondary"
+            class="min-h-11"
+            data-testid="editor-open-inspector"
+            @click="inspectorSheetOpen = true"
+          >
+            Инспектор
+          </UiButton>
+        </div>
       </div>
 
-      <div class="flex min-h-0 flex-1">
-        <EditorScenePanel />
+      <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <EditorScenePanel v-if="isLgLayout" />
         <main class="relative min-h-0 min-w-0 flex-1">
           <ClientOnly>
             <EditorCanvas2D v-if="mode === '2d'" />
@@ -438,7 +486,56 @@ const statusLabel = computed(() => {
             />
           </ul>
         </main>
-        <EditorInspector />
+        <EditorInspector v-if="isLgLayout" />
+      </div>
+
+      <!-- Mobile / tablet sheets (< lg) -->
+      <div
+        v-if="!isLgLayout && sceneSheetOpen"
+        class="fixed inset-0 z-30 flex flex-col"
+        data-testid="editor-scene-sheet"
+      >
+        <button
+          type="button"
+          class="absolute inset-0 cursor-default border-0 bg-black/40"
+          aria-label="Закрыть панель сцены"
+          @click="sceneSheetOpen = false"
+        />
+        <div
+          class="relative z-10 mt-auto flex max-h-[85vh] min-h-0 flex-col rounded-t-lg bg-surface shadow-lg"
+        >
+          <div class="flex items-center justify-between border-b border-border px-4 py-3">
+            <UiText weight="bold" as="h2">Сцена</UiText>
+            <UiButton size="sm" variant="ghost" class="min-h-11" @click="sceneSheetOpen = false"
+              >Закрыть</UiButton
+            >
+          </div>
+          <EditorScenePanel class="min-h-0 flex-1 border-r-0" />
+        </div>
+      </div>
+
+      <div
+        v-if="!isLgLayout && inspectorSheetOpen"
+        class="fixed inset-0 z-30 flex flex-col"
+        data-testid="editor-inspector-sheet"
+      >
+        <button
+          type="button"
+          class="absolute inset-0 cursor-default border-0 bg-black/40"
+          aria-label="Закрыть инспектор"
+          @click="inspectorSheetOpen = false"
+        />
+        <div
+          class="relative z-10 mt-auto flex max-h-[85vh] min-h-0 flex-col rounded-t-lg bg-surface shadow-lg"
+        >
+          <div class="flex items-center justify-between border-b border-border px-4 py-3">
+            <UiText weight="bold" as="h2">Инспектор</UiText>
+            <UiButton size="sm" variant="ghost" class="min-h-11" @click="inspectorSheetOpen = false"
+              >Закрыть</UiButton
+            >
+          </div>
+          <EditorInspector class="min-h-0 flex-1 border-l-0" />
+        </div>
       </div>
     </template>
   </div>

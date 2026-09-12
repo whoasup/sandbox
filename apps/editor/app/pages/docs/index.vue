@@ -5,7 +5,7 @@ import DocsNav from '../../components/docs/DocsNav.vue';
 
 <template>
   <div
-    class="mx-auto flex h-full max-w-3xl flex-col gap-6 overflow-y-auto p-8"
+    class="mx-auto flex h-full max-w-3xl flex-col gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8"
     data-testid="docs-page"
   >
     <DocsNav />

@@ -88,21 +88,26 @@ function toggleCeiling(): void {
 
 <template>
   <header
-    class="editor-toolbar flex flex-wrap items-center gap-6 border-b border-border bg-surface px-5 py-3 shadow-sm"
+    class="editor-toolbar flex flex-wrap items-center gap-3 border-b border-border bg-surface px-3 py-2 shadow-sm sm:gap-4 sm:px-4 lg:gap-6 lg:px-5 lg:py-3"
     data-testid="editor-toolbar"
   >
     <div class="flex flex-col gap-1">
       <div class="mr-4 flex items-baseline gap-2">
         <UiText size="lg" weight="bold" as="h1">Планировщик</UiText>
-        <UiText v-if="props.projectId" size="xs" tone="muted" as="span">{{
-          props.projectId
-        }}</UiText>
+        <UiText
+          v-if="props.projectId"
+          size="xs"
+          tone="muted"
+          as="span"
+          class="hidden max-w-[12rem] truncate sm:inline"
+          >{{ props.projectId }}</UiText
+        >
       </div>
       <slot name="status" />
-      <div class="flex flex-wrap items-center gap-3">
-        <UiToggleGroup v-model="mode" :options="modeOptions" />
-        <UiToggleGroup v-if="showCamera" v-model="cameraMode" :options="cameraOptions" />
-        <UiToggleGroup v-model="tool" :options="toolOptions" />
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <UiToggleGroup v-model="mode" :options="modeOptions" size="sm" />
+        <UiToggleGroup v-if="showCamera" v-model="cameraMode" :options="cameraOptions" size="sm" />
+        <UiToggleGroup v-model="tool" :options="toolOptions" size="sm" />
         <UiButton
           v-if="showCamera"
           size="sm"
@@ -116,12 +121,13 @@ function toggleCeiling(): void {
 
     <div class="flex flex-col gap-1">
       <UiText size="xs" tone="muted" as="span">Фигуры</UiText>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <UiButton
           v-for="shape in SHAPE_CATALOG"
           :key="shape.kind"
           variant="secondary"
-          size="md"
+          size="sm"
+          class="lg:text-sm"
           :title="shape.label"
           :data-testid="`add-shape-${shape.kind}`"
           @click="addShape(shape.kind)"
@@ -129,7 +135,7 @@ function toggleCeiling(): void {
           <template #icon>
             <UiShapeIcon :kind="shape.kind" :size="20" />
           </template>
-          {{ shape.label }}
+          <span class="hidden sm:inline">{{ shape.label }}</span>
         </UiButton>
       </div>
     </div>
