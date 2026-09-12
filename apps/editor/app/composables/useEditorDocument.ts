@@ -2,6 +2,7 @@ import type { InjectionKey, Ref, ShallowRef } from 'vue';
 import { inject, provide, reactive, ref, shallowRef } from 'vue';
 import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
 import { SceneDocument } from '../core/model/SceneDocument';
+import type { Opening, OpeningType } from '../core/model/Opening';
 import type { Room } from '../core/model/Room';
 import type { SceneObject } from '../core/model/SceneObject';
 import type { SceneSettings, SceneSettingsPatch } from '../core/model/SceneSettings';
@@ -23,6 +24,7 @@ export interface EditorDocumentContext {
   objects: ShallowRef<SceneObject[]>;
   walls: ShallowRef<WallObject[]>;
   rooms: ShallowRef<Room[]>;
+  openings: ShallowRef<Opening[]>;
   selection: ShallowRef<SelectionRef>;
   /** Convenience mirror of `selection.value?.id ?? null` for existing callers. */
   selectedId: ShallowRef<string | null>;
@@ -34,6 +36,10 @@ export interface EditorDocumentContext {
   activeColor: ShallowRef<string>;
   addShape: (kind: ShapeKind) => void;
   addWall: (start: Point2, end: Point2) => void;
+  addOpeningAtPoint: (type: OpeningType, point: Point2, wallId?: string) => void;
+  updateSelectedOpening: (
+    patch: Partial<{ type: OpeningType; t: number; width: number; height: number; sill: number }>,
+  ) => void;
   removeSelected: () => void;
   applySurfaceToSelection: (surface: SurfaceKind) => void;
   applyColorToSelection: (color: string) => void;
@@ -68,6 +74,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const objects = shallowRef<SceneObject[]>(document.list());
   const walls = shallowRef<WallObject[]>(document.listWalls());
   const rooms = shallowRef<Room[]>(document.listRooms());
+  const openings = shallowRef<Opening[]>(document.listOpenings());
   const selection = shallowRef<SelectionRef>(null);
   const selectedId = shallowRef<string | null>(null);
   const settings = shallowRef<SceneSettings>(document.settings);
@@ -81,6 +88,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     objects.value = payload.objects;
     walls.value = payload.walls;
     rooms.value = payload.rooms;
+    openings.value = payload.openings;
   });
   document.on('settings', (next) => {
     settings.value = next;
@@ -114,6 +122,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     objects,
     walls,
     rooms,
+    openings,
     selection,
     selectedId,
     settings,
@@ -139,6 +148,13 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         surface: activeSurface.value,
         color: activeColor.value,
       });
+    },
+    addOpeningAtPoint(type, point, wallId) {
+      document.addOpeningAtPoint(type, point, wallId);
+    },
+    updateSelectedOpening(patch) {
+      if (selection.value?.type !== 'opening') return;
+      document.updateOpening(selection.value.id, patch);
     },
     removeSelected() {
       document.removeSelected();

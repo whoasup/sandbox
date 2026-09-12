@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { ThreeRenderer } from '../core/render/three';
 import { useEditorDocument } from '../composables/useEditorDocument';
 
-const { objects, walls, rooms, selection, settings, selectEntity, moveShape, moveWall } =
+const { objects, walls, rooms, openings, selection, settings, selectEntity, moveShape, moveWall } =
   useEditorDocument();
 
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -17,12 +17,26 @@ onMounted(() => {
   });
   if (containerRef.value) {
     renderer.mount(containerRef.value);
-    renderer.render(objects.value, walls.value, rooms.value, selection.value, settings.value);
+    renderer.render(
+      objects.value,
+      walls.value,
+      rooms.value,
+      openings.value,
+      selection.value,
+      settings.value,
+    );
   }
 });
 
-watch([objects, walls, rooms, selection, settings], () => {
-  renderer?.render(objects.value, walls.value, rooms.value, selection.value, settings.value);
+watch([objects, walls, rooms, openings, selection, settings], () => {
+  renderer?.render(
+    objects.value,
+    walls.value,
+    rooms.value,
+    openings.value,
+    selection.value,
+    settings.value,
+  );
 });
 
 onUnmounted(() => {

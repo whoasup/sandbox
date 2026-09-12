@@ -7,4 +7,5 @@ export * from './shapes';
 export * from './types';
 export * from './WallObject';
 export * from './Room';
+export * from './Opening';
 export * from './rooms/detectRooms';

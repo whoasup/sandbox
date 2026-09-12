@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { Opening } from '../../model/Opening';
 import type { Room } from '../../model/Room';
 import type { SceneObject } from '../../model/SceneObject';
 import {
@@ -84,13 +85,14 @@ export class ThreeRenderer implements ISceneRenderer {
     objects: readonly SceneObject[],
     walls: readonly WallObject[],
     rooms: readonly Room[],
+    openings: readonly Opening[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
     this.applyEnvironment(settings);
     this.syncRooms(rooms);
     this.syncShapes(objects);
-    this.syncWalls(walls);
+    this.syncWalls(walls, openings);
     this.updateSelection(selection);
   }
 
@@ -153,19 +155,19 @@ export class ThreeRenderer implements ISceneRenderer {
     }
   }
 
-  private syncWalls(walls: readonly WallObject[]): void {
+  private syncWalls(walls: readonly WallObject[], openings: readonly Opening[]): void {
     const seen = new Set<string>();
 
     for (const wall of walls) {
       seen.add(wall.id);
       let view = this.wallMeshes.get(wall.id);
+      const wallOpenings = openings.filter((o) => o.wallId === wall.id);
       if (!view) {
         view = new ThreeWallMesh(wall);
         this.wallMeshes.set(wall.id, view);
         this.scene.add(view.mesh);
-      } else {
-        view.update(wall);
       }
+      view.update(wall, wallOpenings);
     }
 
     for (const [id, view] of this.wallMeshes) {
@@ -297,12 +299,23 @@ export class ThreeRenderer implements ISceneRenderer {
       this.selectionHelper = null;
     }
     if (!selection) return;
-    let mesh: THREE.Object3D | undefined;
-    if (selection.type === 'shape') mesh = this.meshes.get(selection.id);
-    else if (selection.type === 'wall') mesh = this.wallMeshes.get(selection.id)?.mesh;
-    else mesh = this.roomMeshes.get(selection.id)?.mesh;
-    if (!mesh) return;
-    this.selectionHelper = new THREE.BoxHelper(mesh, 0x3b7ded);
+    let target: THREE.Object3D | undefined;
+    if (selection.type === 'shape') target = this.meshes.get(selection.id);
+    else if (selection.type === 'wall') target = this.wallMeshes.get(selection.id)?.mesh;
+    else if (selection.type === 'room') target = this.roomMeshes.get(selection.id)?.mesh;
+    else if (selection.type === 'opening') {
+      for (const view of this.wallMeshes.values()) {
+        const found = view.mesh.children.find(
+          (c) => c.userData.entityType === 'opening' && c.name === selection.id,
+        );
+        if (found) {
+          target = found;
+          break;
+        }
+      }
+    }
+    if (!target) return;
+    this.selectionHelper = new THREE.BoxHelper(target, 0x3b7ded);
     this.scene.add(this.selectionHelper);
   }
 
@@ -314,24 +327,31 @@ export class ThreeRenderer implements ISceneRenderer {
 
   private pickSelection(): SelectionRef {
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const candidates = [
+    const candidates: THREE.Object3D[] = [
       ...this.meshes.values(),
-      ...[...this.wallMeshes.values()].map((view) => view.mesh),
       ...[...this.roomMeshes.values()].map((view) => view.mesh),
     ];
+    for (const view of this.wallMeshes.values()) {
+      candidates.push(...view.mesh.children);
+    }
     const hit = this.raycaster.intersectObjects(candidates, false)[0];
     if (!hit) return null;
-    const entityType = hit.object.userData.entityType as 'shape' | 'wall' | 'room' | undefined;
+    const entityType = hit.object.userData.entityType as
+      'shape' | 'wall' | 'room' | 'opening' | undefined;
     if (entityType === 'wall') return { type: 'wall', id: hit.object.name };
     if (entityType === 'room') return { type: 'room', id: hit.object.name };
+    if (entityType === 'opening') return { type: 'opening', id: hit.object.name };
     return { type: 'shape', id: hit.object.name };
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     this.updatePointer(event);
+    if (this.interactions.onAddOpening) {
+      // 3D opening placement is optional; primary UX is 2D.
+    }
     const selection = this.pickSelection();
     this.interactions.onSelect?.(selection);
-    if (selection && selection.type !== 'room') {
+    if (selection && (selection.type === 'shape' || selection.type === 'wall')) {
       this.dragging = selection;
       this.controls.enabled = false;
     }

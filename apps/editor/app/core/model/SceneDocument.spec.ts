@@ -11,14 +11,15 @@ describe('SceneDocument', () => {
     expect(doc.selected).toEqual({ type: 'shape', id: shape.id });
   });
 
-  it('emits "change" with objects, walls, and rooms on every mutation', () => {
+  it('emits "change" with objects, walls, rooms, and openings on every mutation', () => {
     const doc = new SceneDocument();
-    const events: { objects: number; walls: number; rooms: number }[] = [];
+    const events: { objects: number; walls: number; rooms: number; openings: number }[] = [];
     doc.on('change', (payload) =>
       events.push({
         objects: payload.objects.length,
         walls: payload.walls.length,
         rooms: payload.rooms.length,
+        openings: payload.openings.length,
       }),
     );
 
@@ -26,8 +27,8 @@ describe('SceneDocument', () => {
     doc.addWall({ start: { x: 0, z: 0 }, end: { x: 2, z: 0 } });
 
     expect(events).toEqual([
-      { objects: 1, walls: 0, rooms: 0 },
-      { objects: 1, walls: 1, rooms: 0 },
+      { objects: 1, walls: 0, rooms: 0, openings: 0 },
+      { objects: 1, walls: 1, rooms: 0, openings: 0 },
     ]);
   });
 
@@ -282,5 +283,28 @@ describe('SceneDocument', () => {
     expect(doc.listRooms()).toHaveLength(2);
     doc.removeWall('shared');
     expect(doc.listRooms()).toHaveLength(1);
+  });
+
+  it('adds door and window on one wall, clamps width, and cascades on wall delete', () => {
+    const doc = new SceneDocument();
+    const wall = doc.addWall({ start: { x: 0, z: 0 }, end: { x: 4, z: 0 } });
+    const door = doc.addOpening(wall.id, 'door', { t: 0.3 });
+    const window = doc.addOpening(wall.id, 'window', { t: 0.7 });
+    expect(door).toBeTruthy();
+    expect(window).toBeTruthy();
+    expect(doc.listOpenings()).toHaveLength(2);
+
+    const tooWide = doc.addOpening(wall.id, 'door', { width: 20, t: 0.5 });
+    expect(tooWide!.width).toBeLessThanOrEqual(4);
+
+    const snapshot = doc.toSnapshot();
+    expect(snapshot.openings).toHaveLength(3);
+
+    const restored = new SceneDocument();
+    restored.fromSnapshot(snapshot);
+    expect(restored.listOpenings()).toHaveLength(3);
+
+    doc.removeWall(wall.id);
+    expect(doc.listOpenings()).toHaveLength(0);
   });
 });

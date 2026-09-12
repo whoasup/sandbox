@@ -9,6 +9,7 @@ import {
   type SceneSettings,
   type SceneSettingsPatch,
 } from './SceneSettings';
+import { Opening, type OpeningInit, type OpeningType } from './Opening';
 import { Room, type RoomSnapshot } from './Room';
 import { detectRooms } from './rooms/detectRooms';
 import type { SceneObjectInit, SceneSnapshot, SelectionRef, ShapeKind, SurfaceKind } from './types';
@@ -18,6 +19,7 @@ export type SceneDocumentChange = {
   objects: SceneObject[];
   walls: WallObject[];
   rooms: Room[];
+  openings: Opening[];
 };
 
 // A type literal (not an `interface`) so it structurally satisfies the
@@ -29,15 +31,14 @@ export type SceneDocumentEvents = {
 };
 
 /**
- * The single source of truth for the editor: shapes + walls + rooms,
- * document-level `SceneSettings`, plus a selection cursor that can point
- * at any entity type. Both the 2D (`SvgRenderer`) and 3D
- * (`ThreeRenderer`) views subscribe to the same document.
+ * The single source of truth for the editor: shapes + walls + rooms +
+ * openings, document-level `SceneSettings`, plus a selection cursor.
  */
 export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly objects = new Map<string, SceneObject>();
   private readonly walls = new Map<string, WallObject>();
   private readonly rooms = new Map<string, Room>();
+  private readonly openings = new Map<string, Opening>();
   private selection: SelectionRef = null;
   private sceneSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -53,6 +54,14 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     return [...this.rooms.values()];
   }
 
+  public listOpenings(): Opening[] {
+    return [...this.openings.values()];
+  }
+
+  public listOpeningsForWall(wallId: string): Opening[] {
+    return this.listOpenings().filter((o) => o.wallId === wallId);
+  }
+
   public get(id: string): SceneObject | undefined {
     return this.objects.get(id);
   }
@@ -63,6 +72,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public getRoom(id: string): Room | undefined {
     return this.rooms.get(id);
+  }
+
+  public getOpening(id: string): Opening | undefined {
+    return this.openings.get(id);
   }
 
   public get selected(): SelectionRef {
@@ -107,7 +120,12 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public removeWall(id: string): void {
     if (!this.walls.delete(id)) return;
+    for (const opening of [...this.openings.values()]) {
+      if (opening.wallId === id) this.openings.delete(opening.id);
+    }
     if (this.selection?.type === 'wall' && this.selection.id === id) {
+      this.select(null);
+    } else if (this.selection?.type === 'opening' && !this.openings.has(this.selection.id)) {
       this.select(null);
     }
     this.rebuildRooms();
@@ -118,7 +136,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     if (!this.selection) return;
     if (this.selection.type === 'shape') this.remove(this.selection.id);
     else if (this.selection.type === 'wall') this.removeWall(this.selection.id);
-    // Rooms are derived — clear selection only.
+    else if (this.selection.type === 'opening') this.removeOpening(this.selection.id);
     else if (this.selection.type === 'room') this.select(null);
   }
 
@@ -127,8 +145,92 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     if (next?.type === 'shape' && !this.objects.has(next.id)) return;
     if (next?.type === 'wall' && !this.walls.has(next.id)) return;
     if (next?.type === 'room' && !this.rooms.has(next.id)) return;
+    if (next?.type === 'opening' && !this.openings.has(next.id)) return;
     this.selection = next;
     this.emit('select', next);
+  }
+
+  public addOpening(
+    wallId: string,
+    type: OpeningType,
+    init?: Partial<Omit<OpeningInit, 'wallId' | 'type'>>,
+  ): Opening | null {
+    const wall = this.walls.get(wallId);
+    if (!wall) return null;
+    const opening = new Opening({ wallId, type, ...init });
+    opening.applyClamp(wall.length);
+    // Also clamp height to wall
+    opening.height = Math.min(opening.height, Math.max(0.3, wall.height - opening.sill));
+    this.openings.set(opening.id, opening);
+    this.select({ type: 'opening', id: opening.id });
+    this.notifyChange();
+    return opening;
+  }
+
+  public removeOpening(id: string): void {
+    if (!this.openings.delete(id)) return;
+    if (this.selection?.type === 'opening' && this.selection.id === id) {
+      this.select(null);
+    }
+    this.notifyChange();
+  }
+
+  public moveOpening(id: string, t: number): void {
+    const opening = this.openings.get(id);
+    if (!opening) return;
+    const wall = this.walls.get(opening.wallId);
+    if (!wall) return;
+    opening.t = t;
+    opening.applyClamp(wall.length);
+    this.notifyChange();
+  }
+
+  public updateOpening(
+    id: string,
+    patch: Partial<Pick<Opening, 'type' | 't' | 'width' | 'height' | 'sill'>>,
+  ): void {
+    const opening = this.openings.get(id);
+    if (!opening) return;
+    const wall = this.walls.get(opening.wallId);
+    if (!wall) return;
+    if (patch.type !== undefined) opening.type = patch.type;
+    if (patch.t !== undefined) opening.t = patch.t;
+    if (patch.width !== undefined) opening.width = patch.width;
+    if (patch.height !== undefined) opening.height = patch.height;
+    if (patch.sill !== undefined) opening.sill = patch.sill;
+    opening.applyClamp(wall.length);
+    opening.height = Math.min(opening.height, Math.max(0.3, wall.height - opening.sill));
+    this.notifyChange();
+  }
+
+  /**
+   * Place an opening on the wall nearest to `point` (or a given wall),
+   * using the parametric `t` along that wall.
+   */
+  public addOpeningAtPoint(type: OpeningType, point: Point2, wallId?: string): Opening | null {
+    let wall = wallId ? this.walls.get(wallId) : undefined;
+    if (!wall) {
+      let best: WallObject | undefined;
+      let bestDist = Infinity;
+      for (const candidate of this.walls.values()) {
+        const d = candidate.distanceToPoint(point);
+        if (d < bestDist) {
+          bestDist = d;
+          best = candidate;
+        }
+      }
+      wall = best;
+    }
+    if (!wall || wall.length < 0.2) return null;
+    const ax = wall.start.x;
+    const az = wall.start.z;
+    const bx = wall.end.x;
+    const bz = wall.end.z;
+    const abx = bx - ax;
+    const abz = bz - az;
+    const lengthSq = abx * abx + abz * abz;
+    const t = lengthSq < 1e-8 ? 0.5 : ((point.x - ax) * abx + (point.z - az) * abz) / lengthSq;
+    return this.addOpening(wall.id, type, { t });
   }
 
   public moveShape(id: string, x: number, z: number): void {
@@ -153,6 +255,9 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     const targetZ = snap ? roundToStep(z, gridStep) : z;
     const mid = wall.midpoint;
     wall.translate(targetX - mid.x, targetZ - mid.z);
+    for (const opening of this.listOpeningsForWall(id)) {
+      opening.applyClamp(wall.length);
+    }
     this.rebuildRooms();
     this.notifyChange();
   }
@@ -312,6 +417,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       objects: this.list().map((object) => object.toSnapshot()),
       walls: this.listWalls().map((wall) => wall.toSnapshot()),
       rooms: this.listRooms().map((room) => room.toSnapshot()),
+      openings: this.listOpenings().map((opening) => opening.toSnapshot()),
       settings: this.settings,
     };
   }
@@ -321,6 +427,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.objects.clear();
     this.walls.clear();
     this.rooms.clear();
+    this.openings.clear();
     this.selection = null;
 
     for (const object of snapshot.objects) {
@@ -343,6 +450,14 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       this.walls.set(wall.id, wall);
     }
 
+    for (const openingSnap of snapshot.openings ?? []) {
+      if (!this.walls.has(openingSnap.wallId)) continue;
+      const opening = Opening.fromSnapshot(openingSnap);
+      const wall = this.walls.get(opening.wallId)!;
+      opening.applyClamp(wall.length);
+      this.openings.set(opening.id, opening);
+    }
+
     this.sceneSettings = cloneSceneSettings(snapshot.settings ?? createDefaultSceneSettings());
     this.rebuildRooms(snapshot.rooms ?? []);
     this.emit('settings', this.settings);
@@ -354,6 +469,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.objects.clear();
     this.walls.clear();
     this.rooms.clear();
+    this.openings.clear();
     this.select(null);
     this.notifyChange();
   }
@@ -400,6 +516,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       objects: this.list(),
       walls: this.listWalls(),
       rooms: this.listRooms(),
+      openings: this.listOpenings(),
     });
   }
 }

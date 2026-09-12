@@ -15,6 +15,7 @@ const {
   objects,
   walls,
   rooms,
+  openings,
   selection,
   activeSurface,
   activeColor,
@@ -24,6 +25,7 @@ const {
   setSelectedWallHeight,
   setSelectedWallThickness,
   setSelectedRoomName,
+  updateSelectedOpening,
   applySurfaceToSelection,
   applyColorToSelection,
   duplicateSelected,
@@ -43,6 +45,11 @@ const selectedWall = computed(() => {
 const selectedRoom = computed(() => {
   if (selection.value?.type !== 'room') return null;
   return rooms.value.find((room) => room.id === selection.value!.id) ?? null;
+});
+
+const selectedOpening = computed(() => {
+  if (selection.value?.type !== 'opening') return null;
+  return openings.value.find((opening) => opening.id === selection.value!.id) ?? null;
 });
 
 const rotationDegrees = computed({
@@ -107,6 +114,36 @@ function onColorInput(event: Event): void {
 
 function onRoomNameInput(event: Event): void {
   roomName.value = (event.target as HTMLInputElement).value;
+}
+
+const openingWidth = computed({
+  get: () => selectedOpening.value?.width ?? 0.9,
+  set: (value: number) => updateSelectedOpening({ width: clamp(value, 0.1, 10) }),
+});
+const openingHeight = computed({
+  get: () => selectedOpening.value?.height ?? 2.1,
+  set: (value: number) => updateSelectedOpening({ height: clamp(value, 0.3, 10) }),
+});
+const openingSill = computed({
+  get: () => selectedOpening.value?.sill ?? 0,
+  set: (value: number) => updateSelectedOpening({ sill: clamp(value, 0, 5) }),
+});
+const openingT = computed({
+  get: () => selectedOpening.value?.t ?? 0.5,
+  set: (value: number) => updateSelectedOpening({ t: clamp(value, 0, 1) }),
+});
+
+function onOpeningWidthInput(event: Event): void {
+  openingWidth.value = Number((event.target as HTMLInputElement).value);
+}
+function onOpeningHeightInput(event: Event): void {
+  openingHeight.value = Number((event.target as HTMLInputElement).value);
+}
+function onOpeningSillInput(event: Event): void {
+  openingSill.value = Number((event.target as HTMLInputElement).value);
+}
+function onOpeningTInput(event: Event): void {
+  openingT.value = Number((event.target as HTMLInputElement).value);
 }
 </script>
 
@@ -278,6 +315,69 @@ function onRoomNameInput(event: Event): void {
             @input="onColorInput"
           />
         </div>
+      </div>
+    </template>
+
+    <template v-else-if="selectedOpening">
+      <div class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Проём</UiText>
+        <UiText size="sm" as="p">
+          {{ selectedOpening.type === 'door' ? 'Дверь' : 'Окно' }}
+        </UiText>
+      </div>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Ширина · {{ openingWidth.toFixed(2) }} м</UiText>
+        <input
+          type="range"
+          min="0.3"
+          max="3"
+          step="0.05"
+          :value="openingWidth"
+          @input="onOpeningWidthInput"
+        />
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Высота · {{ openingHeight.toFixed(2) }} м</UiText>
+        <input
+          type="range"
+          min="0.3"
+          max="3"
+          step="0.05"
+          :value="openingHeight"
+          @input="onOpeningHeightInput"
+        />
+      </label>
+
+      <label v-if="selectedOpening.type === 'window'" class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span"
+          >Подоконник · {{ openingSill.toFixed(2) }} м</UiText
+        >
+        <input
+          type="range"
+          min="0"
+          max="2"
+          step="0.05"
+          :value="openingSill"
+          @input="onOpeningSillInput"
+        />
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Позиция t · {{ openingT.toFixed(2) }}</UiText>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          :value="openingT"
+          @input="onOpeningTInput"
+        />
+      </label>
+
+      <div class="mt-auto flex flex-col gap-2">
+        <UiButton variant="ghost" @click="removeSelected">Удалить</UiButton>
       </div>
     </template>
 
