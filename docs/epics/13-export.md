@@ -1,6 +1,6 @@
 # Epic 13 — Scene export (PNG / SVG / glTF)
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/13-export`  
 Depends on: Epic 11, Epic 12  
 Owners: `apps/editor`
@@ -87,11 +87,11 @@ Depends on 11+12 so exported scenes include furniture and stairs.
 
 ## 7. Definition of Done
 
-- [ ] PNG, SVG, and glTF download for the active floor
-- [ ] Furniture and stairs appear in SVG footprints / glTF meshes
-- [ ] JSON project export remains available via the same menu
-- [ ] Unit tests cover SVG + glTF builders without a real browser download
-- [ ] Green lint / typecheck / test / build
+- [x] PNG, SVG, and glTF download for the active floor
+- [x] Furniture and stairs appear in SVG footprints / glTF meshes
+- [x] JSON project export remains available via the same menu
+- [x] Unit tests cover SVG + glTF builders without a real browser download
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

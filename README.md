@@ -26,10 +26,14 @@ so switching modes never loses state.
   toolbar's `UiTextureSwatch` preview.
 - **Interaction** — click a shape in either view to select it (blue
   outline), drag it to move it, delete it, or repaint its surface/color.
+- **Export** — toolbar **Экспорт** menu: PNG (3D view), SVG (2D plan from
+  the document model), glTF/GLB (active-floor meshes), plus Epic 05
+  project JSON. Filenames: `{project}-{floor}.{ext}`.
 - Architecture: `app/core/model` (framework-agnostic domain classes),
   `app/core/render/three` and `app/core/render/svg` (the two `ISceneRenderer`
-  implementations), `app/composables/useEditorDocument.ts` (Vue-reactive
-  bridge, provide/inject), `app/components` (toolbar + canvases).
+  implementations), `app/core/export` (PNG / SVG / glTF builders),
+  `app/composables/useEditorDocument.ts` (Vue-reactive bridge,
+  provide/inject), `app/components` (toolbar + canvases).
 
 See [`apps/editor/README.md`](apps/editor/README.md) for scripts and structure.
 
