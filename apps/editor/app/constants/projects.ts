@@ -1,2 +1,2 @@
-/** Stub project id until Epic 05 wires IndexedDB. */
-export const DRAFT_PROJECT_ID = 'draft';
+/** localStorage key for the last opened project (sidebar deep-link). */
+export const LAST_PROJECT_STORAGE_KEY = 'sandbox:lastProjectId';

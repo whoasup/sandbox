@@ -150,4 +150,24 @@ describe('SceneDocument', () => {
     expect(shape.position.x).toBe(1);
     expect(shape.position.z).toBe(-2);
   });
+
+  it('fromSnapshot restores objects and settings round-trip', () => {
+    const doc = new SceneDocument();
+    const shape = doc.addShape('sphere', {
+      position: { x: 2, z: -1 },
+      surface: 'stone',
+      color: '#112233',
+    });
+    doc.patchSettings({ field: { snap: true, gridStep: 0.5 } });
+    const snapshot = doc.toSnapshot();
+
+    const restored = new SceneDocument();
+    restored.fromSnapshot(snapshot);
+
+    expect(restored.list()).toHaveLength(1);
+    expect(restored.get(shape.id)?.kind).toBe('sphere');
+    expect(restored.get(shape.id)?.position.x).toBe(2);
+    expect(restored.settings.field.snap).toBe(true);
+    expect(restored.settings.field.gridStep).toBe(0.5);
+  });
 });

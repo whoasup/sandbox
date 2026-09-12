@@ -1,6 +1,6 @@
 # Epic 05 — Projects in IndexedDB
 
-Status: **planned**  
+Status: **implemented** — branch `epic/05-project-persistence`  
 Branch: `epic/05-project-persistence`  
 Depends on: Epic 01 (prefer merge of Epics 03 + 04 first so snapshots
 include inspector fields and `SceneSettings`)  
@@ -96,12 +96,12 @@ interface ProjectStore {
 
 ## 7. Definition of Done
 
-- [ ] F5 does not lose the open project’s scene
-- [ ] Library shows multiple projects with rename / duplicate / delete
-- [ ] Export / import JSON works for a single project
-- [ ] Unknown id handled without crashing the shell
-- [ ] Store covered by tests without real IDB
-- [ ] Green lint / typecheck / test / build
+- [x] F5 does not lose the open project’s scene
+- [x] Library shows multiple projects with rename / duplicate / delete
+- [x] Export / import JSON works for a single project
+- [x] Unknown id handled without crashing the shell
+- [x] Store covered by tests without real IDB
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 
