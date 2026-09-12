@@ -6,3 +6,5 @@ export * from './ShapeFactory';
 export * from './shapes';
 export * from './types';
 export * from './WallObject';
+export * from './Room';
+export * from './rooms/detectRooms';

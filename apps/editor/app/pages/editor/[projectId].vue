@@ -15,7 +15,7 @@ import EditorToolbar from '../../components/EditorToolbar.vue';
 
 const AUTOSAVE_MS = 400;
 
-const { mode, document: sceneDocument } = createEditorDocumentContext();
+const { mode, rooms, document: sceneDocument } = createEditorDocumentContext();
 
 const route = useRoute();
 const projectId = computed(() => String(route.params.projectId ?? ''));
@@ -115,7 +115,8 @@ const statusLabel = computed(() => {
       <EditorToolbar :project-id="projectId">
         <template #status>
           <UiText size="xs" tone="muted" as="span" data-testid="editor-save-status">
-            {{ projectName }} · {{ statusLabel }}
+            {{ projectName }} · {{ statusLabel
+            }}<template v-if="rooms.length"> · Комнат: {{ rooms.length }}</template>
           </UiText>
         </template>
       </EditorToolbar>

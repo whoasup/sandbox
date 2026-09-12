@@ -14,6 +14,7 @@ import { useEditorDocument } from '../composables/useEditorDocument';
 const {
   objects,
   walls,
+  rooms,
   selection,
   activeSurface,
   activeColor,
@@ -22,6 +23,7 @@ const {
   setSelectedScale,
   setSelectedWallHeight,
   setSelectedWallThickness,
+  setSelectedRoomName,
   applySurfaceToSelection,
   applyColorToSelection,
   duplicateSelected,
@@ -36,6 +38,11 @@ const selectedShape = computed(() => {
 const selectedWall = computed(() => {
   if (selection.value?.type !== 'wall') return null;
   return walls.value.find((wall) => wall.id === selection.value!.id) ?? null;
+});
+
+const selectedRoom = computed(() => {
+  if (selection.value?.type !== 'room') return null;
+  return rooms.value.find((room) => room.id === selection.value!.id) ?? null;
 });
 
 const rotationDegrees = computed({
@@ -71,6 +78,13 @@ const wallLengthLabel = computed(() => {
   return `${length.toFixed(2)} м`;
 });
 
+const roomName = computed({
+  get: () => selectedRoom.value?.name ?? '',
+  set: (value: string) => {
+    setSelectedRoomName(value);
+  },
+});
+
 function onRotationInput(event: Event): void {
   rotationDegrees.value = Number((event.target as HTMLInputElement).value);
 }
@@ -89,6 +103,10 @@ function onWallThicknessInput(event: Event): void {
 
 function onColorInput(event: Event): void {
   applyColorToSelection((event.target as HTMLInputElement).value);
+}
+
+function onRoomNameInput(event: Event): void {
+  roomName.value = (event.target as HTMLInputElement).value;
 }
 </script>
 
@@ -225,6 +243,41 @@ function onColorInput(event: Event): void {
 
       <div class="mt-auto flex flex-col gap-2">
         <UiButton variant="ghost" @click="removeSelected">Удалить</UiButton>
+      </div>
+    </template>
+
+    <template v-else-if="selectedRoom">
+      <div class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Комната</UiText>
+        <input
+          class="rounded-sm border border-border bg-surface px-2 py-1 text-sm"
+          type="text"
+          :value="roomName"
+          data-testid="room-name-input"
+          @input="onRoomNameInput"
+        />
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <UiText size="xs" tone="muted" as="span">Пол</UiText>
+        <div class="flex flex-wrap items-center gap-2">
+          <UiTextureSwatch
+            v-for="texture in TEXTURE_LIST"
+            :key="texture.id"
+            :surface="texture.id"
+            :size="28"
+            :selected="activeSurface === texture.id"
+            :label="texture.label"
+            @click="applySurfaceToSelection(texture.id)"
+          />
+          <input
+            class="h-7 w-7 cursor-pointer rounded-sm border border-border bg-none p-0"
+            type="color"
+            :value="activeColor"
+            title="Цвет пола"
+            @input="onColorInput"
+          />
+        </div>
       </div>
     </template>
 

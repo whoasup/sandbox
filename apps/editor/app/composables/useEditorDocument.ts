@@ -2,6 +2,7 @@ import type { InjectionKey, Ref, ShallowRef } from 'vue';
 import { inject, provide, reactive, ref, shallowRef } from 'vue';
 import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
 import { SceneDocument } from '../core/model/SceneDocument';
+import type { Room } from '../core/model/Room';
 import type { SceneObject } from '../core/model/SceneObject';
 import type { SceneSettings, SceneSettingsPatch } from '../core/model/SceneSettings';
 import type { SelectionRef } from '../core/model/types';
@@ -21,6 +22,7 @@ export interface EditorDocumentContext {
   document: SceneDocument;
   objects: ShallowRef<SceneObject[]>;
   walls: ShallowRef<WallObject[]>;
+  rooms: ShallowRef<Room[]>;
   selection: ShallowRef<SelectionRef>;
   /** Convenience mirror of `selection.value?.id ?? null` for existing callers. */
   selectedId: ShallowRef<string | null>;
@@ -41,6 +43,8 @@ export interface EditorDocumentContext {
   moveWall: (id: string, x: number, z: number) => void;
   setSelectedWallHeight: (height: number) => void;
   setSelectedWallThickness: (thickness: number) => void;
+  setSelectedRoomName: (name: string) => void;
+  setSelectedRoomFloorSurface: (surface: SurfaceKind | undefined) => void;
   replaceSelectedKind: (kind: ShapeKind) => void;
   setSelectedRotation: (rotationY: number) => void;
   setSelectedScale: (scale: number) => void;
@@ -63,6 +67,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const document = new SceneDocument();
   const objects = shallowRef<SceneObject[]>(document.list());
   const walls = shallowRef<WallObject[]>(document.listWalls());
+  const rooms = shallowRef<Room[]>(document.listRooms());
   const selection = shallowRef<SelectionRef>(null);
   const selectedId = shallowRef<string | null>(null);
   const settings = shallowRef<SceneSettings>(document.settings);
@@ -75,6 +80,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   document.on('change', (payload) => {
     objects.value = payload.objects;
     walls.value = payload.walls;
+    rooms.value = payload.rooms;
   });
   document.on('settings', (next) => {
     settings.value = next;
@@ -94,6 +100,12 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         activeSurface.value = wall.surface;
         activeColor.value = wall.color;
       }
+    } else if (ref?.type === 'room') {
+      const room = document.getRoom(ref.id);
+      if (room) {
+        if (room.floorSurface) activeSurface.value = room.floorSurface;
+        activeColor.value = room.floorColor;
+      }
     }
   });
 
@@ -101,6 +113,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     document,
     objects,
     walls,
+    rooms,
     selection,
     selectedId,
     settings,
@@ -135,8 +148,10 @@ export function createEditorDocumentContext(): EditorDocumentContext {
       if (!selection.value) return;
       if (selection.value.type === 'shape') {
         document.setSurface(selection.value.id, surface);
-      } else {
+      } else if (selection.value.type === 'wall') {
         document.setWallSurface(selection.value.id, surface);
+      } else if (selection.value.type === 'room') {
+        document.setRoomFloorSurface(selection.value.id, surface);
       }
     },
     applyColorToSelection(color) {
@@ -144,8 +159,10 @@ export function createEditorDocumentContext(): EditorDocumentContext {
       if (!selection.value) return;
       if (selection.value.type === 'shape') {
         document.setColor(selection.value.id, color);
-      } else {
+      } else if (selection.value.type === 'wall') {
         document.setWallColor(selection.value.id, color);
+      } else if (selection.value.type === 'room') {
+        document.setRoomFloorColor(selection.value.id, color);
       }
     },
     selectEntity(next) {
@@ -167,6 +184,14 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     setSelectedWallThickness(thickness) {
       if (selection.value?.type !== 'wall') return;
       document.setWallThickness(selection.value.id, thickness);
+    },
+    setSelectedRoomName(name) {
+      if (selection.value?.type !== 'room') return;
+      document.setRoomName(selection.value.id, name);
+    },
+    setSelectedRoomFloorSurface(surface) {
+      if (selection.value?.type !== 'room') return;
+      document.setRoomFloorSurface(selection.value.id, surface);
     },
     replaceSelectedKind(kind) {
       if (selection.value?.type !== 'shape') return;

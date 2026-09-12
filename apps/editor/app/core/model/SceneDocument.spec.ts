@@ -11,19 +11,23 @@ describe('SceneDocument', () => {
     expect(doc.selected).toEqual({ type: 'shape', id: shape.id });
   });
 
-  it('emits "change" with objects and walls on every mutation', () => {
+  it('emits "change" with objects, walls, and rooms on every mutation', () => {
     const doc = new SceneDocument();
-    const events: { objects: number; walls: number }[] = [];
+    const events: { objects: number; walls: number; rooms: number }[] = [];
     doc.on('change', (payload) =>
-      events.push({ objects: payload.objects.length, walls: payload.walls.length }),
+      events.push({
+        objects: payload.objects.length,
+        walls: payload.walls.length,
+        rooms: payload.rooms.length,
+      }),
     );
 
     doc.addShape('cube');
     doc.addWall({ start: { x: 0, z: 0 }, end: { x: 2, z: 0 } });
 
     expect(events).toEqual([
-      { objects: 1, walls: 0 },
-      { objects: 1, walls: 1 },
+      { objects: 1, walls: 0, rooms: 0 },
+      { objects: 1, walls: 1, rooms: 0 },
     ]);
   });
 
@@ -237,5 +241,46 @@ describe('SceneDocument', () => {
     expect(restored.settings.field.snap).toBe(true);
     expect(restored.settings.field.gridStep).toBe(0.5);
     expect(snapshot.walls).toHaveLength(1);
+    expect(snapshot.rooms).toEqual([]);
+  });
+
+  it('detects a room from a closed square and preserves floor materials', () => {
+    const doc = new SceneDocument();
+    doc.addWall({ start: { x: 0, z: 0 }, end: { x: 4, z: 0 } });
+    doc.addWall({ start: { x: 4, z: 0 }, end: { x: 4, z: 4 } });
+    doc.addWall({ start: { x: 4, z: 4 }, end: { x: 0, z: 4 } });
+    doc.addWall({ start: { x: 0, z: 4 }, end: { x: 0, z: 0 } });
+
+    expect(doc.listRooms()).toHaveLength(1);
+    const room = doc.listRooms()[0]!;
+    doc.setRoomFloorColor(room.id, '#aabbcc');
+    doc.setRoomFloorSurface(room.id, 'wood');
+    const fingerprint = room.fingerprint;
+    const roomId = room.id;
+
+    const snapshot = doc.toSnapshot();
+    const restored = new SceneDocument();
+    restored.fromSnapshot(snapshot);
+    expect(restored.listRooms()).toHaveLength(1);
+    expect(restored.listRooms()[0]!.id).toBe(roomId);
+    expect(restored.listRooms()[0]!.fingerprint).toBe(fingerprint);
+    expect(restored.listRooms()[0]!.floorColor).toBe('#aabbcc');
+    expect(restored.listRooms()[0]!.floorSurface).toBe('wood');
+  });
+
+  it('recalculates rooms when a shared wall is deleted', () => {
+    const doc = new SceneDocument();
+    // Two adjacent rooms
+    doc.addWall({ id: 'bottomL', start: { x: 0, z: 0 }, end: { x: 2, z: 0 } });
+    doc.addWall({ id: 'bottomR', start: { x: 2, z: 0 }, end: { x: 4, z: 0 } });
+    doc.addWall({ id: 'right', start: { x: 4, z: 0 }, end: { x: 4, z: 2 } });
+    doc.addWall({ id: 'topR', start: { x: 4, z: 2 }, end: { x: 2, z: 2 } });
+    doc.addWall({ id: 'topL', start: { x: 2, z: 2 }, end: { x: 0, z: 2 } });
+    doc.addWall({ id: 'left', start: { x: 0, z: 2 }, end: { x: 0, z: 0 } });
+    doc.addWall({ id: 'shared', start: { x: 2, z: 0 }, end: { x: 2, z: 2 } });
+
+    expect(doc.listRooms()).toHaveLength(2);
+    doc.removeWall('shared');
+    expect(doc.listRooms()).toHaveLength(1);
   });
 });
