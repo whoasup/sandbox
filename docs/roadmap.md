@@ -1,10 +1,9 @@
 # Editor product roadmap
 
-Status: **planned** — Phase 1 (`epic/01-app-shell` … `epic/10-camera-floors`)
-builds the Planner core; Phase 2 (`epic/11-furniture-catalog` …
-`epic/15-domain-lib-perf`) adds furniture, stairs, export, CI/E2E, and
-domain extraction. Each epic has a dedicated spec under
-[`docs/epics/`](./epics/).
+Status: **Phase 1 complete** on `main` (epics 01–10). Phase 2
+(`epic/11-furniture-catalog` … `epic/15-domain-lib-perf`) is next —
+furniture, stairs, export, CI/E2E, and domain extraction. Each epic has a
+dedicated spec under [`docs/epics/`](./epics/).
 
 Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) where noted;
 Phase 2 also owns `libs/editor-core` (Epic 15) and CI (Epic 14).
