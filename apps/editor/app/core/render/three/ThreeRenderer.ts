@@ -34,7 +34,10 @@ export type CameraMode = 'orbit' | 'top' | 'walk';
 export class ThreeRenderer implements ISceneRenderer {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
-  private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
+  private readonly renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    preserveDrawingBuffer: true,
+  });
   private readonly controls: OrbitControls;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
@@ -115,6 +118,17 @@ export class ThreeRenderer implements ISceneRenderer {
   public setShowCeiling(show: boolean): void {
     this.showCeiling = show;
     this.syncCeiling();
+  }
+
+  /** Capture the current 3D view as a PNG Blob (requires preserveDrawingBuffer). */
+  public capturePng(): Promise<Blob> {
+    this.renderer.render(this.scene, this.camera);
+    return new Promise((resolve, reject) => {
+      this.renderer.domElement.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('PNG capture failed'));
+      }, 'image/png');
+    });
   }
 
   public setBelowFloor(

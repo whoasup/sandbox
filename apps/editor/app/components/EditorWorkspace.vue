@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
 import { UiButton, UiText } from '@sandbox/ui-kit';
 import { createEditorDocumentContext } from '../composables/useEditorDocument';
+import { exportServiceKey } from '../composables/exportServiceKey';
 import {
   addFloorToProject,
+  exportProject,
   getActiveFloor,
   getProject,
   rememberLastProjectId,
@@ -13,6 +15,7 @@ import {
   updateFloorMeta,
 } from '../composables/useProjects';
 import type { FloorRecord, ProjectRecord } from '../core/persistence/ProjectStore';
+import { ExportService } from '../core/export/ExportService';
 import { SceneDocument } from '../core/model/SceneDocument';
 import type { Opening } from '../core/model/Opening';
 import type { Room } from '../core/model/Room';
@@ -21,6 +24,7 @@ import { removeStairPair, upsertStairPair } from '../core/model/stairPairs';
 import type { WallObject } from '../core/model/WallObject';
 import EditorCanvas2D from './EditorCanvas2D.vue';
 import EditorCanvas3D from './EditorCanvas3D.vue';
+import EditorExportMenu from './EditorExportMenu.vue';
 import EditorInspector from './EditorInspector.vue';
 import EditorMeasurements from './EditorMeasurements.vue';
 import EditorScenePanel from './EditorScenePanel.vue';
@@ -70,11 +74,41 @@ const saveStatus = ref<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
 const floors = shallowRef<FloorRecord[]>([]);
 const activeFloorId = ref('');
 const floorElevation = ref(0);
+const exportError = ref<string | null>(null);
 
 const belowDoc = new SceneDocument();
 const belowRooms = shallowRef<Room[]>([]);
 const belowOpenings = shallowRef<Opening[]>([]);
 const belowWallList = shallowRef<WallObject[]>([]);
+
+const exportService = shallowRef<ExportService | null>(
+  new ExportService({
+    getFloor: async ({ projectId: pid, floorId }) => {
+      if (
+        pid === projectId.value &&
+        floorId === activeFloorId.value &&
+        loadState.value === 'ready'
+      ) {
+        const floor = floors.value.find((f) => f.id === floorId);
+        return {
+          projectName: projectName.value || 'project',
+          floorName: floor?.name ?? 'floor',
+          snapshot: sceneDocument.toSnapshot(),
+        };
+      }
+      const record = await getProject(pid);
+      if (!record) return null;
+      const floor = record.floors.find((f) => f.id === floorId) ?? getActiveFloor(record);
+      if (!floor) return null;
+      return {
+        projectName: record.name,
+        floorName: floor.name,
+        snapshot: floor.snapshot,
+      };
+    },
+  }),
+);
+provide(exportServiceKey, exportService);
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
 let unsubChange: (() => void) | null = null;
@@ -221,6 +255,20 @@ async function addFloor(): Promise<void> {
   saveStatus.value = 'saved';
 }
 
+async function onExportJson(): Promise<void> {
+  exportError.value = null;
+  try {
+    await flushAutosave();
+    await exportProject(projectId.value);
+  } catch (error) {
+    exportError.value = error instanceof Error ? error.message : 'Ошибка экспорта JSON';
+  }
+}
+
+function onExportError(message: string): void {
+  exportError.value = message;
+}
+
 watch(showCeiling, async (value) => {
   if (loadState.value !== 'ready' || !activeFloorId.value) return;
   await updateFloorMeta(projectId.value, activeFloorId.value, { showCeiling: value });
@@ -247,6 +295,7 @@ onUnmounted(() => {
   if (autosaveTimer) clearTimeout(autosaveTimer);
   unsubChange?.();
   unsubSettings?.();
+  exportService.value?.setLivePngCapture(null);
 });
 
 const statusLabel = computed(() => {
@@ -304,7 +353,27 @@ const statusLabel = computed(() => {
             <template v-if="cameraMode === 'walk'"> · WASD · Esc — орбита</template>
           </UiText>
         </template>
+        <template #export>
+          <EditorExportMenu
+            :export-service="exportService"
+            :project-id="projectId"
+            :floor-id="activeFloorId"
+            :disabled="loadState !== 'ready'"
+            @export-json="onExportJson"
+            @error="onExportError"
+          />
+        </template>
       </EditorToolbar>
+
+      <UiText
+        v-if="exportError"
+        size="xs"
+        as="p"
+        class="border-b border-border bg-surface px-5 py-1 text-danger"
+        data-testid="export-error"
+      >
+        {{ exportError }}
+      </UiText>
 
       <div
         class="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-5 py-2"

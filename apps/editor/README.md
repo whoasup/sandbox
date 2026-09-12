@@ -35,6 +35,7 @@ app/
     docs/index.vue        docs hub stub
   core/
     model/            SceneObject hierarchy, ShapeFactory, SceneDocument (OOP domain layer)
+    export/           PNG / SVG / glTF builders + ExportService
     render/
       ISceneRenderer.ts        shared mount/render/dispose contract
       three/                   3D renderer (three.js): ThreeRenderer, ThreeMeshFactory, TextureFactory
@@ -43,7 +44,8 @@ app/
     useEditorDocument.ts       Vue-reactive bridge over SceneDocument (provide/inject)
   components/
     AppSidebar.vue             shell navigation + theme switcher
-    EditorToolbar.vue          mode toggle, shape buttons, surface/color pickers
+    EditorToolbar.vue          mode toggle, shape buttons, surface/color pickers, export slot
+    EditorExportMenu.vue       Экспорт: PNG / SVG / glTF / Проект JSON…
     EditorCanvas3D.vue         mounts ThreeRenderer into a <div>
     EditorCanvas2D.vue         mounts SvgRenderer into a <div>
   constants/

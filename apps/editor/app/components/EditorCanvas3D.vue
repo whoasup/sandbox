@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { inject, onMounted, onUnmounted, ref, watch } from 'vue';
 import { ThreeRenderer } from '../core/render/three';
 import { useEditorDocument } from '../composables/useEditorDocument';
+import { exportServiceKey } from '../composables/exportServiceKey';
 
 const props = defineProps<{
   floorElevation?: number;
@@ -30,6 +31,8 @@ const {
   beginMoveGesture,
   endMoveGesture,
 } = useEditorDocument();
+
+const exportServiceRef = inject(exportServiceKey, null);
 
 const containerRef = ref<HTMLDivElement | null>(null);
 let renderer: ThreeRenderer | null = null;
@@ -64,6 +67,10 @@ onMounted(() => {
       settings.value,
     );
   }
+  exportServiceRef?.value?.setLivePngCapture(() => {
+    if (!renderer) return Promise.reject(new Error('3D renderer is not mounted'));
+    return renderer.capturePng();
+  });
 });
 
 watch([objects, walls, rooms, openings, furniture, stairs, selection, settings], () => {
@@ -107,6 +114,7 @@ watch(
 );
 
 onUnmounted(() => {
+  exportServiceRef?.value?.setLivePngCapture(null);
   renderer?.dispose();
   renderer = null;
 });

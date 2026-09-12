@@ -184,6 +184,7 @@ function toggleCeiling(): void {
     </div>
 
     <div class="ml-auto flex items-center gap-2">
+      <slot name="export" />
       <UiButton variant="ghost" :disabled="!canUndo" title="Ctrl+Z" @click="undo"
         >Отменить</UiButton
       >
