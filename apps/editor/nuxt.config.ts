@@ -17,6 +17,15 @@ export default defineNuxtConfig({
       // Nuxt copies this string as-is into `./.nuxt/tsconfig.json`, so it
       // must be relative to that directory rather than to this file.
       extends: '../../../tsconfig.base.json',
+      // The workspace base is a composite library config. This app typechecks
+      // with `--noEmit` and must not inherit declaration emit, or vue-tsc
+      // reports TS2883 on `defineNuxtConfig`'s inferred export type.
+      compilerOptions: {
+        composite: false,
+        declaration: false,
+        declarationMap: false,
+        emitDeclarationOnly: false,
+      },
     },
   },
   imports: {

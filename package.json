@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "nx run editor:serve",
     "storybook": "nx run ui-kit:storybook",

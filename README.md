@@ -73,6 +73,7 @@ unchanged, just re-hosted:
 
 ## Tooling
 
+- **Runtime**: Node 22 (pinned via `.nvmrc` and `engines`).
 - **Language**: TypeScript everywhere, OOP for the editor's domain/render
   layer (abstract base classes, factories, encapsulated renderer classes).
 - **Bundler**: Vite (both the ui-kit library build and, under the hood,
