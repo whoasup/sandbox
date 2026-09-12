@@ -1,4 +1,5 @@
 import type { SceneObject } from '../model/SceneObject';
+import type { SceneSettings } from '../model/SceneSettings';
 
 /**
  * Both the 2D (SVG) and 3D (three.js) views implement this contract, so
@@ -8,7 +9,7 @@ import type { SceneObject } from '../model/SceneObject';
  */
 export interface ISceneRenderer {
   mount(container: HTMLElement): void;
-  render(objects: readonly SceneObject[], selectedId: string | null): void;
+  render(objects: readonly SceneObject[], selectedId: string | null, settings: SceneSettings): void;
   dispose(): void;
 }
 

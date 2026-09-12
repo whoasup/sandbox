@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { SceneObject } from '../../model/SceneObject';
+import {
+  createDefaultSceneSettings,
+  resolveBackgroundColor,
+  type SceneSettings,
+} from '../../model/SceneSettings';
 import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { ThreeMeshFactory } from './ThreeMeshFactory';
 
-const GROUND_SIZE = 40;
 const DEFAULT_CAMERA_POSITION = new THREE.Vector3(6, 6, 8);
 
 /**
@@ -28,6 +32,11 @@ export class ThreeRenderer implements ISceneRenderer {
   private frameHandle = 0;
   private selectionHelper: THREE.BoxHelper | null = null;
   private draggingId: string | null = null;
+  private latestSettings: SceneSettings = createDefaultSceneSettings();
+
+  private gridHelper: THREE.GridHelper | null = null;
+  private ground: THREE.Mesh | null = null;
+  private axesHelper: THREE.AxesHelper | null = null;
 
   public constructor(private readonly interactions: RendererInteractionEvents = {}) {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -37,7 +46,7 @@ export class ThreeRenderer implements ISceneRenderer {
     this.camera.lookAt(0, 0, 0);
 
     this.setupLighting();
-    this.setupGround();
+    this.applyEnvironment(this.latestSettings);
   }
 
   public mount(container: HTMLElement): void {
@@ -64,7 +73,12 @@ export class ThreeRenderer implements ISceneRenderer {
     this.startLoop();
   }
 
-  public render(objects: readonly SceneObject[], selectedId: string | null): void {
+  public render(
+    objects: readonly SceneObject[],
+    selectedId: string | null,
+    settings: SceneSettings,
+  ): void {
+    this.applyEnvironment(settings);
     const seen = new Set<string>();
 
     for (const object of objects) {
@@ -107,6 +121,7 @@ export class ThreeRenderer implements ISceneRenderer {
       mesh.geometry.dispose();
     }
     this.meshes.clear();
+    this.clearEnvironment();
     this.controls.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
@@ -120,19 +135,73 @@ export class ThreeRenderer implements ISceneRenderer {
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     this.scene.add(ambient, sun);
-    this.scene.background = new THREE.Color('#e7ebf0');
   }
 
-  private setupGround(): void {
-    const grid = new THREE.GridHelper(GROUND_SIZE, GROUND_SIZE, '#b7bfc9', '#d7dbe0');
-    this.scene.add(grid);
+  private applyEnvironment(settings: SceneSettings): void {
+    const prev = this.latestSettings;
+    const unchanged =
+      prev.background.mode === settings.background.mode &&
+      prev.background.color === settings.background.color &&
+      prev.background.preset === settings.background.preset &&
+      prev.field.width === settings.field.width &&
+      prev.field.depth === settings.field.depth &&
+      prev.field.gridVisible === settings.field.gridVisible &&
+      prev.field.gridStep === settings.field.gridStep &&
+      prev.field.axesVisible === settings.field.axesVisible &&
+      prev.floor.color === settings.floor.color;
 
-    const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE);
-    const groundMaterial = new THREE.ShadowMaterial({ opacity: 0.15 });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
+    this.latestSettings = settings;
+    this.scene.background = new THREE.Color(resolveBackgroundColor(settings.background));
+    if (unchanged && this.ground) return;
+
+    const size = Math.max(settings.field.width, settings.field.depth);
+    const divisions = Math.max(1, Math.round(size / Math.max(settings.field.gridStep, 0.1)));
+
+    this.clearEnvironment();
+
+    if (settings.field.gridVisible) {
+      this.gridHelper = new THREE.GridHelper(size, divisions, '#b7bfc9', '#d7dbe0');
+      this.scene.add(this.gridHelper);
+    }
+
+    const groundGeometry = new THREE.PlaneGeometry(settings.field.width, settings.field.depth);
+    const groundMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(settings.floor.color),
+      roughness: 0.95,
+      metalness: 0,
+    });
+    this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    this.ground.rotation.x = -Math.PI / 2;
+    this.ground.position.y = -0.01;
+    this.ground.receiveShadow = true;
+    this.scene.add(this.ground);
+
+    if (settings.field.axesVisible) {
+      this.axesHelper = new THREE.AxesHelper(Math.min(size, 8) * 0.5);
+      this.scene.add(this.axesHelper);
+    }
+  }
+
+  private clearEnvironment(): void {
+    if (this.gridHelper) {
+      this.scene.remove(this.gridHelper);
+      this.gridHelper.geometry.dispose();
+      const gridMat = this.gridHelper.material;
+      if (Array.isArray(gridMat)) gridMat.forEach((m) => m.dispose());
+      else gridMat.dispose();
+      this.gridHelper = null;
+    }
+    if (this.ground) {
+      this.scene.remove(this.ground);
+      this.ground.geometry.dispose();
+      (this.ground.material as THREE.Material).dispose();
+      this.ground = null;
+    }
+    if (this.axesHelper) {
+      this.scene.remove(this.axesHelper);
+      this.axesHelper.dispose();
+      this.axesHelper = null;
+    }
   }
 
   private resize(width: number, height: number): void {

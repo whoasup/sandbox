@@ -1,4 +1,5 @@
 import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
+import type { SceneSettings } from './SceneSettings';
 
 export type { ShapeKind, SurfaceKind };
 
@@ -30,4 +31,10 @@ export interface SceneObjectInit {
   scale?: number;
   surface?: SurfaceKind;
   color?: string;
+}
+
+/** In-memory / future IndexedDB snapshot shape (Epic 05). */
+export interface SceneSnapshot {
+  objects: SceneObjectSnapshot[];
+  settings: SceneSettings;
 }
