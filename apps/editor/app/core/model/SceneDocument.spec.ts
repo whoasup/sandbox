@@ -11,24 +11,33 @@ describe('SceneDocument', () => {
     expect(doc.selected).toEqual({ type: 'shape', id: shape.id });
   });
 
-  it('emits "change" with objects, walls, rooms, and openings on every mutation', () => {
+  it('emits "change" with objects, walls, rooms, openings, and furniture on every mutation', () => {
     const doc = new SceneDocument();
-    const events: { objects: number; walls: number; rooms: number; openings: number }[] = [];
+    const events: {
+      objects: number;
+      walls: number;
+      rooms: number;
+      openings: number;
+      furniture: number;
+    }[] = [];
     doc.on('change', (payload) =>
       events.push({
         objects: payload.objects.length,
         walls: payload.walls.length,
         rooms: payload.rooms.length,
         openings: payload.openings.length,
+        furniture: payload.furniture.length,
       }),
     );
 
     doc.addShape('cube');
     doc.addWall({ start: { x: 0, z: 0 }, end: { x: 2, z: 0 } });
+    doc.addFurniture('chair');
 
     expect(events).toEqual([
-      { objects: 1, walls: 0, rooms: 0, openings: 0 },
-      { objects: 1, walls: 1, rooms: 0, openings: 0 },
+      { objects: 1, walls: 0, rooms: 0, openings: 0, furniture: 0 },
+      { objects: 1, walls: 1, rooms: 0, openings: 0, furniture: 0 },
+      { objects: 1, walls: 1, rooms: 0, openings: 0, furniture: 1 },
     ]);
   });
 
@@ -306,5 +315,37 @@ describe('SceneDocument', () => {
 
     doc.removeWall(wall.id);
     expect(doc.listOpenings()).toHaveLength(0);
+  });
+
+  it('adds, moves, materials, duplicates, and removes furniture', () => {
+    const doc = new SceneDocument();
+    const chair = doc.addFurniture('chair', { position: { x: 1, z: 2 } });
+    expect(doc.listFurniture()).toHaveLength(1);
+    expect(doc.selected).toEqual({ type: 'furniture', id: chair.id });
+
+    doc.moveFurniture(chair.id, 3, 4);
+    expect(chair.position.x).toBe(3);
+    expect(chair.position.z).toBe(4);
+
+    doc.setFurnitureMaterial(chair.id, { surface: 'stone', color: '#abcdef' });
+    doc.setFurnitureTransform(chair.id, { rotationY: Math.PI / 4, scale: 1.5 });
+    expect(chair.surface).toBe('stone');
+    expect(chair.color).toBe('#abcdef');
+    expect(chair.rotationY).toBeCloseTo(Math.PI / 4);
+    expect(chair.scale).toBe(1.5);
+
+    const clone = doc.duplicateFurniture(chair.id);
+    expect(clone).toBeTruthy();
+    expect(doc.listFurniture()).toHaveLength(2);
+
+    const snapshot = doc.toSnapshot();
+    expect(snapshot.furniture).toHaveLength(2);
+    const restored = new SceneDocument();
+    restored.fromSnapshot(snapshot);
+    expect(restored.listFurniture()).toHaveLength(2);
+    expect(restored.getFurniture(chair.id)?.catalogId).toBe('chair');
+
+    doc.removeSelected();
+    expect(doc.listFurniture()).toHaveLength(1);
   });
 });

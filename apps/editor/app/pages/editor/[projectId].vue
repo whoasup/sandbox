@@ -24,6 +24,11 @@ import EditorScenePanel from '../../components/EditorScenePanel.vue';
 import EditorToolbar from '../../components/EditorToolbar.vue';
 import { useEditorHotkeys } from '../../composables/useEditorHotkeys';
 
+/** Editor is canvas/WebGL-heavy; skip SSR to avoid provide/inject and IDB issues. */
+definePageMeta({
+  ssr: false,
+});
+
 const AUTOSAVE_MS = 400;
 
 const {

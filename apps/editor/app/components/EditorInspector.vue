@@ -2,12 +2,13 @@
 import { computed } from 'vue';
 import {
   clamp,
+  getFurniturePreset,
   SHAPE_CATALOG,
+  TEXTURE_LIST,
   UiButton,
   UiShapeIcon,
   UiText,
   UiTextureSwatch,
-  TEXTURE_LIST,
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
 
@@ -16,6 +17,7 @@ const {
   walls,
   rooms,
   openings,
+  furniture,
   selection,
   activeSurface,
   activeColor,
@@ -52,15 +54,28 @@ const selectedOpening = computed(() => {
   return openings.value.find((opening) => opening.id === selection.value!.id) ?? null;
 });
 
+const selectedFurniture = computed(() => {
+  if (selection.value?.type !== 'furniture') return null;
+  return furniture.value.find((item) => item.id === selection.value!.id) ?? null;
+});
+
+const furnitureLabel = computed(() => {
+  if (!selectedFurniture.value) return '';
+  return getFurniturePreset(selectedFurniture.value.catalogId).label;
+});
+
 const rotationDegrees = computed({
-  get: () => Math.round(((selectedShape.value?.rotationY ?? 0) * 180) / Math.PI),
+  get: () =>
+    Math.round(
+      (((selectedShape.value ?? selectedFurniture.value)?.rotationY ?? 0) * 180) / Math.PI,
+    ),
   set: (degrees: number) => {
     setSelectedRotation((degrees * Math.PI) / 180);
   },
 });
 
 const scaleValue = computed({
-  get: () => selectedShape.value?.scale ?? 1,
+  get: () => (selectedShape.value ?? selectedFurniture.value)?.scale ?? 1,
   set: (value: number) => {
     setSelectedScale(clamp(value, 0.25, 4));
   },
@@ -172,6 +187,67 @@ function onOpeningTInput(event: Event): void {
             </template>
           </UiButton>
         </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <UiText size="xs" tone="muted" as="span">Поверхность</UiText>
+        <div class="flex flex-wrap items-center gap-2">
+          <UiTextureSwatch
+            v-for="texture in TEXTURE_LIST"
+            :key="texture.id"
+            :surface="texture.id"
+            :size="28"
+            :selected="activeSurface === texture.id"
+            :label="texture.label"
+            @click="applySurfaceToSelection(texture.id)"
+          />
+          <input
+            class="h-7 w-7 cursor-pointer rounded-sm border border-border bg-none p-0"
+            type="color"
+            :value="activeColor"
+            title="Цвет"
+            @input="onColorInput"
+          />
+        </div>
+      </div>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Поворот Y · {{ rotationDegrees }}°</UiText>
+        <input
+          type="range"
+          min="0"
+          max="360"
+          step="1"
+          :value="rotationDegrees"
+          @input="onRotationInput"
+        />
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Масштаб · {{ scaleValue.toFixed(2) }}</UiText>
+        <input
+          type="range"
+          min="0.25"
+          max="4"
+          step="0.05"
+          :value="scaleValue"
+          @input="onScaleInput"
+        />
+      </label>
+
+      <div class="mt-auto flex flex-col gap-2">
+        <UiButton variant="secondary" @click="duplicateSelected">Дублировать</UiButton>
+        <UiButton variant="ghost" @click="removeSelected">Удалить</UiButton>
+      </div>
+    </template>
+
+    <template v-else-if="selectedFurniture">
+      <div class="flex flex-col gap-1" data-testid="furniture-inspector">
+        <UiText size="xs" tone="muted" as="span">Мебель</UiText>
+        <UiText size="sm" as="p">{{ furnitureLabel }}</UiText>
+        <UiText size="xs" tone="muted" as="span"
+          >Каталог · {{ selectedFurniture.catalogId }}</UiText
+        >
       </div>
 
       <div class="flex flex-col gap-2">

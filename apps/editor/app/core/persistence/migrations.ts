@@ -1,6 +1,7 @@
-import { createId, type SurfaceKind } from '@sandbox/ui-kit';
+import { createId, isFurnitureCatalogId, type SurfaceKind } from '@sandbox/ui-kit';
 import { ShapeFactory } from '../model/ShapeFactory';
 import { createDefaultSceneSettings, type SceneSettings } from '../model/SceneSettings';
+import type { FurnitureObjectSnapshot } from '../model/FurnitureObject';
 import type { OpeningSnapshot, OpeningType } from '../model/Opening';
 import type { RoomSnapshot } from '../model/Room';
 import { fingerprintPolygon } from '../model/Room';
@@ -126,12 +127,44 @@ function parseOpeningSnapshot(value: unknown): OpeningSnapshot | null {
   };
 }
 
+function parseFurnitureSnapshot(value: unknown): FurnitureObjectSnapshot | null {
+  if (!isRecord(value)) return null;
+  const catalogId =
+    typeof value.catalogId === 'string' && isFurnitureCatalogId(value.catalogId)
+      ? value.catalogId
+      : null;
+  if (!catalogId) return null;
+  const position = isRecord(value.position) ? value.position : {};
+  const surface =
+    value.surface === 'wood' || value.surface === 'fabric' || value.surface === 'stone'
+      ? value.surface
+      : 'wood';
+  return {
+    id: typeof value.id === 'string' && value.id.length > 0 ? value.id : createId('furniture'),
+    catalogId,
+    position: {
+      x: Number(position.x) || 0,
+      y: Number(position.y) || 0,
+      z: Number(position.z) || 0,
+    },
+    rotationY:
+      typeof value.rotationY === 'number' && Number.isFinite(value.rotationY) ? value.rotationY : 0,
+    scale:
+      typeof value.scale === 'number' && Number.isFinite(value.scale) && value.scale > 0
+        ? value.scale
+        : 1,
+    surface,
+    color: typeof value.color === 'string' ? value.color : '#c9945f',
+  };
+}
+
 export function createEmptySnapshot(): SceneSnapshot {
   return {
     objects: [],
     walls: [],
     rooms: [],
     openings: [],
+    furniture: [],
     settings: createDefaultSceneSettings(),
   };
 }
@@ -142,6 +175,7 @@ function parseSceneSnapshot(raw: unknown): SceneSnapshot {
   const wallsRaw = Array.isArray(snapshotRaw.walls) ? snapshotRaw.walls : [];
   const roomsRaw = Array.isArray(snapshotRaw.rooms) ? snapshotRaw.rooms : [];
   const openingsRaw = Array.isArray(snapshotRaw.openings) ? snapshotRaw.openings : [];
+  const furnitureRaw = Array.isArray(snapshotRaw.furniture) ? snapshotRaw.furniture : [];
 
   return {
     objects: objects
@@ -169,6 +203,9 @@ function parseSceneSnapshot(raw: unknown): SceneSnapshot {
     openings: openingsRaw
       .map(parseOpeningSnapshot)
       .filter((opening): opening is OpeningSnapshot => opening !== null),
+    furniture: furnitureRaw
+      .map(parseFurnitureSnapshot)
+      .filter((item): item is FurnitureObjectSnapshot => item !== null),
     settings: ensureSettings(snapshotRaw.settings),
   };
 }
@@ -188,6 +225,7 @@ export function createDefaultFloor(snapshot = createEmptySnapshot(), index = 1) 
  * v0→v1: ensure settings exist. v1→v2: ensure walls array.
  * v2→v3: ensure rooms array. v3→v4: ensure openings array.
  * v4→v5: wrap flat snapshot into floors[].
+ * v5→v6: ensure furniture array on each floor snapshot.
  */
 export function migrateProjectRecord(raw: unknown): ProjectRecord {
   if (!isRecord(raw)) {

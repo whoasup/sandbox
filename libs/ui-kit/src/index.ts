@@ -15,6 +15,8 @@ export * from './components/UiToggleGroup/types';
 
 export { default as UiShapeIcon } from './components/UiShapeIcon/UiShapeIcon.vue';
 
+export { default as UiFurnitureIcon } from './components/UiFurnitureIcon/UiFurnitureIcon.vue';
+
 export { default as UiTextureSwatch } from './components/UiTextureSwatch/UiTextureSwatch.vue';
 
 export { default as UiThemeSwitcher } from './components/UiThemeSwitcher/UiThemeSwitcher.vue';
@@ -24,6 +26,7 @@ export * from './composables/useTheme';
 
 export * from './helpers';
 export * from './shapes';
+export * from './furniture';
 export * from './textures';
 export * from './tokens';
 export * from './utils';

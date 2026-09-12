@@ -8,4 +8,5 @@ export * from './types';
 export * from './WallObject';
 export * from './Room';
 export * from './Opening';
+export * from './FurnitureObject';
 export * from './rooms/detectRooms';

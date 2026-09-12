@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { FurnitureObject } from '../../model/FurnitureObject';
 import type { Opening } from '../../model/Opening';
 import type { Room } from '../../model/Room';
 import type { SceneObject } from '../../model/SceneObject';
@@ -11,6 +12,7 @@ import {
 import type { SelectionRef } from '../../model/types';
 import type { WallObject } from '../../model/WallObject';
 import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
+import { ThreeFurnitureMesh } from './ThreeFurnitureMesh';
 import { ThreeMeshFactory } from './ThreeMeshFactory';
 import { ThreeRoomFloorMesh } from './ThreeRoomFloorMesh';
 import { ThreeWallMesh } from './ThreeWallMesh';
@@ -38,12 +40,17 @@ export class ThreeRenderer implements ISceneRenderer {
   private readonly meshes = new Map<string, THREE.Mesh>();
   private readonly wallMeshes = new Map<string, ThreeWallMesh>();
   private readonly roomMeshes = new Map<string, ThreeRoomFloorMesh>();
+  private readonly furnitureMeshes = new Map<string, ThreeFurnitureMesh>();
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private frameHandle = 0;
   private selectionHelper: THREE.BoxHelper | null = null;
-  private dragging: { type: 'shape'; id: string } | { type: 'wall'; id: string } | null = null;
+  private dragging:
+    | { type: 'shape'; id: string }
+    | { type: 'wall'; id: string }
+    | { type: 'furniture'; id: string }
+    | null = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
   private latestWalls: readonly WallObject[] = [];
   private cameraMode: CameraMode = 'orbit';
@@ -185,6 +192,7 @@ export class ThreeRenderer implements ISceneRenderer {
     walls: readonly WallObject[],
     rooms: readonly Room[],
     openings: readonly Opening[],
+    furniture: readonly FurnitureObject[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
@@ -193,6 +201,7 @@ export class ThreeRenderer implements ISceneRenderer {
     this.syncRooms(rooms);
     this.syncShapes(objects);
     this.syncWalls(walls, openings);
+    this.syncFurniture(furniture);
     this.syncCeiling();
     this.updateSelection(selection);
   }
@@ -231,6 +240,11 @@ export class ThreeRenderer implements ISceneRenderer {
       room.dispose();
     }
     this.roomMeshes.clear();
+    for (const item of this.furnitureMeshes.values()) {
+      this.scene.remove(item.mesh);
+      item.dispose();
+    }
+    this.furnitureMeshes.clear();
     this.clearEnvironment();
     this.controls.dispose();
     this.renderer.dispose();
@@ -311,6 +325,29 @@ export class ThreeRenderer implements ISceneRenderer {
       this.scene.remove(view.mesh);
       view.dispose();
       this.roomMeshes.delete(id);
+    }
+  }
+
+  private syncFurniture(furniture: readonly FurnitureObject[]): void {
+    const seen = new Set<string>();
+
+    for (const item of furniture) {
+      seen.add(item.id);
+      let view = this.furnitureMeshes.get(item.id);
+      if (!view) {
+        view = new ThreeFurnitureMesh(item);
+        this.furnitureMeshes.set(item.id, view);
+        this.scene.add(view.mesh);
+      } else {
+        view.update(item);
+      }
+    }
+
+    for (const [id, view] of this.furnitureMeshes) {
+      if (seen.has(id)) continue;
+      this.scene.remove(view.mesh);
+      view.dispose();
+      this.furnitureMeshes.delete(id);
     }
   }
 
@@ -498,6 +535,7 @@ export class ThreeRenderer implements ISceneRenderer {
     if (selection.type === 'shape') target = this.meshes.get(selection.id);
     else if (selection.type === 'wall') target = this.wallMeshes.get(selection.id)?.mesh;
     else if (selection.type === 'room') target = this.roomMeshes.get(selection.id)?.mesh;
+    else if (selection.type === 'furniture') target = this.furnitureMeshes.get(selection.id)?.mesh;
     else if (selection.type === 'opening') {
       for (const view of this.wallMeshes.values()) {
         const found = view.mesh.children.find(
@@ -525,18 +563,27 @@ export class ThreeRenderer implements ISceneRenderer {
     const candidates: THREE.Object3D[] = [
       ...this.meshes.values(),
       ...[...this.roomMeshes.values()].map((view) => view.mesh),
+      ...[...this.furnitureMeshes.values()].map((view) => view.mesh),
     ];
     for (const view of this.wallMeshes.values()) {
       candidates.push(...view.mesh.children);
     }
-    const hit = this.raycaster.intersectObjects(candidates, false)[0];
+    const hit = this.raycaster.intersectObjects(candidates, true)[0];
     if (!hit) return null;
-    const entityType = hit.object.userData.entityType as
-      'shape' | 'wall' | 'room' | 'opening' | undefined;
-    if (entityType === 'wall') return { type: 'wall', id: hit.object.name };
-    if (entityType === 'room') return { type: 'room', id: hit.object.name };
-    if (entityType === 'opening') return { type: 'opening', id: hit.object.name };
-    return { type: 'shape', id: hit.object.name };
+    let current: THREE.Object3D | null = hit.object;
+    while (current) {
+      const entityType = current.userData.entityType as
+        'shape' | 'wall' | 'room' | 'opening' | 'furniture' | undefined;
+      if (entityType === 'wall') return { type: 'wall', id: current.name };
+      if (entityType === 'room') return { type: 'room', id: current.name };
+      if (entityType === 'opening') return { type: 'opening', id: current.name };
+      if (entityType === 'furniture') return { type: 'furniture', id: current.name };
+      if (entityType === 'shape' || (!entityType && this.meshes.has(current.name))) {
+        return { type: 'shape', id: current.name };
+      }
+      current = current.parent;
+    }
+    return null;
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
@@ -547,7 +594,10 @@ export class ThreeRenderer implements ISceneRenderer {
     this.updatePointer(event);
     const selection = this.pickSelection();
     this.interactions.onSelect?.(selection);
-    if (selection && (selection.type === 'shape' || selection.type === 'wall')) {
+    if (
+      selection &&
+      (selection.type === 'shape' || selection.type === 'wall' || selection.type === 'furniture')
+    ) {
       this.dragging = selection;
       this.controls.enabled = false;
       this.interactions.onMoveGestureStart?.();
@@ -562,8 +612,10 @@ export class ThreeRenderer implements ISceneRenderer {
     if (this.raycaster.ray.intersectPlane(this.dragPlane, point)) {
       if (this.dragging.type === 'shape') {
         this.interactions.onMoveShape?.(this.dragging.id, point.x, point.z);
-      } else {
+      } else if (this.dragging.type === 'wall') {
         this.interactions.onMoveWall?.(this.dragging.id, point.x, point.z);
+      } else {
+        this.interactions.onMoveFurniture?.(this.dragging.id, point.x, point.z);
       }
     }
   };

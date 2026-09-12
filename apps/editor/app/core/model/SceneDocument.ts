@@ -1,4 +1,4 @@
-import { EventEmitter } from '@sandbox/ui-kit';
+import { EventEmitter, type FurnitureCatalogId } from '@sandbox/ui-kit';
 import { ShapeFactory } from './ShapeFactory';
 import type { SceneObject } from './SceneObject';
 import {
@@ -9,6 +9,7 @@ import {
   type SceneSettings,
   type SceneSettingsPatch,
 } from './SceneSettings';
+import { FurnitureObject, type FurnitureObjectInit } from './FurnitureObject';
 import { Opening, type OpeningInit, type OpeningType } from './Opening';
 import { Room, type RoomSnapshot } from './Room';
 import { detectRooms } from './rooms/detectRooms';
@@ -21,6 +22,7 @@ export type SceneDocumentChange = {
   walls: WallObject[];
   rooms: Room[];
   openings: Opening[];
+  furniture: FurnitureObject[];
 };
 
 // A type literal (not an `interface`) so it structurally satisfies the
@@ -33,13 +35,14 @@ export type SceneDocumentEvents = {
 
 /**
  * The single source of truth for the editor: shapes + walls + rooms +
- * openings, document-level `SceneSettings`, plus a selection cursor.
+ * openings + furniture, document-level `SceneSettings`, plus a selection cursor.
  */
 export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly objects = new Map<string, SceneObject>();
   private readonly walls = new Map<string, WallObject>();
   private readonly rooms = new Map<string, Room>();
   private readonly openings = new Map<string, Opening>();
+  private readonly furniture = new Map<string, FurnitureObject>();
   private selection: SelectionRef = null;
   private sceneSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -57,6 +60,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public listOpenings(): Opening[] {
     return [...this.openings.values()];
+  }
+
+  public listFurniture(): FurnitureObject[] {
+    return [...this.furniture.values()];
   }
 
   public listOpeningsForWall(wallId: string): Opening[] {
@@ -77,6 +84,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public getOpening(id: string): Opening | undefined {
     return this.openings.get(id);
+  }
+
+  public getFurniture(id: string): FurnitureObject | undefined {
+    return this.furniture.get(id);
   }
 
   public get selected(): SelectionRef {
@@ -111,9 +122,32 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     return wall;
   }
 
+  public addFurniture(
+    catalogId: FurnitureCatalogId,
+    init?: Omit<FurnitureObjectInit, 'catalogId'>,
+  ): FurnitureObject {
+    const item = new FurnitureObject({ catalogId, ...init });
+    const { snap, gridStep } = this.sceneSettings.field;
+    if (snap) {
+      item.moveTo(roundToStep(item.position.x, gridStep), roundToStep(item.position.z, gridStep));
+    }
+    this.furniture.set(item.id, item);
+    this.select({ type: 'furniture', id: item.id });
+    this.notifyChange();
+    return item;
+  }
+
   public remove(id: string): void {
     if (!this.objects.delete(id)) return;
     if (this.selection?.type === 'shape' && this.selection.id === id) {
+      this.select(null);
+    }
+    this.notifyChange();
+  }
+
+  public removeFurniture(id: string): void {
+    if (!this.furniture.delete(id)) return;
+    if (this.selection?.type === 'furniture' && this.selection.id === id) {
       this.select(null);
     }
     this.notifyChange();
@@ -138,6 +172,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     if (this.selection.type === 'shape') this.remove(this.selection.id);
     else if (this.selection.type === 'wall') this.removeWall(this.selection.id);
     else if (this.selection.type === 'opening') this.removeOpening(this.selection.id);
+    else if (this.selection.type === 'furniture') this.removeFurniture(this.selection.id);
     else if (this.selection.type === 'room') this.select(null);
   }
 
@@ -147,6 +182,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     if (next?.type === 'wall' && !this.walls.has(next.id)) return;
     if (next?.type === 'room' && !this.rooms.has(next.id)) return;
     if (next?.type === 'opening' && !this.openings.has(next.id)) return;
+    if (next?.type === 'furniture' && !this.furniture.has(next.id)) return;
     this.selection = next;
     this.emit('select', next);
   }
@@ -241,6 +277,16 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     const nextX = snap ? roundToStep(x, gridStep) : x;
     const nextZ = snap ? roundToStep(z, gridStep) : z;
     shape.moveTo(nextX, nextZ);
+    this.notifyChange();
+  }
+
+  public moveFurniture(id: string, x: number, z: number): void {
+    const item = this.furniture.get(id);
+    if (!item) return;
+    const { snap, gridStep } = this.sceneSettings.field;
+    const nextX = snap ? roundToStep(x, gridStep) : x;
+    const nextZ = snap ? roundToStep(z, gridStep) : z;
+    item.moveTo(nextX, nextZ);
     this.notifyChange();
   }
 
@@ -369,6 +415,28 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.notifyChange();
   }
 
+  public setFurnitureTransform(
+    id: string,
+    patch: Partial<Pick<FurnitureObject, 'rotationY' | 'scale'>>,
+  ): void {
+    const item = this.furniture.get(id);
+    if (!item) return;
+    if (patch.rotationY !== undefined) item.setRotationY(patch.rotationY);
+    if (patch.scale !== undefined) item.setScale(patch.scale);
+    this.notifyChange();
+  }
+
+  public setFurnitureMaterial(
+    id: string,
+    patch: Partial<Pick<FurnitureObject, 'surface' | 'color'>>,
+  ): void {
+    const item = this.furniture.get(id);
+    if (!item) return;
+    if (patch.surface !== undefined) item.setSurface(patch.surface);
+    if (patch.color !== undefined) item.setColor(patch.color);
+    this.notifyChange();
+  }
+
   public duplicate(id: string): SceneObject | null {
     const source = this.objects.get(id);
     if (!source) return null;
@@ -381,6 +449,19 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       color: snap.color,
     });
     return clone;
+  }
+
+  public duplicateFurniture(id: string): FurnitureObject | null {
+    const source = this.furniture.get(id);
+    if (!source) return null;
+    const snap = source.toSnapshot();
+    return this.addFurniture(snap.catalogId, {
+      position: { x: snap.position.x + 1.2, z: snap.position.z + 1.2 },
+      rotationY: snap.rotationY,
+      scale: snap.scale,
+      surface: snap.surface,
+      color: snap.color,
+    });
   }
 
   public patchSettings(patch: SceneSettingsPatch): void {
@@ -410,6 +491,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       walls: this.listWalls().map((wall) => wall.toSnapshot()),
       rooms: this.listRooms().map((room) => room.toSnapshot()),
       openings: this.listOpenings().map((opening) => opening.toSnapshot()),
+      furniture: this.listFurniture().map((item) => item.toSnapshot()),
       settings: this.settings,
     };
   }
@@ -420,6 +502,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.walls.clear();
     this.rooms.clear();
     this.openings.clear();
+    this.furniture.clear();
     this.selection = null;
 
     for (const object of snapshot.objects) {
@@ -450,6 +533,11 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       this.openings.set(opening.id, opening);
     }
 
+    for (const furnitureSnap of snapshot.furniture ?? []) {
+      const item = FurnitureObject.fromSnapshot(furnitureSnap);
+      this.furniture.set(item.id, item);
+    }
+
     this.sceneSettings = cloneSceneSettings(snapshot.settings ?? createDefaultSceneSettings());
     this.rebuildRooms(snapshot.rooms ?? []);
     this.emit('settings', this.settings);
@@ -462,6 +550,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.walls.clear();
     this.rooms.clear();
     this.openings.clear();
+    this.furniture.clear();
     this.select(null);
     this.notifyChange();
   }
@@ -509,6 +598,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       walls: this.listWalls(),
       rooms: this.listRooms(),
       openings: this.listOpenings(),
+      furniture: this.listFurniture(),
     });
   }
 }
