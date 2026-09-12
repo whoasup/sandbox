@@ -346,14 +346,12 @@ export class ThreeRenderer implements ISceneRenderer {
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     this.updatePointer(event);
-    if (this.interactions.onAddOpening) {
-      // 3D opening placement is optional; primary UX is 2D.
-    }
     const selection = this.pickSelection();
     this.interactions.onSelect?.(selection);
     if (selection && (selection.type === 'shape' || selection.type === 'wall')) {
       this.dragging = selection;
       this.controls.enabled = false;
+      this.interactions.onMoveGestureStart?.();
     }
   };
 
@@ -372,6 +370,7 @@ export class ThreeRenderer implements ISceneRenderer {
   };
 
   private readonly handlePointerUp = (): void => {
+    if (this.dragging) this.interactions.onMoveGestureEnd?.();
     this.dragging = null;
     this.controls.enabled = true;
   };

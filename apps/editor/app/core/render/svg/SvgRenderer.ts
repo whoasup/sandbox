@@ -358,7 +358,8 @@ export class SvgRenderer implements ISceneRenderer {
   }
 
   private snapWorld(point: Point2): Point2 {
-    return this.interactions.snapPoint?.(point) ?? point;
+    const angleFrom = this.tool === 'wall' ? this.wallDraftStart : null;
+    return this.interactions.snapPoint?.(point, angleFrom) ?? point;
   }
 
   private worldToPx(point: Point2): { x: number; y: number } {
@@ -408,6 +409,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.rubberBand?.remove();
     this.rubberBand = null;
     this.updateSnapMarker(null);
+    this.interactions.onWallDraftLength?.(null);
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
@@ -448,6 +450,7 @@ export class SvgRenderer implements ISceneRenderer {
     const selection = this.resolveSelectionFromEvent(event);
     this.interactions.onSelect?.(selection);
     this.dragging = selection?.type === 'shape' || selection?.type === 'wall' ? selection : null;
+    if (this.dragging) this.interactions.onMoveGestureStart?.();
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -461,6 +464,9 @@ export class SvgRenderer implements ISceneRenderer {
       band.setAttribute('y1', String(startPx.y));
       band.setAttribute('x2', String(endPx.x));
       band.setAttribute('y2', String(endPx.y));
+      this.interactions.onWallDraftLength?.(
+        Math.hypot(snapped.x - this.wallDraftStart.x, snapped.z - this.wallDraftStart.z),
+      );
       return;
     }
 
@@ -474,6 +480,7 @@ export class SvgRenderer implements ISceneRenderer {
   };
 
   private readonly handlePointerUp = (): void => {
+    if (this.dragging) this.interactions.onMoveGestureEnd?.();
     this.dragging = null;
   };
 }

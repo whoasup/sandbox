@@ -10,12 +10,15 @@ import {
 import EditorCanvas2D from '../../components/EditorCanvas2D.vue';
 import EditorCanvas3D from '../../components/EditorCanvas3D.vue';
 import EditorInspector from '../../components/EditorInspector.vue';
+import EditorMeasurements from '../../components/EditorMeasurements.vue';
 import EditorScenePanel from '../../components/EditorScenePanel.vue';
 import EditorToolbar from '../../components/EditorToolbar.vue';
+import { useEditorHotkeys } from '../../composables/useEditorHotkeys';
 
 const AUTOSAVE_MS = 400;
 
 const { mode, rooms, document: sceneDocument } = createEditorDocumentContext();
+useEditorHotkeys();
 
 const route = useRoute();
 const projectId = computed(() => String(route.params.projectId ?? ''));
@@ -132,6 +135,7 @@ const statusLabel = computed(() => {
               </div>
             </template>
           </ClientOnly>
+          <EditorMeasurements />
         </main>
         <EditorInspector />
       </div>
