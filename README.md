@@ -2,11 +2,12 @@
 
 Hard skills practicing sandbox.
 
-Nx monorepo (pnpm workspaces) with two projects:
+Nx monorepo (pnpm workspaces) with three projects:
 
 ```
-apps/editor   @sandbox/editor   — Nuxt 4 2D/3D room editor (planner5d-style)
-libs/ui-kit   @sandbox/ui-kit   — Vue 3 design system, Storybook
+apps/editor        @sandbox/editor        — Nuxt 4 2D/3D room editor (planner5d-style)
+libs/editor-core   @sandbox/editor-core   — framework-agnostic scene domain + persistence
+libs/ui-kit        @sandbox/ui-kit        — Vue 3 design system, Storybook
 ```
 
 ## `apps/editor`
@@ -29,13 +30,22 @@ so switching modes never loses state.
 - **Export** — toolbar **Экспорт** menu: PNG (3D view), SVG (2D plan from
   the document model), glTF/GLB (active-floor meshes), plus Epic 05
   project JSON. Filenames: `{project}-{floor}.{ext}`.
-- Architecture: `app/core/model` (framework-agnostic domain classes),
-  `app/core/render/three` and `app/core/render/svg` (the two `ISceneRenderer`
-  implementations), `app/core/export` (PNG / SVG / glTF builders),
-  `app/composables/useEditorDocument.ts` (Vue-reactive bridge,
-  provide/inject), `app/components` (toolbar + canvases).
+- Architecture: domain in `libs/editor-core` (`SceneDocument`, walls,
+  rooms, openings, furniture, stairs, persistence, history), renderers in
+  `app/core/render/{svg,three}` (`ISceneRenderer`), export in
+  `app/core/export` (PNG / SVG / glTF; three paths lazy-loaded), Vue bridge
+  in `app/composables/useEditorDocument.ts`, UI in `app/components`.
+  Three.js loads via dynamic import of `EditorCanvas3D` / `ThreeRenderer`.
 
 See [`apps/editor/README.md`](apps/editor/README.md) for scripts and structure.
+
+## `libs/editor-core`
+
+Framework-agnostic editor domain: `SceneDocument`, shapes, walls, rooms,
+openings, furniture, stairs, scene settings, snapshots/migrations,
+history helpers, and snap — unit-testable without Nuxt or Vue. Consumed by
+the editor as `@sandbox/editor-core` (workspace `@sandbox/source` condition
+for HMR in dev).
 
 ## `libs/ui-kit`
 

@@ -26,12 +26,9 @@ export default defineConfig(() => ({
       enabled: true,
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8' as const,
-      // Domain gate: fail if model-layer statement coverage drops below 70%.
-      include: ['app/core/model/**/*.{ts,vue}'],
+      // App-layer coverage only; domain gate lives on editor-core.
+      include: ['app/**/*.{ts,vue}'],
       exclude: ['**/*.{spec,test}.{ts,tsx,js}', '**/index.ts'],
-      thresholds: {
-        statements: 70,
-      },
     },
   },
 }));

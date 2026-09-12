@@ -1,6 +1,5 @@
-import type { Opening } from '../../model/Opening';
-import { openingSpanOnWall, solidWallIntervals } from '../../model/Opening';
-import type { WallObject } from '../../model/WallObject';
+import { openingSpanOnWall, solidWallIntervals } from '@sandbox/editor-core';
+import type { Opening, WallObject } from '@sandbox/editor-core';
 import { patternIdFor } from './svgTexturePatterns';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

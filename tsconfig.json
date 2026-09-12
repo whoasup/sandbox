@@ -7,6 +7,9 @@
       "path": "./libs/ui-kit"
     },
     {
+      "path": "./libs/editor-core"
+    },
+    {
       "path": "./apps/editor"
     }
   ]

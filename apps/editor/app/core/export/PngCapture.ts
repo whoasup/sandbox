@@ -1,6 +1,7 @@
+import { SceneDocument } from '@sandbox/editor-core';
+import type { SceneSnapshot } from '@sandbox/editor-core';
 import * as THREE from 'three';
-import { SceneDocument } from '../model/SceneDocument';
-import type { SceneSnapshot } from '../model/types';
+
 import { GltfExportBuilder } from './GltfExportBuilder';
 
 export type CanvasToBlob = (canvas: HTMLCanvasElement) => Promise<Blob>;

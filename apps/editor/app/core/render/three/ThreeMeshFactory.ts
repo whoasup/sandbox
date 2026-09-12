@@ -1,7 +1,7 @@
+import { SHAPE_DIMENSIONS } from '@sandbox/editor-core';
+import type { SceneObject, ShapeKind } from '@sandbox/editor-core';
 import * as THREE from 'three';
-import { SHAPE_DIMENSIONS } from '../../model/shapeDimensions';
-import type { SceneObject } from '../../model/SceneObject';
-import type { ShapeKind } from '../../model/types';
+
 import { TextureFactory } from './TextureFactory';
 
 /**

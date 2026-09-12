@@ -34,28 +34,27 @@ app/
     editor/[projectId].vue  editor (document context lives here)
     docs/index.vue        docs hub stub
   core/
-    model/            SceneObject hierarchy, ShapeFactory, SceneDocument (OOP domain layer)
-    export/           PNG / SVG / glTF builders + ExportService
+    export/           PNG / SVG / glTF builders + ExportService (three paths lazy)
     render/
-      ISceneRenderer.ts        shared mount/render/dispose contract
-      three/                   3D renderer (three.js): ThreeRenderer, ThreeMeshFactory, TextureFactory
+      ISceneRenderer.ts        shared mount/render/dispose contract (app-local)
+      three/                   3D renderer (three.js): ThreeRenderer, meshes (dynamic import)
       svg/                     2D renderer (SVG): SvgRenderer, Svg2DShapeView, texture patterns
   composables/
-    useEditorDocument.ts       Vue-reactive bridge over SceneDocument (provide/inject)
+    useEditorDocument.ts       Vue-reactive bridge over @sandbox/editor-core SceneDocument
   components/
     AppSidebar.vue             shell navigation + theme switcher
     EditorToolbar.vue          mode toggle, shape buttons, surface/color pickers, export slot
     EditorExportMenu.vue       Экспорт: PNG / SVG / glTF / Проект JSON…
-    EditorCanvas3D.vue         mounts ThreeRenderer into a <div>
+    EditorCanvas3D.vue         async; mounts ThreeRenderer into a <div>
     EditorCanvas2D.vue         mounts SvgRenderer into a <div>
   constants/
     projects.ts                DRAFT_PROJECT_ID stub
 ```
 
-The domain layer (`app/core/model`) and both renderers (`app/core/render/*`)
-are plain TypeScript classes with no Vue dependency — they can be unit
-tested in isolation (see the co-located `*.spec.ts` files) and are only
-wired into Vue's reactivity inside `useEditorDocument.ts`.
+Domain lives in `libs/editor-core` (`@sandbox/editor-core`). Renderers in
+`app/core/render/*` are plain TypeScript classes with no Vue dependency —
+unit-tested in isolation and wired into Vue inside `useEditorDocument.ts`.
+Three.js is not on the critical path of `/` or `/docs`.
 
 Styling is Tailwind CSS v4 (see the root [`README.md`](../../README.md#styling--theming)).
 `app.vue` calls `createThemeContext()` once at the app root; the shell

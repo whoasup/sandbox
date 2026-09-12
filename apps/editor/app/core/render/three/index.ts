@@ -6,3 +6,4 @@ export * from './ThreeWallMesh';
 export * from './ThreeFurnitureMesh';
 export * from './ThreeStairMesh';
 export * from './camera/walkCollision';
+export * from './cameraModes';

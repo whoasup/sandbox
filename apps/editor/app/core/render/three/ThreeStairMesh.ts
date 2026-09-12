@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { StairObject } from '../../model/StairObject';
+import type { StairObject } from '@sandbox/editor-core';
 
 /** Stacked box steps for a simple rectangular stair flight. */
 export class ThreeStairMesh {

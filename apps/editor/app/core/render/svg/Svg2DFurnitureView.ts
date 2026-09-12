@@ -1,5 +1,5 @@
 import { getFurniturePreset } from '@sandbox/ui-kit';
-import type { FurnitureObject } from '../../model/FurnitureObject';
+import type { FurnitureObject } from '@sandbox/editor-core';
 import { patternIdFor } from './svgTexturePatterns';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

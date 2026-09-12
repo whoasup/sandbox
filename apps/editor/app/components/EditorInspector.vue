@@ -11,7 +11,7 @@ import {
   UiTextureSwatch,
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
-import type { StairDirection } from '../core/model/StairObject';
+import type { StairDirection } from '@sandbox/editor-core';
 
 const {
   objects,

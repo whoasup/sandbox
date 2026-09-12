@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SceneDocument } from '../model/SceneDocument';
+import { SceneDocument } from '@sandbox/editor-core';
 import { PngCapture } from './PngCapture';
 import { ExportService } from './ExportService';
 

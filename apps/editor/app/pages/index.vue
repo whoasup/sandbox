@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { UiButton, UiText } from '@sandbox/ui-kit';
-import type { ProjectRecord } from '../core/persistence/ProjectStore';
+import type { ProjectRecord } from '@sandbox/editor-core';
 import {
   createProject,
   deleteProject,

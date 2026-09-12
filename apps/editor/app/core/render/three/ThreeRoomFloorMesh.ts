@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Room } from '../../model/Room';
+import type { Room } from '@sandbox/editor-core';
 import { TextureFactory } from './TextureFactory';
 
 /**

@@ -1,5 +1,4 @@
-import type { SceneObject } from '../../model/SceneObject';
-import type { ShapeKind } from '../../model/types';
+import type { SceneObject, ShapeKind } from '@sandbox/editor-core';
 import { patternIdFor } from './svgTexturePatterns';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

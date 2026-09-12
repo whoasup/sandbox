@@ -1,6 +1,6 @@
 # Epic 15 — Domain lib + perf / tech debt
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/15-domain-lib-perf`  
 Depends on: Epic 10, Epic 11  
 Owners: `libs/editor-core` (new) + `apps/editor`
@@ -93,13 +93,13 @@ No new product UI. Loading state for 3D canvas may show the existing
 
 ## 7. Definition of Done
 
-- [ ] `@sandbox/editor-core` builds and is the sole owner of domain +
+- [x] `@sandbox/editor-core` builds and is the sole owner of domain +
       migrations used by the app
-- [ ] `apps/editor` has no duplicate `SceneDocument` implementation
-- [ ] 3D / three.js loads via dynamic import; `/` and `/docs` do not
+- [x] `apps/editor` has no duplicate `SceneDocument` implementation
+- [x] 3D / three.js loads via dynamic import; `/` and `/docs` do not
       eagerly pull three
-- [ ] All previous unit tests green under the new layout
-- [ ] Green lint / typecheck / test / build
+- [x] All previous unit tests green under the new layout
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { ExportService } from '../core/export/ExportService';
-import { SceneDocument } from '../core/model/SceneDocument';
+import { SceneDocument } from '@sandbox/editor-core';
 import EditorExportMenu from './EditorExportMenu.vue';
 
 describe('EditorExportMenu', () => {
