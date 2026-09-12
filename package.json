@@ -16,6 +16,7 @@
     "lint:style": "stylelint \"**/*.{css,vue}\" --ignore-path .gitignore",
     "format": "prettier --write \"*.{js,mjs,cjs,ts}\" \"**/*.css\" --ignore-path .gitignore --ignore-path .prettierignore && nx run-many -t lint -- --fix && stylelint \"**/*.{css,vue}\" --fix --ignore-path .gitignore",
     "typecheck": "nx run-many -t typecheck",
+    "e2e": "playwright test",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -32,6 +33,7 @@
     "@nx/vue": "23.1.1",
     "@nx/web": "23.1.1",
     "@nx/workspace": "23.1.1",
+    "@playwright/test": "^1.63.0",
     "@storybook/addon-a11y": "10.5.10",
     "@storybook/addon-docs": "10.5.10",
     "@storybook/addon-themes": "10.5.10",

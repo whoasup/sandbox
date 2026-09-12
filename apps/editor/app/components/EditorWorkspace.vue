@@ -57,6 +57,7 @@ const showCeiling = computed({
   },
 });
 const rooms = computed(() => ctx?.rooms.value ?? []);
+const objects = computed(() => ctx?.objects.value ?? []);
 const sceneDocument = ctx?.document ?? new SceneDocument();
 const clearHistory = () => ctx?.clearHistory();
 const setFloorContext = (floorCtx: Parameters<NonNullable<typeof ctx>['setFloorContext']>[0]) =>
@@ -411,6 +412,16 @@ const statusLabel = computed(() => {
             </template>
           </ClientOnly>
           <EditorMeasurements />
+          <!-- E2E / a11y: mirror placed shapes for stable testid queries -->
+          <ul class="sr-only" data-testid="scene-shapes" aria-hidden="true">
+            <li
+              v-for="obj in objects"
+              :key="obj.id"
+              data-testid="scene-shape"
+              :data-kind="obj.kind"
+              :data-shape-id="obj.id"
+            />
+          </ul>
         </main>
         <EditorInspector />
       </div>

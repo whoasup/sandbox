@@ -1,6 +1,6 @@
 # Epic 14 — CI, E2E, quality gates
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/14-ci-e2e`  
 Depends on: Epic 05  
 Owners: repo root / `apps/editor` (Playwright) / `libs/ui-kit` (test noise)
@@ -54,6 +54,12 @@ assert one shape exists in the UI (test id or canvas sibling list)
 - One optional screenshot assert on the editor toolbar (not a full visual
   regression suite; no Chromatic).
 
+**Implemented approach:** Chromium hits the real `/` create button
+(`data-testid="projects-create"`), which writes IndexedDB then navigates —
+no seed helper. `playwright.config.ts` starts `nuxt preview` of the
+already-built `.output` (CI runs `pnpm build` first). Assertions use
+`add-shape-cube`, `shape-inspector`, and `scene-shape` test ids.
+
 ### Coverage + canvas
 
 - Vitest coverage for editor domain (and later `libs/editor-core`) with a
@@ -62,6 +68,10 @@ assert one shape exists in the UI (test id or canvas sibling list)
 - Test setup: mock `HTMLCanvasElement.prototype.getContext` or depend on
   `canvas` for Node — pick one and apply in shared Vitest setup so ui-kit
   texture tests stay quiet.
+
+**Implemented:** `vitest.setup.ts` mocks `getContext('2d')` + `toDataURL`;
+editor Vitest enables coverage with `include: app/core/model/**` and
+`thresholds.statements: 70`.
 
 ### package.json scripts
 
@@ -91,11 +101,11 @@ No product UI. Add `data-testid` hooks only where E2E needs them
 
 ## 7. Definition of Done
 
-- [ ] CI workflow green on the epic branch / PR
-- [ ] Smoke E2E covers library → editor → add primitive
-- [ ] Canvas getContext warnings gone from unit test runs
-- [ ] Coverage gate enforced for domain unit tests
-- [ ] Green lint / typecheck / test / build locally and in CI
+- [x] CI workflow green on the epic branch / PR
+- [x] Smoke E2E covers library → editor → add primitive
+- [x] Canvas getContext warnings gone from unit test runs
+- [x] Coverage gate enforced for domain unit tests
+- [x] Green lint / typecheck / test / build locally and in CI
 
 ## 8. Out of scope
 
