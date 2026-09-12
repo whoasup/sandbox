@@ -7,10 +7,17 @@ import {
   UiShapeIcon,
   UiText,
   UiTextureSwatch,
-  UiThemeSwitcher,
   UiToggleGroup,
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
+
+const props = withDefaults(
+  defineProps<{
+    /** Active project id from the route (stub until Epic 05). */
+    projectId?: string;
+  }>(),
+  { projectId: 'draft' },
+);
 
 const {
   mode,
@@ -29,7 +36,6 @@ const modeOptions = [
 ];
 
 const hasSelection = computed(() => selectedId.value !== null);
-const themeLabels = { light: 'Светлая', dark: 'Тёмная', system: 'Системная' };
 
 function onColorInput(event: Event): void {
   const value = (event.target as HTMLInputElement).value;
@@ -42,7 +48,10 @@ function onColorInput(event: Event): void {
     class="editor-toolbar flex flex-wrap items-center gap-6 border-b border-border bg-surface px-5 py-3 shadow-sm"
   >
     <div class="flex flex-col gap-1">
-      <UiText size="lg" weight="bold" as="h1" class="mr-4">Планировщик</UiText>
+      <div class="mr-4 flex items-baseline gap-2">
+        <UiText size="lg" weight="bold" as="h1">Планировщик</UiText>
+        <UiText size="xs" tone="muted" as="span">{{ props.projectId }}</UiText>
+      </div>
       <UiToggleGroup v-model="mode" :options="modeOptions" />
     </div>
 
@@ -89,7 +98,6 @@ function onColorInput(event: Event): void {
     </div>
 
     <div class="ml-auto flex items-center gap-2">
-      <UiThemeSwitcher size="sm" :labels="themeLabels" />
       <UiButton variant="ghost" :disabled="!hasSelection" @click="removeSelected">Удалить</UiButton>
     </div>
   </header>

@@ -17,15 +17,14 @@ function stubMatchMedia(): void {
 function mountToolbar() {
   const Harness = defineComponent({
     setup() {
-      // `EditorToolbar` renders `UiThemeSwitcher`, which `inject()`s the
-      // theme context — `createThemeContext()` here stands in for the real
-      // `provide()` call made in `app.vue`.
+      // Theme still exists at the app root; toolbar no longer mounts the
+      // switcher, but keep the provide for parity with production.
       createThemeContext();
       const ctx = createEditorDocumentContext();
       return { ctx };
     },
     render() {
-      return h(EditorToolbar);
+      return h(EditorToolbar, { projectId: 'draft' });
     },
   });
   return mount(Harness);
@@ -72,5 +71,10 @@ describe('EditorToolbar', () => {
     await cubeButton!.trigger('click');
 
     expect(deleteButton?.attributes('disabled')).toBeUndefined();
+  });
+
+  it('does not render the theme switcher (moved to the app shell)', () => {
+    const wrapper = mountToolbar();
+    expect(wrapper.findComponent({ name: 'UiThemeSwitcher' }).exists()).toBe(false);
   });
 });

@@ -107,3 +107,6 @@ pnpm lint:style  # stylelint "**/*.{css,vue}"
 pnpm format      # eslint --fix (incl. Prettier) + stylelint --fix + prettier --write, repo-wide
 pnpm typecheck   # nx run-many -t typecheck
 ```
+
+Editor routes (after Epic 01): `/` projects, `/editor/:projectId` editor,
+`/docs` kit docs stub. See [`docs/roadmap.md`](docs/roadmap.md).

@@ -2,10 +2,28 @@
 
 Nuxt 4 app: a minimal planner5d-style 2D/3D room editor.
 
+## Routes
+
+| Path | Page |
+|------|------|
+| `/` | Project library stub (draft card until Epic 05) |
+| `/editor/:projectId` | Room editor (toolbar + 2D/3D canvases) |
+| `/docs` | ui-kit docs hub stub (full docs in Epic 02) |
+
+Shell: `app/layouts/default.vue` + `AppSidebar` (Проекты / Редактор /
+Документация) with `UiThemeSwitcher`. Editor document context is created
+only on `/editor/:projectId`.
+
 ## Structure
 
 ```
 app/
+  layouts/
+    default.vue           sidebar shell + page slot
+  pages/
+    index.vue             project library stub
+    editor/[projectId].vue  editor (document context lives here)
+    docs/index.vue        docs hub stub
   core/
     model/            SceneObject hierarchy, ShapeFactory, SceneDocument (OOP domain layer)
     render/
@@ -15,10 +33,12 @@ app/
   composables/
     useEditorDocument.ts       Vue-reactive bridge over SceneDocument (provide/inject)
   components/
+    AppSidebar.vue             shell navigation + theme switcher
     EditorToolbar.vue          mode toggle, shape buttons, surface/color pickers
     EditorCanvas3D.vue         mounts ThreeRenderer into a <div>
     EditorCanvas2D.vue         mounts SvgRenderer into a <div>
-  pages/index.vue              composes the page, provides the shared document
+  constants/
+    projects.ts                DRAFT_PROJECT_ID stub
 ```
 
 The domain layer (`app/core/model`) and both renderers (`app/core/render/*`)
@@ -27,8 +47,8 @@ tested in isolation (see the co-located `*.spec.ts` files) and are only
 wired into Vue's reactivity inside `useEditorDocument.ts`.
 
 Styling is Tailwind CSS v4 (see the root [`README.md`](../../README.md#styling--theming)).
-`app.vue` calls `createThemeContext()` once at the app root; `EditorToolbar`
-mounts `UiThemeSwitcher` (light/dark/system) next to the delete button.
+`app.vue` calls `createThemeContext()` once at the app root; the shell
+sidebar mounts `UiThemeSwitcher` (light/dark/system).
 `app/assets/css/styles.css` is this app's own Tailwind entry point, scoped
 to `app/**` and sharing `libs/ui-kit`'s design tokens.
 
