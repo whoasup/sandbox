@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "nx run editor:serve",
     "storybook": "nx run ui-kit:storybook",
+    "build:storybook": "nx run ui-kit:build-storybook",
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",

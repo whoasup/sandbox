@@ -99,6 +99,7 @@ pnpm install
 
 pnpm dev         # nx run editor:serve   — http://localhost:4300
 pnpm storybook   # nx run ui-kit:storybook — http://localhost:4400
+pnpm build:storybook  # static Storybook → apps/editor/public/docs-storybook
 
 pnpm build       # nx run-many -t build
 pnpm test        # nx run-many -t test
@@ -108,5 +109,6 @@ pnpm format      # eslint --fix (incl. Prettier) + stylelint --fix + prettier --
 pnpm typecheck   # nx run-many -t typecheck
 ```
 
-Editor routes (after Epic 01): `/` projects, `/editor/:projectId` editor,
-`/docs` kit docs stub. See [`docs/roadmap.md`](docs/roadmap.md).
+Editor routes (after Epic 01–02): `/` projects, `/editor/:projectId` editor,
+`/docs` kit docs (foundations, components, Storybook). See
+[`docs/roadmap.md`](docs/roadmap.md).

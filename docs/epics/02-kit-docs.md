@@ -1,6 +1,6 @@
 # Epic 02 — ui-kit documentation (hybrid)
 
-Status: **planned**  
+Status: **implemented** — branch `epic/02-kit-docs`  
 Branch: `epic/02-kit-docs`  
 Depends on: Epic 01  
 Owners: `apps/editor` + `libs/ui-kit` (Storybook static build)
@@ -76,12 +76,12 @@ Data sources (do not invent a second catalog):
 
 ## 7. Definition of Done
 
-- [ ] Sidebar → Документация opens the hub
-- [ ] Foundations page shows token / shape / texture visuals
-- [ ] At least button, toggle, and theme switcher demos work live
-- [ ] Storybook is reachable via `/docs/storybook` (static or documented
+- [x] Sidebar → Документация opens the hub
+- [x] Foundations page shows token / shape / texture visuals
+- [x] At least button, toggle, and theme switcher demos work live
+- [x] Storybook is reachable via `/docs/storybook` (static or documented
       iframe / link) without a second repository
-- [ ] Green lint / typecheck / test / build
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 
