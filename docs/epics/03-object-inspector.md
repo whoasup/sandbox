@@ -1,6 +1,6 @@
 # Epic 03 — Object inspector and replace kind
 
-Status: **planned**  
+Status: **implemented** — branch `epic/03-object-inspector`  
 Branch: `epic/03-object-inspector`  
 Depends on: Epic 01  
 Owners: `apps/editor`
@@ -89,11 +89,11 @@ any missing surface/color paths already present.
 
 ## 7. Definition of Done
 
-- [ ] Cube → sphere keeps transform and material
-- [ ] Rotation / scale controls affect both 2D and 3D views
-- [ ] Duplicate works; selection updates appropriately
-- [ ] Specs cover `replaceKind` and inspector happy path
-- [ ] Green lint / typecheck / test / build
+- [x] Cube → sphere keeps transform and material
+- [x] Rotation / scale controls affect both 2D and 3D views
+- [x] Duplicate works; selection updates appropriately
+- [x] Specs cover `replaceKind` and inspector happy path
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

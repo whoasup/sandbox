@@ -72,6 +72,15 @@ export abstract class SceneObject {
     this.color = color;
   }
 
+  public setRotationY(rotationY: number): void {
+    this.rotationY = rotationY;
+  }
+
+  public setScale(scale: number): void {
+    this.scale = scale;
+    this.position = { ...this.position, y: this.restingHeight };
+  }
+
   public toSnapshot(): SceneObjectSnapshot {
     return {
       id: this.id,

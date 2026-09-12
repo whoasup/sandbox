@@ -68,6 +68,11 @@ export class SvgRenderer implements ISceneRenderer {
     for (const object of objects) {
       seen.add(object.id);
       let view = this.shapeViews.get(object.id);
+      if (view && view.kind !== object.kind) {
+        view.group.remove();
+        this.shapeViews.delete(object.id);
+        view = undefined;
+      }
       if (!view) {
         view = new Svg2DShapeView(object);
         this.shapeViews.set(object.id, view);

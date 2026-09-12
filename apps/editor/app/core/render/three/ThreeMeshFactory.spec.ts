@@ -23,6 +23,7 @@ describe('ThreeMeshFactory', () => {
     const mesh = ThreeMeshFactory.createMesh(object);
 
     expect(mesh.name).toBe('shape_42');
+    expect(mesh.userData.shapeKind).toBe('cube');
     expect(mesh.position.x).toBe(1);
     expect(mesh.position.z).toBe(-2);
     expect(mesh.position.y).toBe(object.restingHeight);

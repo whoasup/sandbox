@@ -75,4 +75,55 @@ describe('SceneDocument', () => {
     expect(doc.list()).toHaveLength(0);
     expect(doc.selected).toBeNull();
   });
+
+  it('replaceKind keeps id, transform, and material', () => {
+    const doc = new SceneDocument();
+    const cube = doc.addShape('cube', {
+      position: { x: 2, z: -1 },
+      rotationY: 0.5,
+      scale: 1.5,
+      surface: 'stone',
+      color: '#abcdef',
+    });
+    const id = cube.id;
+
+    const sphere = doc.replaceKind(id, 'sphere');
+
+    expect(sphere.id).toBe(id);
+    expect(sphere.kind).toBe('sphere');
+    expect(sphere.position.x).toBe(2);
+    expect(sphere.position.z).toBe(-1);
+    expect(sphere.rotationY).toBe(0.5);
+    expect(sphere.scale).toBe(1.5);
+    expect(sphere.surface).toBe('stone');
+    expect(sphere.color).toBe('#abcdef');
+    expect(doc.selected?.id).toBe(id);
+    expect(doc.list()).toHaveLength(1);
+  });
+
+  it('duplicate creates a new object with a new id', () => {
+    const doc = new SceneDocument();
+    const original = doc.addShape('cube', { position: { x: 0, z: 0 }, scale: 2 });
+
+    const clone = doc.duplicate(original.id);
+
+    expect(clone).toBeTruthy();
+    expect(clone!.id).not.toBe(original.id);
+    expect(clone!.kind).toBe('cube');
+    expect(clone!.scale).toBe(2);
+    expect(doc.list()).toHaveLength(2);
+    expect(doc.selected?.id).toBe(clone!.id);
+  });
+
+  it('setRotationY and setScale update the selected object', () => {
+    const doc = new SceneDocument();
+    const shape = doc.addShape('cube');
+
+    doc.setRotationY(shape.id, Math.PI / 2);
+    doc.setScale(shape.id, 2);
+
+    expect(shape.rotationY).toBe(Math.PI / 2);
+    expect(shape.scale).toBe(2);
+    expect(shape.position.y).toBe(shape.restingHeight);
+  });
 });
