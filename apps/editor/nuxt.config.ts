@@ -1,6 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineNuxtConfig } from 'nuxt/config';
 
+/** Static SPA build for GitHub Pages (`pnpm build:pages`). Local/CI keep SSR. */
+const isGitHubPages = process.env.DEPLOY_TARGET === 'github-pages';
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   workspaceDir: '../../',
@@ -10,7 +13,7 @@ export default defineNuxtConfig({
     host: 'localhost',
     port: 4300,
   },
-  ssr: true,
+  ssr: !isGitHubPages,
   typescript: {
     typeCheck: false,
     tsConfig: {
@@ -49,6 +52,7 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
   app: {
+    baseURL: isGitHubPages ? '/sandbox/' : '/',
     head: {
       // Sets `data-theme` before Vue hydrates/paints, so the correct theme
       // (persisted choice, or the OS preference when `system`) applies with
@@ -62,4 +66,11 @@ export default defineNuxtConfig({
       ],
     },
   },
+  ...(isGitHubPages
+    ? {
+        nitro: {
+          preset: 'github_pages',
+        },
+      }
+    : {}),
 });
