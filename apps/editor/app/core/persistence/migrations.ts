@@ -1,6 +1,8 @@
-import { createId } from '@sandbox/ui-kit';
+import { createId, type SurfaceKind } from '@sandbox/ui-kit';
 import { ShapeFactory } from '../model/ShapeFactory';
 import { createDefaultSceneSettings, type SceneSettings } from '../model/SceneSettings';
+import type { RoomSnapshot } from '../model/Room';
+import { fingerprintPolygon } from '../model/Room';
 import type { SceneSnapshot } from '../model/types';
 import type { WallObjectSnapshot } from '../model/WallObject';
 import { CURRENT_SCHEMA_VERSION, type ProjectRecord } from './ProjectStore';
@@ -74,10 +76,42 @@ function parseWallSnapshot(value: unknown): WallObjectSnapshot | null {
   };
 }
 
+function parseRoomSnapshot(value: unknown): RoomSnapshot | null {
+  if (!isRecord(value)) return null;
+  const polygonRaw = Array.isArray(value.polygon) ? value.polygon : [];
+  const polygon = polygonRaw
+    .filter(isRecord)
+    .map((p) => ({ x: Number(p.x) || 0, z: Number(p.z) || 0 }));
+  if (polygon.length < 3) return null;
+  const surface =
+    value.floorSurface === 'wood' ||
+    value.floorSurface === 'fabric' ||
+    value.floorSurface === 'stone'
+      ? (value.floorSurface as SurfaceKind)
+      : undefined;
+  const wallIds = Array.isArray(value.wallIds)
+    ? value.wallIds.filter((id): id is string => typeof id === 'string')
+    : [];
+  const fingerprint =
+    typeof value.fingerprint === 'string' && value.fingerprint.length > 0
+      ? value.fingerprint
+      : fingerprintPolygon(polygon);
+  return {
+    id: typeof value.id === 'string' && value.id.length > 0 ? value.id : createId('room'),
+    name: typeof value.name === 'string' && value.name.trim() ? value.name.trim() : 'Комната',
+    polygon,
+    floorSurface: surface,
+    floorColor: typeof value.floorColor === 'string' ? value.floorColor : '#c8b89a',
+    wallIds,
+    fingerprint,
+  };
+}
+
 export function createEmptySnapshot(): SceneSnapshot {
   return {
     objects: [],
     walls: [],
+    rooms: [],
     settings: createDefaultSceneSettings(),
   };
 }
@@ -85,6 +119,7 @@ export function createEmptySnapshot(): SceneSnapshot {
 /**
  * Normalize a raw record (or partial import) up to the current schema.
  * v0→v1: ensure settings exist. v1→v2: ensure walls array.
+ * v2→v3: ensure rooms array (revalidated on document load).
  */
 export function migrateProjectRecord(raw: unknown): ProjectRecord {
   if (!isRecord(raw)) {
@@ -110,6 +145,8 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
   const objects = Array.isArray(snapshotRaw.objects) ? snapshotRaw.objects : [];
   // v1 → v2: projects without walls get an empty array.
   const wallsRaw = Array.isArray(snapshotRaw.walls) ? snapshotRaw.walls : [];
+  // v2 → v3: projects without rooms get an empty array.
+  const roomsRaw = Array.isArray(snapshotRaw.rooms) ? snapshotRaw.rooms : [];
 
   const snapshot: SceneSnapshot = {
     objects: objects
@@ -133,6 +170,7 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
     walls: wallsRaw
       .map(parseWallSnapshot)
       .filter((wall): wall is WallObjectSnapshot => wall !== null),
+    rooms: roomsRaw.map(parseRoomSnapshot).filter((room): room is RoomSnapshot => room !== null),
     settings: ensureSettings(snapshotRaw.settings),
   };
 

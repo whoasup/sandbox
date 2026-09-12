@@ -1,4 +1,5 @@
 import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
+import type { RoomSnapshot } from './Room';
 import type { SceneSettings } from './SceneSettings';
 import type { WallObjectSnapshot } from './WallObject';
 
@@ -34,12 +35,17 @@ export interface SceneObjectInit {
   color?: string;
 }
 
-/** Selection cursor pointing at either a shape or a wall. */
-export type SelectionRef = { type: 'shape' | 'wall'; id: string } | null;
+/** Selection cursor pointing at a shape, wall, or room. */
+export type SelectionRef =
+  | { type: 'shape'; id: string }
+  | { type: 'wall'; id: string }
+  | { type: 'room'; id: string }
+  | null;
 
 /** In-memory / IndexedDB snapshot shape. */
 export interface SceneSnapshot {
   objects: SceneObjectSnapshot[];
   walls: WallObjectSnapshot[];
+  rooms: RoomSnapshot[];
   settings: SceneSettings;
 }

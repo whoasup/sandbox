@@ -59,8 +59,25 @@ describe('migrateProjectRecord', () => {
         settings: createDefaultSceneSettings(),
       },
     });
-    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.snapshot.walls).toEqual([]);
+    expect(migrated.snapshot.rooms).toEqual([]);
+  });
+
+  it('migrates schemaVersion 2 snapshots by adding an empty rooms array', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p2b',
+      name: 'V2 project',
+      updatedAt: 2,
+      schemaVersion: 2,
+      snapshot: {
+        objects: [],
+        walls: [],
+        settings: createDefaultSceneSettings(),
+      },
+    });
+    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.snapshot.rooms).toEqual([]);
   });
 
   it('parses wall snapshots on migrate', () => {
@@ -116,6 +133,7 @@ describe('serialize / import', () => {
           color: '#d8d2c8',
         },
       ],
+      rooms: [],
       settings: createDefaultSceneSettings(),
     });
 
@@ -128,6 +146,7 @@ describe('serialize / import', () => {
     expect(imported.snapshot.objects[0]?.kind).toBe('cube');
     expect(imported.snapshot.walls).toHaveLength(1);
     expect(imported.snapshot.walls[0]?.id).toBe('wall_1');
+    expect(imported.snapshot.rooms).toEqual([]);
     expect(imported.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 });

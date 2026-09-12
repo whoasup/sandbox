@@ -6,6 +6,7 @@ import { useEditorDocument } from '../composables/useEditorDocument';
 const {
   objects,
   walls,
+  rooms,
   selection,
   settings,
   tool,
@@ -30,12 +31,12 @@ onMounted(() => {
   if (containerRef.value) {
     renderer.mount(containerRef.value);
     renderer.setTool(tool.value);
-    renderer.render(objects.value, walls.value, selection.value, settings.value);
+    renderer.render(objects.value, walls.value, rooms.value, selection.value, settings.value);
   }
 });
 
-watch([objects, walls, selection, settings], () => {
-  renderer?.render(objects.value, walls.value, selection.value, settings.value);
+watch([objects, walls, rooms, selection, settings], () => {
+  renderer?.render(objects.value, walls.value, rooms.value, selection.value, settings.value);
 });
 
 watch(tool, (next) => {

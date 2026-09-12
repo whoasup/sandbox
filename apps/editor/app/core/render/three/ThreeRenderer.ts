@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { Room } from '../../model/Room';
 import type { SceneObject } from '../../model/SceneObject';
 import {
   createDefaultSceneSettings,
@@ -10,6 +11,7 @@ import type { SelectionRef } from '../../model/types';
 import type { WallObject } from '../../model/WallObject';
 import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { ThreeMeshFactory } from './ThreeMeshFactory';
+import { ThreeRoomFloorMesh } from './ThreeRoomFloorMesh';
 import { ThreeWallMesh } from './ThreeWallMesh';
 
 const DEFAULT_CAMERA_POSITION = new THREE.Vector3(6, 6, 8);
@@ -30,6 +32,7 @@ export class ThreeRenderer implements ISceneRenderer {
   private readonly dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private readonly meshes = new Map<string, THREE.Mesh>();
   private readonly wallMeshes = new Map<string, ThreeWallMesh>();
+  private readonly roomMeshes = new Map<string, ThreeRoomFloorMesh>();
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -80,10 +83,12 @@ export class ThreeRenderer implements ISceneRenderer {
   public render(
     objects: readonly SceneObject[],
     walls: readonly WallObject[],
+    rooms: readonly Room[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
     this.applyEnvironment(settings);
+    this.syncRooms(rooms);
     this.syncShapes(objects);
     this.syncWalls(walls);
     this.updateSelection(selection);
@@ -106,6 +111,11 @@ export class ThreeRenderer implements ISceneRenderer {
       wall.dispose();
     }
     this.wallMeshes.clear();
+    for (const room of this.roomMeshes.values()) {
+      this.scene.remove(room.mesh);
+      room.dispose();
+    }
+    this.roomMeshes.clear();
     this.clearEnvironment();
     this.controls.dispose();
     this.renderer.dispose();
@@ -163,6 +173,29 @@ export class ThreeRenderer implements ISceneRenderer {
       this.scene.remove(view.mesh);
       view.dispose();
       this.wallMeshes.delete(id);
+    }
+  }
+
+  private syncRooms(rooms: readonly Room[]): void {
+    const seen = new Set<string>();
+
+    for (const room of rooms) {
+      seen.add(room.id);
+      let view = this.roomMeshes.get(room.id);
+      if (!view) {
+        view = new ThreeRoomFloorMesh(room);
+        this.roomMeshes.set(room.id, view);
+        this.scene.add(view.mesh);
+      } else {
+        view.update(room);
+      }
+    }
+
+    for (const [id, view] of this.roomMeshes) {
+      if (seen.has(id)) continue;
+      this.scene.remove(view.mesh);
+      view.dispose();
+      this.roomMeshes.delete(id);
     }
   }
 
@@ -264,10 +297,10 @@ export class ThreeRenderer implements ISceneRenderer {
       this.selectionHelper = null;
     }
     if (!selection) return;
-    const mesh =
-      selection.type === 'shape'
-        ? this.meshes.get(selection.id)
-        : this.wallMeshes.get(selection.id)?.mesh;
+    let mesh: THREE.Object3D | undefined;
+    if (selection.type === 'shape') mesh = this.meshes.get(selection.id);
+    else if (selection.type === 'wall') mesh = this.wallMeshes.get(selection.id)?.mesh;
+    else mesh = this.roomMeshes.get(selection.id)?.mesh;
     if (!mesh) return;
     this.selectionHelper = new THREE.BoxHelper(mesh, 0x3b7ded);
     this.scene.add(this.selectionHelper);
@@ -284,11 +317,13 @@ export class ThreeRenderer implements ISceneRenderer {
     const candidates = [
       ...this.meshes.values(),
       ...[...this.wallMeshes.values()].map((view) => view.mesh),
+      ...[...this.roomMeshes.values()].map((view) => view.mesh),
     ];
     const hit = this.raycaster.intersectObjects(candidates, false)[0];
     if (!hit) return null;
-    const entityType = hit.object.userData.entityType as 'shape' | 'wall' | undefined;
+    const entityType = hit.object.userData.entityType as 'shape' | 'wall' | 'room' | undefined;
     if (entityType === 'wall') return { type: 'wall', id: hit.object.name };
+    if (entityType === 'room') return { type: 'room', id: hit.object.name };
     return { type: 'shape', id: hit.object.name };
   }
 
@@ -296,7 +331,7 @@ export class ThreeRenderer implements ISceneRenderer {
     this.updatePointer(event);
     const selection = this.pickSelection();
     this.interactions.onSelect?.(selection);
-    if (selection) {
+    if (selection && selection.type !== 'room') {
       this.dragging = selection;
       this.controls.enabled = false;
     }

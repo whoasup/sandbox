@@ -1,3 +1,4 @@
+import type { Room } from '../../model/Room';
 import type { SceneObject } from '../../model/SceneObject';
 import {
   createDefaultSceneSettings,
@@ -7,6 +8,7 @@ import {
 import type { SelectionRef } from '../../model/types';
 import type { Point2, WallObject } from '../../model/WallObject';
 import type { EditorTool, ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
+import { Svg2DRoomView } from './Svg2DRoomView';
 import { Svg2DShapeView } from './Svg2DShapeView';
 import { Svg2DWallView } from './Svg2DWallView';
 import { createSurfacePatternDefs } from './svgTexturePatterns';
@@ -25,11 +27,13 @@ export class SvgRenderer implements ISceneRenderer {
   private readonly fieldGroup: SVGGElement;
   private readonly gridGroup: SVGGElement;
   private readonly axesGroup: SVGGElement;
+  private readonly roomsGroup: SVGGElement;
   private readonly shapesGroup: SVGGElement;
   private readonly wallsGroup: SVGGElement;
   private readonly overlayGroup: SVGGElement;
   private readonly shapeViews = new Map<string, Svg2DShapeView>();
   private readonly wallViews = new Map<string, Svg2DWallView>();
+  private readonly roomViews = new Map<string, Svg2DRoomView>();
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -42,6 +46,7 @@ export class SvgRenderer implements ISceneRenderer {
   private tool: EditorTool = 'select';
   private latestObjects: readonly SceneObject[] = [];
   private latestWalls: readonly WallObject[] = [];
+  private latestRooms: readonly Room[] = [];
   private latestSelection: SelectionRef = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -55,6 +60,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.fieldGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.gridGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.axesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+    this.roomsGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.wallsGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.shapesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.overlayGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
@@ -62,6 +68,7 @@ export class SvgRenderer implements ISceneRenderer {
       this.fieldGroup,
       this.gridGroup,
       this.axesGroup,
+      this.roomsGroup,
       this.wallsGroup,
       this.shapesGroup,
       this.overlayGroup,
@@ -100,17 +107,20 @@ export class SvgRenderer implements ISceneRenderer {
   public render(
     objects: readonly SceneObject[],
     walls: readonly WallObject[],
+    rooms: readonly Room[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
     this.latestObjects = objects;
     this.latestWalls = walls;
+    this.latestRooms = rooms;
     this.latestSelection = selection;
     this.latestSettings = settings;
     this.svg.style.backgroundColor = resolveBackgroundColor(settings.background);
     this.drawField(settings);
     this.drawGrid(settings);
     this.drawAxes(settings);
+    this.syncRooms(rooms, selection);
     this.syncShapes(objects, selection);
     this.syncWalls(walls, selection);
   }
@@ -124,6 +134,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.svg.removeEventListener('keydown', this.handleKeyDown);
     this.shapeViews.clear();
     this.wallViews.clear();
+    this.roomViews.clear();
     this.cancelWallDraft();
     this.svg.remove();
     this.container = null;
@@ -178,6 +189,28 @@ export class SvgRenderer implements ISceneRenderer {
     }
   }
 
+  private syncRooms(rooms: readonly Room[], selection: SelectionRef): void {
+    const seen = new Set<string>();
+    const selectedRoomId = selection?.type === 'room' ? selection.id : null;
+
+    for (const room of rooms) {
+      seen.add(room.id);
+      let view = this.roomViews.get(room.id);
+      if (!view) {
+        view = new Svg2DRoomView(room);
+        this.roomViews.set(room.id, view);
+        this.roomsGroup.appendChild(view.group);
+      }
+      view.update(room, PX_PER_UNIT, this.origin, room.id === selectedRoomId);
+    }
+
+    for (const [id, view] of this.roomViews) {
+      if (seen.has(id)) continue;
+      view.group.remove();
+      this.roomViews.delete(id);
+    }
+  }
+
   private get origin(): { x: number; y: number } {
     return { x: this.width / 2, y: this.height / 2 };
   }
@@ -187,7 +220,13 @@ export class SvgRenderer implements ISceneRenderer {
     this.width = width;
     this.height = height;
     this.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    this.render(this.latestObjects, this.latestWalls, this.latestSelection, this.latestSettings);
+    this.render(
+      this.latestObjects,
+      this.latestWalls,
+      this.latestRooms,
+      this.latestSelection,
+      this.latestSettings,
+    );
   }
 
   private drawField(settings: SceneSettings): void {
@@ -277,6 +316,10 @@ export class SvgRenderer implements ISceneRenderer {
     const shapeGroup = target?.closest<SVGGElement>('[data-shape-id]');
     if (shapeGroup?.dataset.shapeId) {
       return { type: 'shape', id: shapeGroup.dataset.shapeId };
+    }
+    const roomGroup = target?.closest<SVGGElement>('[data-room-id]');
+    if (roomGroup?.dataset.roomId) {
+      return { type: 'room', id: roomGroup.dataset.roomId };
     }
     return null;
   }
@@ -373,7 +416,7 @@ export class SvgRenderer implements ISceneRenderer {
 
     const selection = this.resolveSelectionFromEvent(event);
     this.interactions.onSelect?.(selection);
-    this.dragging = selection;
+    this.dragging = selection?.type === 'shape' || selection?.type === 'wall' ? selection : null;
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {

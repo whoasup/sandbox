@@ -9,12 +9,15 @@ import {
   type SceneSettings,
   type SceneSettingsPatch,
 } from './SceneSettings';
+import { Room, type RoomSnapshot } from './Room';
+import { detectRooms } from './rooms/detectRooms';
 import type { SceneObjectInit, SceneSnapshot, SelectionRef, ShapeKind, SurfaceKind } from './types';
 import { WallObject, type Point2, type WallObjectInit } from './WallObject';
 
 export type SceneDocumentChange = {
   objects: SceneObject[];
   walls: WallObject[];
+  rooms: Room[];
 };
 
 // A type literal (not an `interface`) so it structurally satisfies the
@@ -26,14 +29,15 @@ export type SceneDocumentEvents = {
 };
 
 /**
- * The single source of truth for the editor: shapes + walls collections,
+ * The single source of truth for the editor: shapes + walls + rooms,
  * document-level `SceneSettings`, plus a selection cursor that can point
- * at either entity type. Both the 2D (`SvgRenderer`) and 3D
+ * at any entity type. Both the 2D (`SvgRenderer`) and 3D
  * (`ThreeRenderer`) views subscribe to the same document.
  */
 export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly objects = new Map<string, SceneObject>();
   private readonly walls = new Map<string, WallObject>();
+  private readonly rooms = new Map<string, Room>();
   private selection: SelectionRef = null;
   private sceneSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -45,12 +49,20 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     return [...this.walls.values()];
   }
 
+  public listRooms(): Room[] {
+    return [...this.rooms.values()];
+  }
+
   public get(id: string): SceneObject | undefined {
     return this.objects.get(id);
   }
 
   public getWall(id: string): WallObject | undefined {
     return this.walls.get(id);
+  }
+
+  public getRoom(id: string): Room | undefined {
+    return this.rooms.get(id);
   }
 
   public get selected(): SelectionRef {
@@ -80,6 +92,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     }
     this.walls.set(wall.id, wall);
     this.select({ type: 'wall', id: wall.id });
+    this.rebuildRooms();
     this.notifyChange();
     return wall;
   }
@@ -97,19 +110,23 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     if (this.selection?.type === 'wall' && this.selection.id === id) {
       this.select(null);
     }
+    this.rebuildRooms();
     this.notifyChange();
   }
 
   public removeSelected(): void {
     if (!this.selection) return;
     if (this.selection.type === 'shape') this.remove(this.selection.id);
-    else this.removeWall(this.selection.id);
+    else if (this.selection.type === 'wall') this.removeWall(this.selection.id);
+    // Rooms are derived — clear selection only.
+    else if (this.selection.type === 'room') this.select(null);
   }
 
   public select(next: SelectionRef): void {
     if (this.selection?.type === next?.type && this.selection?.id === next?.id) return;
     if (next?.type === 'shape' && !this.objects.has(next.id)) return;
     if (next?.type === 'wall' && !this.walls.has(next.id)) return;
+    if (next?.type === 'room' && !this.rooms.has(next.id)) return;
     this.selection = next;
     this.emit('select', next);
   }
@@ -136,6 +153,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     const targetZ = snap ? roundToStep(z, gridStep) : z;
     const mid = wall.midpoint;
     wall.translate(targetX - mid.x, targetZ - mid.z);
+    this.rebuildRooms();
     this.notifyChange();
   }
 
@@ -164,6 +182,27 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     const wall = this.walls.get(id);
     if (!wall) return;
     wall.setColor(color);
+    this.notifyChange();
+  }
+
+  public setRoomName(id: string, name: string): void {
+    const room = this.rooms.get(id);
+    if (!room) return;
+    room.setName(name);
+    this.notifyChange();
+  }
+
+  public setRoomFloorSurface(id: string, surface: SurfaceKind | undefined): void {
+    const room = this.rooms.get(id);
+    if (!room) return;
+    room.setFloorSurface(surface);
+    this.notifyChange();
+  }
+
+  public setRoomFloorColor(id: string, color: string): void {
+    const room = this.rooms.get(id);
+    if (!room) return;
+    room.setFloorColor(color);
     this.notifyChange();
   }
 
@@ -272,6 +311,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     return {
       objects: this.list().map((object) => object.toSnapshot()),
       walls: this.listWalls().map((wall) => wall.toSnapshot()),
+      rooms: this.listRooms().map((room) => room.toSnapshot()),
       settings: this.settings,
     };
   }
@@ -280,6 +320,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   public fromSnapshot(snapshot: SceneSnapshot): void {
     this.objects.clear();
     this.walls.clear();
+    this.rooms.clear();
     this.selection = null;
 
     for (const object of snapshot.objects) {
@@ -303,6 +344,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     }
 
     this.sceneSettings = cloneSceneSettings(snapshot.settings ?? createDefaultSceneSettings());
+    this.rebuildRooms(snapshot.rooms ?? []);
     this.emit('settings', this.settings);
     this.emit('select', null);
     this.notifyChange();
@@ -311,11 +353,53 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   public clear(): void {
     this.objects.clear();
     this.walls.clear();
+    this.rooms.clear();
     this.select(null);
     this.notifyChange();
   }
 
+  /**
+   * Recompute rooms from walls. Preserves floor materials when a draft's
+   * polygon fingerprint matches a previous / stored room.
+   */
+  private rebuildRooms(
+    preserve: readonly RoomSnapshot[] = this.listRooms().map((r) => r.toSnapshot()),
+  ): void {
+    const previousByFp = new Map<string, RoomSnapshot>();
+    for (const snap of preserve) {
+      previousByFp.set(snap.fingerprint, snap);
+    }
+
+    const drafts = detectRooms(this.listWalls());
+    this.rooms.clear();
+
+    let index = 1;
+    for (const draft of drafts) {
+      const prev = previousByFp.get(draft.fingerprint);
+      const room = new Room({
+        id: prev?.id,
+        name: prev?.name ?? `Комната ${index}`,
+        polygon: draft.polygon,
+        wallIds: draft.wallIds,
+        fingerprint: draft.fingerprint,
+        floorColor: prev?.floorColor,
+        floorSurface: prev?.floorSurface,
+      });
+      this.rooms.set(room.id, room);
+      index += 1;
+    }
+
+    if (this.selection?.type === 'room' && !this.rooms.has(this.selection.id)) {
+      this.selection = null;
+      this.emit('select', null);
+    }
+  }
+
   private notifyChange(): void {
-    this.emit('change', { objects: this.list(), walls: this.listWalls() });
+    this.emit('change', {
+      objects: this.list(),
+      walls: this.listWalls(),
+      rooms: this.listRooms(),
+    });
   }
 }

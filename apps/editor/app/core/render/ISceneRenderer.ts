@@ -1,3 +1,4 @@
+import type { Room } from '../model/Room';
 import type { SceneObject } from '../model/SceneObject';
 import type { SceneSettings } from '../model/SceneSettings';
 import type { SelectionRef } from '../model/types';
@@ -14,6 +15,7 @@ export interface ISceneRenderer {
   render(
     objects: readonly SceneObject[],
     walls: readonly WallObject[],
+    rooms: readonly Room[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void;

@@ -1,6 +1,6 @@
 # Epic 07 — Rooms and floor / wall materials
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/07-rooms-materials`  
 Depends on: Epic 06  
 Owners: `apps/editor`
@@ -91,11 +91,11 @@ material preservation when polygon unchanged.
 
 ## 7. Definition of Done
 
-- [ ] Two adjacent rooms with different floors render in 2D and 3D
-- [ ] Wall delete recalculates rooms
-- [ ] Room materials survive save / load
-- [ ] Contour algorithm covered by fixture tests
-- [ ] Green lint / typecheck / test / build
+- [x] Two adjacent rooms with different floors render in 2D and 3D
+- [x] Wall delete recalculates rooms
+- [x] Room materials survive save / load
+- [x] Contour algorithm covered by fixture tests
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 
