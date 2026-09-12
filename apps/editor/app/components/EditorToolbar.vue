@@ -13,10 +13,10 @@ import { useEditorDocument } from '../composables/useEditorDocument';
 
 const props = withDefaults(
   defineProps<{
-    /** Active project id from the route (stub until Epic 05). */
+    /** Active project id from the route. */
     projectId?: string;
   }>(),
-  { projectId: 'draft' },
+  { projectId: '' },
 );
 
 const {
@@ -50,8 +50,11 @@ function onColorInput(event: Event): void {
     <div class="flex flex-col gap-1">
       <div class="mr-4 flex items-baseline gap-2">
         <UiText size="lg" weight="bold" as="h1">Планировщик</UiText>
-        <UiText size="xs" tone="muted" as="span">{{ props.projectId }}</UiText>
+        <UiText v-if="props.projectId" size="xs" tone="muted" as="span">{{
+          props.projectId
+        }}</UiText>
       </div>
+      <slot name="status" />
       <UiToggleGroup v-model="mode" :options="modeOptions" />
     </div>
 

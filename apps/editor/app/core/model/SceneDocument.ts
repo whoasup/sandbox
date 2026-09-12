@@ -169,6 +169,32 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     };
   }
 
+  /** Replace the document contents from a persisted / imported snapshot. */
+  public fromSnapshot(snapshot: SceneSnapshot): void {
+    this.objects.clear();
+    this.selectedId = null;
+
+    for (const object of snapshot.objects) {
+      if (!ShapeFactory.supports(object.kind)) {
+        throw new Error(`SceneDocument.fromSnapshot: unsupported kind "${String(object.kind)}"`);
+      }
+      const shape = ShapeFactory.create(object.kind, {
+        id: object.id,
+        position: { x: object.position.x, z: object.position.z },
+        rotationY: object.rotationY,
+        scale: object.scale,
+        surface: object.surface,
+        color: object.color,
+      });
+      this.objects.set(shape.id, shape);
+    }
+
+    this.sceneSettings = cloneSceneSettings(snapshot.settings ?? createDefaultSceneSettings());
+    this.emit('settings', this.settings);
+    this.emit('select', null);
+    this.notifyChange();
+  }
+
   public clear(): void {
     this.objects.clear();
     this.select(null);

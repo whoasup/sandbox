@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { UiText, UiThemeSwitcher } from '@sandbox/ui-kit';
-import { DRAFT_PROJECT_ID } from '../constants/projects';
+import { readLastProjectId } from '../composables/useProjects';
 
 const route = useRoute();
 
 const themeLabels = { light: 'Светлая', dark: 'Тёмная', system: 'Системная' };
 
-const navItems = [
+const editorHref = ref('/');
+
+onMounted(() => {
+  const lastId = readLastProjectId();
+  editorHref.value = lastId ? `/editor/${lastId}` : '/';
+});
+
+const navItems = computed(() => [
   { to: '/', label: 'Проекты', match: (path: string) => path === '/' },
   {
-    to: `/editor/${DRAFT_PROJECT_ID}`,
+    to: editorHref.value,
     label: 'Редактор',
     match: (path: string) => path.startsWith('/editor'),
   },
@@ -19,7 +26,7 @@ const navItems = [
     label: 'Документация',
     match: (path: string) => path.startsWith('/docs'),
   },
-] as const;
+]);
 
 const activePath = computed(() => route.path);
 </script>
@@ -37,7 +44,7 @@ const activePath = computed(() => route.path);
     <nav class="flex flex-1 flex-col gap-1 p-3" aria-label="Основная навигация">
       <NuxtLink
         v-for="item in navItems"
-        :key="item.to"
+        :key="item.label"
         :to="item.to"
         class="rounded-md px-3 py-2 text-sm font-medium text-text no-underline transition-colors hover:bg-surface-raised"
         :class="
