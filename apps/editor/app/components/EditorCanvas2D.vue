@@ -29,12 +29,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="editor-canvas-2d" data-testid="editor-canvas-2d" />
+  <div ref="containerRef" class="h-full w-full" data-testid="editor-canvas-2d" />
 </template>
-
-<style scoped>
-.editor-canvas-2d {
-  width: 100%;
-  height: 100%;
-}
-</style>

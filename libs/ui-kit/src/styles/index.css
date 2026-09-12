@@ -1,2 +1,13 @@
+/**
+ * Explicit `source(...)` base (rather than relying on Tailwind's default
+ * "current working directory" heuristic) so class detection is always
+ * scoped to this package (`libs/ui-kit/src/**`) regardless of which
+ * directory the build tool (Nx, Vite, Storybook) happens to run from. See
+ * `apps/editor/app/assets/css/styles.css` for the app-side counterpart —
+ * each package that uses Tailwind utility classes runs its *own* scoped
+ * compilation, sharing the same `theme.css`/`tokens.css` design tokens.
+ */
+@import 'tailwindcss' source('../');
+@import './theme.css';
 @import './tokens.css';
 @import './base.css';

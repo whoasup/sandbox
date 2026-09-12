@@ -23,11 +23,58 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{ click: [MouseEvent] }>();
 
+/**
+ * Tailwind utility classes per variant/size. The `ui-button--*` BEM classes
+ * are kept alongside these purely as stable selectors for tests/CSS escape
+ * hatches (see `UiButton.spec.ts`) — they carry no styling of their own now
+ * that Tailwind utilities own the actual visual rules.
+ */
+const VARIANT_CLASSES: Record<ButtonVariant, string> = {
+  primary: 'text-on-primary bg-primary border-transparent enabled:hover:bg-primary-hover',
+  secondary: 'text-text bg-surface-raised border-border enabled:hover:bg-surface-sunken',
+  ghost: 'text-text bg-transparent border-transparent enabled:hover:bg-surface-sunken',
+};
+
+// A pressed toggle button (e.g. a segmented control) always reads as
+// "active", regardless of its base `variant`.
+const PRESSED_CLASSES = 'text-on-primary bg-primary border-primary';
+
+const TEXT_SIZE_CLASSES: Record<ButtonSize, string> = {
+  sm: 'text-xs',
+  md: 'text-sm',
+  lg: 'text-md',
+};
+
+// Regular padding (asymmetric x/y) vs. icon-only padding (symmetric, no
+// label to balance against) are mutually exclusive per size, so applying
+// exactly one of the two below never produces a conflicting pair of
+// utility classes for the same size.
+const PADDING_CLASSES: Record<ButtonSize, string> = {
+  sm: 'px-2 py-1',
+  md: 'px-4 py-2',
+  lg: 'px-5 py-3',
+};
+
+const ICON_ONLY_PADDING_CLASSES: Record<ButtonSize, string> = {
+  sm: 'p-1',
+  md: 'p-2',
+  lg: 'p-3',
+};
+
 const classes = computed(() =>
-  classNames('ui-button', `ui-button--${props.variant}`, `ui-button--${props.size}`, {
-    'ui-button--pressed': props.pressed,
-    'ui-button--icon-only': props.iconOnly,
-  }),
+  classNames(
+    'ui-button',
+    'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border font-sans font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+    `ui-button--${props.variant}`,
+    `ui-button--${props.size}`,
+    props.pressed ? PRESSED_CLASSES : VARIANT_CLASSES[props.variant],
+    TEXT_SIZE_CLASSES[props.size],
+    props.iconOnly ? ICON_ONLY_PADDING_CLASSES[props.size] : PADDING_CLASSES[props.size],
+    {
+      'ui-button--pressed': props.pressed,
+      'ui-button--icon-only': props.iconOnly,
+    },
+  ),
 );
 
 function handleClick(event: MouseEvent): void {
@@ -44,7 +91,7 @@ function handleClick(event: MouseEvent): void {
     :aria-pressed="pressed"
     @click="handleClick"
   >
-    <span v-if="$slots.icon" class="ui-button__icon">
+    <span v-if="$slots.icon" class="ui-button__icon inline-flex items-center justify-center">
       <slot name="icon" />
     </span>
     <span v-if="$slots.default" class="ui-button__label">
@@ -52,94 +99,3 @@ function handleClick(event: MouseEvent): void {
     </span>
   </button>
 </template>
-
-<style scoped>
-.ui-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--ui-space-2);
-  border: 1px solid transparent;
-  border-radius: var(--ui-radius-md);
-  font-family: var(--ui-font-family-base);
-  font-weight: var(--ui-font-weight-medium);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-  white-space: nowrap;
-}
-
-.ui-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ui-button--sm {
-  padding: var(--ui-space-1) var(--ui-space-2);
-  font-size: var(--ui-font-size-xs);
-}
-
-.ui-button--md {
-  padding: var(--ui-space-2) var(--ui-space-4);
-  font-size: var(--ui-font-size-sm);
-}
-
-.ui-button--lg {
-  padding: var(--ui-space-3) var(--ui-space-5);
-  font-size: var(--ui-font-size-md);
-}
-
-.ui-button--icon-only.ui-button--sm {
-  padding: var(--ui-space-1);
-}
-
-.ui-button--icon-only.ui-button--md {
-  padding: var(--ui-space-2);
-}
-
-.ui-button--icon-only.ui-button--lg {
-  padding: var(--ui-space-3);
-}
-
-.ui-button--primary {
-  color: var(--ui-color-text-on-primary);
-  background-color: var(--ui-color-primary);
-}
-
-.ui-button--primary:hover:not(:disabled) {
-  background-color: var(--ui-color-primary-hover);
-}
-
-.ui-button--secondary {
-  color: var(--ui-color-text);
-  background-color: var(--ui-color-surface-raised);
-  border-color: var(--ui-color-border);
-}
-
-.ui-button--secondary:hover:not(:disabled) {
-  background-color: var(--ui-color-surface-sunken);
-}
-
-.ui-button--ghost {
-  color: var(--ui-color-text);
-  background-color: transparent;
-}
-
-.ui-button--ghost:hover:not(:disabled) {
-  background-color: var(--ui-color-surface-sunken);
-}
-
-.ui-button--pressed {
-  color: var(--ui-color-text-on-primary);
-  background-color: var(--ui-color-primary);
-  border-color: var(--ui-color-primary);
-}
-
-.ui-button__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-</style>

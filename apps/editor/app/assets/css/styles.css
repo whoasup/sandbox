@@ -1,6 +1,21 @@
-.editor-page {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: var(--ui-color-surface-sunken);
+/**
+ * The editor app's own Tailwind entry point. `libs/ui-kit`'s compiled
+ * `styles.css` (loaded first, see `nuxt.config.ts`'s `css` array) ships
+ * Tailwind + Preflight + utilities for classes used *inside ui-kit's own
+ * component templates* — it does not know about classes used here, in the
+ * app's own templates, because that's a separate Tailwind compilation
+ * scoped to `libs/ui-kit`. This file is the app-side counterpart: its own
+ * `@import "tailwindcss"` (scoped to `apps/editor/app` via `source(...)`)
+ * generates utilities for everything under this app, sharing the exact
+ * same design tokens via the imported theme/tokens partials so both
+ * compilations stay visually identical.
+ */
+@import 'tailwindcss' source('../../');
+@import '@sandbox/ui-kit/styles/theme.css';
+@import '@sandbox/ui-kit/styles/tokens.css';
+
+html,
+body,
+#__nuxt {
+  height: 100%;
 }

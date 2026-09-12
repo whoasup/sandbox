@@ -1,12 +1,15 @@
-.ui-reset,
-.ui-reset * {
-  box-sizing: border-box;
-}
-
+/**
+ * Tailwind's Preflight (imported via `@import 'tailwindcss'` in
+ * `index.css`) already resets box-sizing, margins, and list styles
+ * globally, so `.ui-reset` no longer needs to do that itself. What's left
+ * here are the few things Preflight intentionally does *not* set: the
+ * semantic text/surface colors and font family, which must come from this
+ * project's own tokens rather than a hard-coded value.
+ */
 body {
   color: var(--ui-color-text);
   background-color: var(--ui-color-surface);
-  font-family: var(--ui-font-family-base);
+  font-family: var(--font-sans);
 }
 
 [data-theme] {

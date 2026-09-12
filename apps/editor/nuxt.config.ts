@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import { defineNuxtConfig } from 'nuxt/config';
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -16,6 +17,15 @@ export default defineNuxtConfig({
       // Nuxt copies this string as-is into `./.nuxt/tsconfig.json`, so it
       // must be relative to that directory rather than to this file.
       extends: '../../../tsconfig.base.json',
+      // The workspace base is a composite library config. This app typechecks
+      // with `--noEmit` and must not inherit declaration emit, or vue-tsc
+      // reports TS2883 on `defineNuxtConfig`'s inferred export type.
+      compilerOptions: {
+        composite: false,
+        declaration: false,
+        declarationMap: false,
+        emitDeclarationOnly: false,
+      },
     },
   },
   imports: {
@@ -35,6 +45,21 @@ export default defineNuxtConfig({
         conditions: ['@sandbox/source'],
         externalConditions: ['@sandbox/source'],
       },
+    },
+    plugins: [tailwindcss()],
+  },
+  app: {
+    head: {
+      // Sets `data-theme` before Vue hydrates/paints, so the correct theme
+      // (persisted choice, or the OS preference when `system`) applies with
+      // no flash of the wrong theme. Mirrors `useTheme()`'s own resolution
+      // logic — keep the two in sync if that composable changes.
+      script: [
+        {
+          key: 'theme-boot',
+          innerHTML: `(function(){try{var s=localStorage.getItem('ui-theme');var p=s==='light'||s==='dark'||s==='system'?s:'system';var r=p==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;document.documentElement.setAttribute('data-theme',r);}catch(e){}})();`,
+        },
+      ],
     },
   },
 });

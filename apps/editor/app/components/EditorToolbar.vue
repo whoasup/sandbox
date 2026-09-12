@@ -7,6 +7,7 @@ import {
   UiShapeIcon,
   UiText,
   UiTextureSwatch,
+  UiThemeSwitcher,
   UiToggleGroup,
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
@@ -28,6 +29,7 @@ const modeOptions = [
 ];
 
 const hasSelection = computed(() => selectedId.value !== null);
+const themeLabels = { light: 'Светлая', dark: 'Тёмная', system: 'Системная' };
 
 function onColorInput(event: Event): void {
   const value = (event.target as HTMLInputElement).value;
@@ -36,15 +38,17 @@ function onColorInput(event: Event): void {
 </script>
 
 <template>
-  <header class="editor-toolbar">
-    <div class="editor-toolbar__group">
-      <UiText size="lg" weight="bold" as="h1" class="editor-toolbar__title">Планировщик</UiText>
+  <header
+    class="editor-toolbar flex flex-wrap items-center gap-6 border-b border-border bg-surface px-5 py-3 shadow-sm"
+  >
+    <div class="flex flex-col gap-1">
+      <UiText size="lg" weight="bold" as="h1" class="mr-4">Планировщик</UiText>
       <UiToggleGroup v-model="mode" :options="modeOptions" />
     </div>
 
-    <div class="editor-toolbar__group">
+    <div class="flex flex-col gap-1">
       <UiText size="xs" tone="muted" as="span">Фигуры</UiText>
-      <div class="editor-toolbar__shapes">
+      <div class="flex items-center gap-2">
         <UiButton
           v-for="shape in SHAPE_CATALOG"
           :key="shape.kind"
@@ -61,9 +65,9 @@ function onColorInput(event: Event): void {
       </div>
     </div>
 
-    <div class="editor-toolbar__group">
+    <div class="flex flex-col gap-1">
       <UiText size="xs" tone="muted" as="span">Поверхность</UiText>
-      <div class="editor-toolbar__surfaces">
+      <div class="flex items-center gap-2">
         <UiTextureSwatch
           v-for="texture in TEXTURE_LIST"
           :key="texture.id"
@@ -75,7 +79,7 @@ function onColorInput(event: Event): void {
           @click="applySurfaceToSelection(texture.id)"
         />
         <input
-          class="editor-toolbar__color"
+          class="h-[34px] w-[34px] cursor-pointer rounded-sm border border-border bg-none p-0"
           type="color"
           :value="activeColor"
           title="Цвет фигуры"
@@ -84,54 +88,9 @@ function onColorInput(event: Event): void {
       </div>
     </div>
 
-    <div class="editor-toolbar__group editor-toolbar__group--end">
+    <div class="ml-auto flex items-center gap-2">
+      <UiThemeSwitcher size="sm" :labels="themeLabels" />
       <UiButton variant="ghost" :disabled="!hasSelection" @click="removeSelected">Удалить</UiButton>
     </div>
   </header>
 </template>
-
-<style scoped>
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-space-6);
-  padding: var(--ui-space-3) var(--ui-space-5);
-  background-color: var(--ui-color-surface);
-  border-bottom: 1px solid var(--ui-color-border);
-  box-shadow: var(--ui-shadow-sm);
-  flex-wrap: wrap;
-}
-
-.editor-toolbar__title {
-  margin-right: var(--ui-space-4);
-}
-
-.editor-toolbar__group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-1);
-}
-
-.editor-toolbar__group--end {
-  margin-left: auto;
-  flex-direction: row;
-  align-items: center;
-}
-
-.editor-toolbar__shapes,
-.editor-toolbar__surfaces {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-space-2);
-}
-
-.editor-toolbar__color {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-sm);
-  cursor: pointer;
-  background: none;
-}
-</style>

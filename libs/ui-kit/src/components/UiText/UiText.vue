@@ -19,13 +19,44 @@ const props = withDefaults(defineProps<Props>(), {
   truncate: false,
 });
 
+/**
+ * Tailwind utility classes per variant. The `ui-text--*` BEM classes below
+ * are kept alongside these purely as stable selectors for tests/CSS
+ * escape hatches (see `UiText.spec.ts`) — they carry no styling of their
+ * own now that Tailwind utilities own the actual visual rules.
+ */
+const SIZE_CLASSES: Record<TextSize, string> = {
+  xs: 'text-xs',
+  sm: 'text-sm',
+  md: 'text-md',
+  lg: 'text-lg',
+  xl: 'text-xl',
+};
+
+const WEIGHT_CLASSES: Record<TextWeight, string> = {
+  regular: 'font-regular',
+  medium: 'font-medium',
+  bold: 'font-bold',
+};
+
+const TONE_CLASSES: Record<TextTone, string> = {
+  default: 'text-text',
+  muted: 'text-text-muted',
+  danger: 'text-danger',
+  success: 'text-success',
+};
+
 const classes = computed(() =>
   classNames(
     'ui-text',
+    'font-sans leading-[1.4]',
     `ui-text--size-${props.size}`,
+    SIZE_CLASSES[props.size],
     `ui-text--weight-${props.weight}`,
+    WEIGHT_CLASSES[props.weight],
     `ui-text--tone-${props.tone}`,
-    { 'ui-text--truncate': props.truncate },
+    TONE_CLASSES[props.tone],
+    { 'ui-text--truncate truncate': props.truncate },
   ),
 );
 </script>
@@ -35,65 +66,3 @@ const classes = computed(() =>
     <slot />
   </component>
 </template>
-
-<style scoped>
-.ui-text {
-  margin: 0;
-  font-family: var(--ui-font-family-base);
-  line-height: 1.4;
-}
-
-.ui-text--truncate {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.ui-text--size-xs {
-  font-size: var(--ui-font-size-xs);
-}
-
-.ui-text--size-sm {
-  font-size: var(--ui-font-size-sm);
-}
-
-.ui-text--size-md {
-  font-size: var(--ui-font-size-md);
-}
-
-.ui-text--size-lg {
-  font-size: var(--ui-font-size-lg);
-}
-
-.ui-text--size-xl {
-  font-size: var(--ui-font-size-xl);
-}
-
-.ui-text--weight-regular {
-  font-weight: var(--ui-font-weight-regular);
-}
-
-.ui-text--weight-medium {
-  font-weight: var(--ui-font-weight-medium);
-}
-
-.ui-text--weight-bold {
-  font-weight: var(--ui-font-weight-bold);
-}
-
-.ui-text--tone-default {
-  color: var(--ui-color-text);
-}
-
-.ui-text--tone-muted {
-  color: var(--ui-color-text-muted);
-}
-
-.ui-text--tone-danger {
-  color: var(--ui-color-danger);
-}
-
-.ui-text--tone-success {
-  color: var(--ui-color-success);
-}
-</style>
