@@ -6,7 +6,7 @@ import { DOCS_COMPONENTS } from '../../../constants/docsCatalog';
 
 <template>
   <div
-    class="mx-auto flex h-full max-w-3xl flex-col gap-6 overflow-y-auto p-8"
+    class="mx-auto flex h-full max-w-3xl flex-col gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8"
     data-testid="docs-components-page"
   >
     <DocsNav />

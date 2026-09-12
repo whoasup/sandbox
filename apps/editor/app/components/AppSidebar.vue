@@ -3,6 +3,18 @@ import { computed, onMounted, ref } from 'vue';
 import { UiText, UiThemeSwitcher } from '@sandbox/ui-kit';
 import { readLastProjectId } from '../composables/useProjects';
 
+const props = withDefaults(
+  defineProps<{
+    /** When true, used as the mobile overlay drawer (not the lg+ rail). */
+    drawer?: boolean;
+  }>(),
+  { drawer: false },
+);
+
+const emit = defineEmits<{
+  navigate: [];
+}>();
+
 const route = useRoute();
 
 const themeLabels = { light: 'Светлая', dark: 'Тёмная', system: 'Системная' };
@@ -29,12 +41,18 @@ const navItems = computed(() => [
 ]);
 
 const activePath = computed(() => route.path);
+
+function onNavClick(): void {
+  if (props.drawer) emit('navigate');
+}
 </script>
 
 <template>
   <aside
-    class="app-sidebar flex w-56 shrink-0 flex-col border-r border-border bg-surface"
-    data-testid="app-sidebar"
+    :id="drawer ? 'app-nav-drawer' : undefined"
+    class="app-sidebar flex w-56 max-w-[min(16rem,85vw)] shrink-0 flex-col border-r border-border bg-surface"
+    :class="drawer ? 'h-full shadow-lg' : ''"
+    :data-testid="drawer ? 'app-nav-drawer' : 'app-sidebar'"
   >
     <div class="border-b border-border px-4 py-4">
       <UiText size="lg" weight="bold" as="p">Sandbox</UiText>
@@ -46,11 +64,12 @@ const activePath = computed(() => route.path);
         v-for="item in navItems"
         :key="item.label"
         :to="item.to"
-        class="rounded-md px-3 py-2 text-sm font-medium text-text no-underline transition-colors hover:bg-surface-raised"
+        class="min-h-11 rounded-md px-3 py-2 text-sm font-medium text-text no-underline transition-colors hover:bg-surface-raised"
         :class="
           item.match(activePath) ? 'bg-primary text-text-on-primary hover:bg-primary-hover' : ''
         "
         :aria-current="item.match(activePath) ? 'page' : undefined"
+        @click="onNavClick"
       >
         {{ item.label }}
       </NuxtLink>

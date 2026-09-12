@@ -62,4 +62,32 @@ describe('AppSidebar', () => {
     const wrapper = mountSidebar('/');
     expect(wrapper.findComponent({ name: 'UiThemeSwitcher' }).exists()).toBe(true);
   });
+
+  it('emits navigate from drawer mode when a nav link is clicked', async () => {
+    stubMatchMedia();
+    vi.stubGlobal('useRoute', () => ({ path: '/' }));
+
+    const Harness = defineComponent({
+      setup() {
+        createThemeContext();
+      },
+      render() {
+        return h(AppSidebar, { drawer: true });
+      },
+    });
+
+    const wrapper = mount(Harness, {
+      global: {
+        stubs: {
+          NuxtLink: RouterLinkStub,
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="app-nav-drawer"]').exists()).toBe(true);
+    await wrapper.findComponent(RouterLinkStub).trigger('click');
+    // emit bubbles from AppSidebar child
+    const sidebar = wrapper.findComponent(AppSidebar);
+    expect(sidebar.emitted('navigate')).toBeTruthy();
+  });
 });

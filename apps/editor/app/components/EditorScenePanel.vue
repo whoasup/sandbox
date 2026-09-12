@@ -75,7 +75,7 @@ function setFloorSurface(surface: SurfaceKind): void {
 
 <template>
   <aside
-    class="editor-scene-panel flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-4"
+    class="editor-scene-panel flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-4 lg:w-64"
     data-testid="editor-scene-panel"
   >
     <UiText weight="bold" as="h2">Сцена / поле</UiText>

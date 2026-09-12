@@ -26,7 +26,7 @@ onMounted(async () => {
 
 <template>
   <div
-    class="mx-auto flex h-full max-w-5xl flex-col gap-4 overflow-hidden p-8"
+    class="mx-auto flex h-full max-w-5xl flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:p-8"
     data-testid="docs-storybook-page"
   >
     <DocsNav />
