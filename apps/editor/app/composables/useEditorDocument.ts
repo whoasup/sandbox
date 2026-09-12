@@ -9,6 +9,7 @@ import type { Opening, OpeningType } from '../core/model/Opening';
 import type { Room } from '../core/model/Room';
 import type { SceneObject } from '../core/model/SceneObject';
 import type { SceneSettings, SceneSettingsPatch } from '../core/model/SceneSettings';
+import type { StairDirection, StairObject, StairObjectSnapshot } from '../core/model/StairObject';
 import type { SceneSnapshot, SelectionRef } from '../core/model/types';
 import type { Point2, WallObject } from '../core/model/WallObject';
 import type { EditorTool } from '../core/render/ISceneRenderer';
@@ -30,6 +31,25 @@ export interface EditorClipboard {
   entityId: string;
 }
 
+export interface FloorOption {
+  id: string;
+  name: string;
+}
+
+export interface FloorContext {
+  activeFloorId: string;
+  floors: FloorOption[];
+}
+
+export interface StairProjectHooks {
+  /** Persist paired marker on the other floor after add/update. */
+  onStairUpsert?: (stair: StairObjectSnapshot) => void;
+  /** Remove both ends of a stair link across floors. */
+  onStairRemoved?: (linkId: string) => void;
+  /** Switch to the stair's target floor. */
+  onActivateStair?: (stairId: string) => void;
+}
+
 export interface EditorDocumentContext {
   document: SceneDocument;
   history: HistoryStack;
@@ -40,6 +60,7 @@ export interface EditorDocumentContext {
   rooms: ShallowRef<Room[]>;
   openings: ShallowRef<Opening[]>;
   furniture: ShallowRef<FurnitureObject[]>;
+  stairs: ShallowRef<StairObject[]>;
   selection: ShallowRef<SelectionRef>;
   selectedId: ShallowRef<string | null>;
   settings: ShallowRef<SceneSettings>;
@@ -51,12 +72,27 @@ export interface EditorDocumentContext {
   activeSurface: ShallowRef<SurfaceKind>;
   activeColor: ShallowRef<string>;
   wallDraftLength: Ref<number | null>;
+  activeFloorId: Ref<string>;
+  floorOptions: ShallowRef<FloorOption[]>;
+  setFloorContext: (ctx: FloorContext) => void;
+  setStairProjectHooks: (hooks: StairProjectHooks) => void;
   addShape: (kind: ShapeKind) => void;
   addFurniture: (catalogId: FurnitureCatalogId) => void;
   addWall: (start: Point2, end: Point2) => void;
   addOpeningAtPoint: (type: OpeningType, point: Point2, wallId?: string) => void;
+  addStairAtPoint: (point: Point2) => void;
   updateSelectedOpening: (
     patch: Partial<{ type: OpeningType; t: number; width: number; height: number; sill: number }>,
+  ) => void;
+  updateSelectedStair: (
+    patch: Partial<{
+      targetFloorId: string;
+      width: number;
+      depth: number;
+      stepCount: number;
+      direction: StairDirection;
+      rotationY: number;
+    }>,
   ) => void;
   removeSelected: () => void;
   applySurfaceToSelection: (surface: SurfaceKind) => void;
@@ -66,6 +102,8 @@ export interface EditorDocumentContext {
   moveShape: (id: string, x: number, z: number) => void;
   moveWall: (id: string, x: number, z: number) => void;
   moveFurniture: (id: string, x: number, z: number) => void;
+  moveStair: (id: string, x: number, z: number) => void;
+  activateStair: (id: string) => void;
   beginMoveGesture: () => void;
   endMoveGesture: (label?: string) => void;
   setSelectedWallHeight: (height: number) => void;
@@ -107,6 +145,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const rooms = shallowRef<Room[]>(document.listRooms());
   const openings = shallowRef<Opening[]>(document.listOpenings());
   const furniture = shallowRef<FurnitureObject[]>(document.listFurniture());
+  const stairs = shallowRef<StairObject[]>(document.listStairs());
   const selection = shallowRef<SelectionRef>(null);
   const selectedId = shallowRef<string | null>(null);
   const settings = shallowRef<SceneSettings>(document.settings);
@@ -118,6 +157,9 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const activeSurface = shallowRef<SurfaceKind>('wood');
   const activeColor = shallowRef<string>('#c9945f');
   const wallDraftLength = ref<number | null>(null);
+  const activeFloorId = ref('');
+  const floorOptions = shallowRef<FloorOption[]>([]);
+  let stairHooks: StairProjectHooks = {};
   let clipboard: EditorClipboard | null = null;
   let gestureBefore: SceneSnapshot | null = null;
 
@@ -136,6 +178,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     rooms.value = payload.rooms;
     openings.value = payload.openings;
     furniture.value = payload.furniture;
+    stairs.value = payload.stairs;
   });
   document.on('settings', (next) => {
     settings.value = next;
@@ -189,6 +232,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     rooms,
     openings,
     furniture,
+    stairs,
     selection,
     selectedId,
     settings,
@@ -200,6 +244,15 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     activeSurface,
     activeColor,
     wallDraftLength,
+    activeFloorId,
+    floorOptions,
+    setFloorContext(ctx) {
+      activeFloorId.value = ctx.activeFloorId;
+      floorOptions.value = ctx.floors;
+    },
+    setStairProjectHooks(hooks) {
+      stairHooks = hooks;
+    },
     addShape(kind) {
       const { x, z } = nextPlacement(document.list().length + document.listFurniture().length);
       run('Добавить фигуру', () => {
@@ -237,6 +290,22 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         document.addOpeningAtPoint(type, point, wallId);
       });
     },
+    addStairAtPoint(point) {
+      const floorId = activeFloorId.value;
+      const other = floorOptions.value.find((f) => f.id !== floorId);
+      if (!floorId || !other) return;
+      let created: StairObjectSnapshot | null = null;
+      run('Добавить лестницу', () => {
+        const stair = document.addStair({
+          floorId,
+          targetFloorId: other.id,
+          position: point,
+          direction: 'up',
+        });
+        created = stair.toSnapshot();
+      });
+      if (created) stairHooks.onStairUpsert?.(created);
+    },
     updateSelectedOpening(patch) {
       if (selection.value?.type !== 'opening') return;
       const id = selection.value.id;
@@ -244,11 +313,27 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         document.updateOpening(id, patch);
       });
     },
+    updateSelectedStair(patch) {
+      if (selection.value?.type !== 'stair') return;
+      const id = selection.value.id;
+      let updated: StairObjectSnapshot | null = null;
+      run('Изменить лестницу', () => {
+        document.updateStair(id, patch);
+        updated = document.getStair(id)?.toSnapshot() ?? null;
+      });
+      if (updated) stairHooks.onStairUpsert?.(updated);
+    },
     removeSelected() {
       if (!selection.value) return;
+      const sel = selection.value;
+      let removedLinkId: string | null = null;
+      if (sel.type === 'stair') {
+        removedLinkId = document.getStair(sel.id)?.linkId ?? null;
+      }
       run('Удалить', () => {
         document.removeSelected();
       });
+      if (removedLinkId) stairHooks.onStairRemoved?.(removedLinkId);
     },
     applySurfaceToSelection(surface) {
       activeSurface.value = surface;
@@ -287,6 +372,12 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     moveFurniture(id, x, z) {
       document.moveFurniture(id, x, z);
     },
+    moveStair(id, x, z) {
+      document.moveStair(id, x, z);
+    },
+    activateStair(id) {
+      stairHooks.onActivateStair?.(id);
+    },
     beginMoveGesture() {
       if (!gestureBefore) gestureBefore = document.toSnapshot();
     },
@@ -296,6 +387,11 @@ export function createEditorDocumentContext(): EditorDocumentContext {
       history.pushExecuted(new SnapshotCommand(label, document, gestureBefore, after));
       gestureBefore = null;
       bumpHistory();
+      // Sync paired stair position on the other floor after drag.
+      if (selection.value?.type === 'stair') {
+        const snap = document.getStair(selection.value.id)?.toSnapshot();
+        if (snap) stairHooks.onStairUpsert?.(snap);
+      }
     },
     setSelectedWallHeight(height) {
       if (selection.value?.type !== 'wall') return;
@@ -329,6 +425,13 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         run('Поворот', () => document.setRotationY(sel.id, rotationY));
       } else if (sel.type === 'furniture') {
         run('Поворот', () => document.setFurnitureTransform(sel.id, { rotationY }));
+      } else if (sel.type === 'stair') {
+        let updated: StairObjectSnapshot | null = null;
+        run('Поворот', () => {
+          document.updateStair(sel.id, { rotationY });
+          updated = document.getStair(sel.id)?.toSnapshot() ?? null;
+        });
+        if (updated) stairHooks.onStairUpsert?.(updated);
       }
     },
     setSelectedScale(scale) {
@@ -383,12 +486,20 @@ export function createEditorDocumentContext(): EditorDocumentContext {
           const item = document.getFurniture(sel.id);
           if (!item) return;
           document.moveFurniture(sel.id, item.position.x + dx, item.position.z + dz);
+        } else if (sel.type === 'stair') {
+          const stair = document.getStair(sel.id);
+          if (!stair) return;
+          document.moveStair(sel.id, stair.position.x + dx, stair.position.z + dz);
         }
       });
+      if (sel.type === 'stair') {
+        const snap = document.getStair(sel.id)?.toSnapshot();
+        if (snap) stairHooks.onStairUpsert?.(snap);
+      }
     },
     copySelected() {
       const sel = selection.value;
-      if (!sel || sel.type === 'room') return;
+      if (!sel || sel.type === 'room' || sel.type === 'stair') return;
       clipboard = {
         kind: sel.type,
         snapshot: document.toSnapshot(),

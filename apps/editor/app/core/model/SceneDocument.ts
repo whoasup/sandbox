@@ -14,6 +14,7 @@ import { Opening, type OpeningInit, type OpeningType } from './Opening';
 import { Room, type RoomSnapshot } from './Room';
 import { detectRooms } from './rooms/detectRooms';
 import { snapPointPipeline } from '../snap/snapPoint';
+import { assertValidStairTarget, StairObject, type StairObjectInit } from './StairObject';
 import type { SceneObjectInit, SceneSnapshot, SelectionRef, ShapeKind, SurfaceKind } from './types';
 import { WallObject, type Point2, type WallObjectInit } from './WallObject';
 
@@ -23,6 +24,7 @@ export type SceneDocumentChange = {
   rooms: Room[];
   openings: Opening[];
   furniture: FurnitureObject[];
+  stairs: StairObject[];
 };
 
 // A type literal (not an `interface`) so it structurally satisfies the
@@ -35,7 +37,7 @@ export type SceneDocumentEvents = {
 
 /**
  * The single source of truth for the editor: shapes + walls + rooms +
- * openings + furniture, document-level `SceneSettings`, plus a selection cursor.
+ * openings + furniture + stairs, document-level `SceneSettings`, plus a selection cursor.
  */
 export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly objects = new Map<string, SceneObject>();
@@ -43,6 +45,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly rooms = new Map<string, Room>();
   private readonly openings = new Map<string, Opening>();
   private readonly furniture = new Map<string, FurnitureObject>();
+  private readonly stairs = new Map<string, StairObject>();
   private selection: SelectionRef = null;
   private sceneSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -64,6 +67,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public listFurniture(): FurnitureObject[] {
     return [...this.furniture.values()];
+  }
+
+  public listStairs(): StairObject[] {
+    return [...this.stairs.values()];
   }
 
   public listOpeningsForWall(wallId: string): Opening[] {
@@ -88,6 +95,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public getFurniture(id: string): FurnitureObject | undefined {
     return this.furniture.get(id);
+  }
+
+  public getStair(id: string): StairObject | undefined {
+    return this.stairs.get(id);
   }
 
   public get selected(): SelectionRef {
@@ -153,6 +164,77 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.notifyChange();
   }
 
+  public addStair(init: StairObjectInit): StairObject {
+    assertValidStairTarget(init.floorId, init.targetFloorId);
+    const stair = new StairObject(init);
+    const { snap, gridStep } = this.sceneSettings.field;
+    if (snap) {
+      stair.moveTo(
+        roundToStep(stair.position.x, gridStep),
+        roundToStep(stair.position.z, gridStep),
+      );
+    }
+    this.stairs.set(stair.id, stair);
+    this.select({ type: 'stair', id: stair.id });
+    this.notifyChange();
+    return stair;
+  }
+
+  public removeStair(id: string): void {
+    if (!this.stairs.delete(id)) return;
+    if (this.selection?.type === 'stair' && this.selection.id === id) {
+      this.select(null);
+    }
+    this.notifyChange();
+  }
+
+  public removeStairsByLinkId(linkId: string): void {
+    let removed = false;
+    for (const stair of [...this.stairs.values()]) {
+      if (stair.linkId !== linkId) continue;
+      this.stairs.delete(stair.id);
+      removed = true;
+      if (this.selection?.type === 'stair' && this.selection.id === stair.id) {
+        this.select(null);
+      }
+    }
+    if (removed) this.notifyChange();
+  }
+
+  public updateStair(
+    id: string,
+    patch: Partial<
+      Pick<
+        StairObject,
+        'targetFloorId' | 'position' | 'rotationY' | 'width' | 'depth' | 'stepCount' | 'direction'
+      >
+    >,
+  ): void {
+    const stair = this.stairs.get(id);
+    if (!stair) return;
+    if (patch.targetFloorId !== undefined) {
+      assertValidStairTarget(stair.floorId, patch.targetFloorId);
+      stair.targetFloorId = patch.targetFloorId;
+    }
+    if (patch.position) stair.moveTo(patch.position.x, patch.position.z);
+    if (patch.rotationY !== undefined) stair.rotationY = patch.rotationY;
+    if (patch.width !== undefined) stair.width = Math.max(0.4, patch.width);
+    if (patch.depth !== undefined) stair.depth = Math.max(0.8, patch.depth);
+    if (patch.stepCount !== undefined) stair.stepCount = Math.max(3, Math.round(patch.stepCount));
+    if (patch.direction !== undefined) stair.direction = patch.direction;
+    this.notifyChange();
+  }
+
+  public moveStair(id: string, x: number, z: number): void {
+    const stair = this.stairs.get(id);
+    if (!stair) return;
+    const { snap, gridStep } = this.sceneSettings.field;
+    const nextX = snap ? roundToStep(x, gridStep) : x;
+    const nextZ = snap ? roundToStep(z, gridStep) : z;
+    stair.moveTo(nextX, nextZ);
+    this.notifyChange();
+  }
+
   public removeWall(id: string): void {
     if (!this.walls.delete(id)) return;
     for (const opening of [...this.openings.values()]) {
@@ -173,6 +255,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     else if (this.selection.type === 'wall') this.removeWall(this.selection.id);
     else if (this.selection.type === 'opening') this.removeOpening(this.selection.id);
     else if (this.selection.type === 'furniture') this.removeFurniture(this.selection.id);
+    else if (this.selection.type === 'stair') this.removeStair(this.selection.id);
     else if (this.selection.type === 'room') this.select(null);
   }
 
@@ -183,6 +266,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     if (next?.type === 'room' && !this.rooms.has(next.id)) return;
     if (next?.type === 'opening' && !this.openings.has(next.id)) return;
     if (next?.type === 'furniture' && !this.furniture.has(next.id)) return;
+    if (next?.type === 'stair' && !this.stairs.has(next.id)) return;
     this.selection = next;
     this.emit('select', next);
   }
@@ -492,6 +576,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       rooms: this.listRooms().map((room) => room.toSnapshot()),
       openings: this.listOpenings().map((opening) => opening.toSnapshot()),
       furniture: this.listFurniture().map((item) => item.toSnapshot()),
+      stairs: this.listStairs().map((stair) => stair.toSnapshot()),
       settings: this.settings,
     };
   }
@@ -503,6 +588,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.rooms.clear();
     this.openings.clear();
     this.furniture.clear();
+    this.stairs.clear();
     this.selection = null;
 
     for (const object of snapshot.objects) {
@@ -538,6 +624,16 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       this.furniture.set(item.id, item);
     }
 
+    for (const stairSnap of snapshot.stairs ?? []) {
+      try {
+        assertValidStairTarget(stairSnap.floorId, stairSnap.targetFloorId);
+        const stair = StairObject.fromSnapshot(stairSnap);
+        this.stairs.set(stair.id, stair);
+      } catch {
+        // Skip invalid stairs from corrupt snapshots.
+      }
+    }
+
     this.sceneSettings = cloneSceneSettings(snapshot.settings ?? createDefaultSceneSettings());
     this.rebuildRooms(snapshot.rooms ?? []);
     this.emit('settings', this.settings);
@@ -551,6 +647,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.rooms.clear();
     this.openings.clear();
     this.furniture.clear();
+    this.stairs.clear();
     this.select(null);
     this.notifyChange();
   }
@@ -599,6 +696,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       rooms: this.listRooms(),
       openings: this.listOpenings(),
       furniture: this.listFurniture(),
+      stairs: this.listStairs(),
     });
   }
 }

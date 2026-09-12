@@ -348,4 +348,47 @@ describe('SceneDocument', () => {
     doc.removeSelected();
     expect(doc.listFurniture()).toHaveLength(1);
   });
+
+  it('rejects stairs with the same floor as target', () => {
+    const doc = new SceneDocument();
+    expect(() =>
+      doc.addStair({
+        floorId: 'floor_1',
+        targetFloorId: 'floor_1',
+        position: { x: 0, z: 0 },
+      }),
+    ).toThrow(/targetFloorId must differ/);
+  });
+
+  it('round-trips stairs through snapshot', () => {
+    const doc = new SceneDocument();
+    const stair = doc.addStair({
+      floorId: 'floor_1',
+      targetFloorId: 'floor_2',
+      position: { x: 1.5, z: -2 },
+      width: 1.2,
+      depth: 3,
+      stepCount: 14,
+      direction: 'up',
+    });
+    expect(doc.listStairs()).toHaveLength(1);
+    expect(doc.selected).toEqual({ type: 'stair', id: stair.id });
+
+    doc.moveStair(stair.id, 2, 3);
+    doc.updateStair(stair.id, { direction: 'down', stepCount: 10 });
+
+    const snapshot = doc.toSnapshot();
+    expect(snapshot.stairs).toHaveLength(1);
+    expect(snapshot.stairs[0]?.linkId).toBe(stair.linkId);
+    expect(snapshot.stairs[0]?.targetFloorId).toBe('floor_2');
+
+    const restored = new SceneDocument();
+    restored.fromSnapshot(snapshot);
+    expect(restored.listStairs()).toHaveLength(1);
+    const loaded = restored.getStair(stair.id)!;
+    expect(loaded.position).toEqual({ x: 2, z: 3 });
+    expect(loaded.direction).toBe('down');
+    expect(loaded.stepCount).toBe(10);
+    expect(loaded.linkId).toBe(stair.linkId);
+  });
 });

@@ -9,6 +9,7 @@ const {
   rooms,
   openings,
   furniture,
+  stairs,
   selection,
   settings,
   tool,
@@ -16,8 +17,11 @@ const {
   moveShape,
   moveWall,
   moveFurniture,
+  moveStair,
   addWall,
   addOpeningAtPoint,
+  addStairAtPoint,
+  activateStair,
   snapPoint,
   beginMoveGesture,
   endMoveGesture,
@@ -33,8 +37,11 @@ onMounted(() => {
     onMoveShape: (id, x, z) => moveShape(id, x, z),
     onMoveWall: (id, x, z) => moveWall(id, x, z),
     onMoveFurniture: (id, x, z) => moveFurniture(id, x, z),
+    onMoveStair: (id, x, z) => moveStair(id, x, z),
     onAddWall: (start, end) => addWall(start, end),
     onAddOpening: (type, point, wallId) => addOpeningAtPoint(type, point, wallId),
+    onAddStair: (point) => addStairAtPoint(point),
+    onActivateStair: (id) => activateStair(id),
     snapPoint: (point, angleFrom) => snapPoint(point, angleFrom),
     onMoveGestureStart: () => beginMoveGesture(),
     onMoveGestureEnd: () => endMoveGesture(),
@@ -49,19 +56,21 @@ onMounted(() => {
       rooms.value,
       openings.value,
       furniture.value,
+      stairs.value,
       selection.value,
       settings.value,
     );
   }
 });
 
-watch([objects, walls, rooms, openings, furniture, selection, settings], () => {
+watch([objects, walls, rooms, openings, furniture, stairs, selection, settings], () => {
   renderer?.render(
     objects.value,
     walls.value,
     rooms.value,
     openings.value,
     furniture.value,
+    stairs.value,
     selection.value,
     settings.value,
   );

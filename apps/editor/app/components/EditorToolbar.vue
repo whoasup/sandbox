@@ -54,6 +54,7 @@ const toolOptions = [
   { value: 'wall' as const, label: 'Стена' },
   { value: 'door' as const, label: 'Дверь' },
   { value: 'window' as const, label: 'Окно' },
+  { value: 'stair' as const, label: 'Лестница' },
 ];
 
 const hasSelection = computed(() => selection.value !== null);
@@ -62,7 +63,7 @@ const showCamera = computed(() => mode.value === '3d');
 
 /** Draw tools only work in the 2D plan — switch automatically. */
 watch(tool, (next) => {
-  if (next === 'wall' || next === 'door' || next === 'window') {
+  if (next === 'wall' || next === 'door' || next === 'window' || next === 'stair') {
     mode.value = '2d';
   }
 });

@@ -1,13 +1,16 @@
 import { onMounted, onUnmounted } from 'vue';
-import { useEditorDocument } from './useEditorDocument';
+import { useEditorDocument, type EditorDocumentContext } from './useEditorDocument';
 
 /**
  * Editor keyboard shortcuts when the page is focused (not inside an input).
  * Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z, Delete, arrows, Ctrl+C / Ctrl+V.
+ *
+ * Pass `ctx` when registering from the same component that called
+ * `createEditorDocumentContext()` — Vue inject only reaches descendants.
  */
-export function useEditorHotkeys(): void {
+export function useEditorHotkeys(ctx?: EditorDocumentContext): void {
   const { undo, redo, removeSelected, nudgeSelected, copySelected, pasteClipboard, settings } =
-    useEditorDocument();
+    ctx ?? useEditorDocument();
 
   const onKeyDown = (event: KeyboardEvent): void => {
     const target = event.target as HTMLElement | null;

@@ -16,6 +16,7 @@ const {
   rooms,
   openings,
   furniture,
+  stairs,
   selection,
   settings,
   cameraMode,
@@ -24,6 +25,8 @@ const {
   moveShape,
   moveWall,
   moveFurniture,
+  moveStair,
+  activateStair,
   beginMoveGesture,
   endMoveGesture,
 } = useEditorDocument();
@@ -37,6 +40,8 @@ onMounted(() => {
     onMoveShape: (id, x, z) => moveShape(id, x, z),
     onMoveWall: (id, x, z) => moveWall(id, x, z),
     onMoveFurniture: (id, x, z) => moveFurniture(id, x, z),
+    onMoveStair: (id, x, z) => moveStair(id, x, z),
+    onActivateStair: (id) => activateStair(id),
     onMoveGestureStart: () => beginMoveGesture(),
     onMoveGestureEnd: () => endMoveGesture(),
     onCameraModeChange: (mode) => {
@@ -54,19 +59,21 @@ onMounted(() => {
       rooms.value,
       openings.value,
       furniture.value,
+      stairs.value,
       selection.value,
       settings.value,
     );
   }
 });
 
-watch([objects, walls, rooms, openings, furniture, selection, settings], () => {
+watch([objects, walls, rooms, openings, furniture, stairs, selection, settings], () => {
   renderer?.render(
     objects.value,
     walls.value,
     rooms.value,
     openings.value,
     furniture.value,
+    stairs.value,
     selection.value,
     settings.value,
   );

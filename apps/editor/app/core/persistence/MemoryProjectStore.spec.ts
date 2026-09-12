@@ -89,7 +89,7 @@ describe('migrateProjectRecord', () => {
     expect(migrated.floors[0]!.snapshot.furniture).toEqual([]);
   });
 
-  it('adds empty furniture arrays when migrating schemaVersion 5', () => {
+  it('adds empty furniture and stairs arrays when migrating schemaVersion 5', () => {
     const migrated = migrateProjectRecord({
       id: 'p5-furn',
       name: 'V5 no furniture',
@@ -111,8 +111,36 @@ describe('migrateProjectRecord', () => {
       ],
       activeFloorId: 'f1',
     });
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.floors[0]!.snapshot.furniture).toEqual([]);
+    expect(migrated.floors[0]!.snapshot.stairs).toEqual([]);
+  });
+
+  it('adds empty stairs arrays when migrating schemaVersion 6', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p6-stairs',
+      name: 'V6 no stairs',
+      updatedAt: 6,
+      schemaVersion: 6,
+      floors: [
+        {
+          id: 'f1',
+          name: 'Этаж 1',
+          elevation: 0,
+          snapshot: {
+            objects: [],
+            walls: [],
+            rooms: [],
+            openings: [],
+            furniture: [],
+            settings: createDefaultSceneSettings(),
+          },
+        },
+      ],
+      activeFloorId: 'f1',
+    });
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.floors[0]!.snapshot.stairs).toEqual([]);
   });
 
   it('preserves multi-floor projects', () => {
@@ -182,6 +210,7 @@ describe('serialize / import', () => {
       rooms: [],
       openings: [],
       furniture: [],
+      stairs: [],
       settings: createDefaultSceneSettings(),
     });
 
@@ -233,6 +262,7 @@ describe('floor switch round-trip', () => {
         rooms: [],
         openings: [],
         furniture: [],
+        stairs: [],
         settings: createDefaultSceneSettings(),
       },
       showCeiling: false,
