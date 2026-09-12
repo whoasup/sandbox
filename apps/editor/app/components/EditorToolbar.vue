@@ -89,6 +89,7 @@ function toggleCeiling(): void {
 <template>
   <header
     class="editor-toolbar flex flex-wrap items-center gap-6 border-b border-border bg-surface px-5 py-3 shadow-sm"
+    data-testid="editor-toolbar"
   >
     <div class="flex flex-col gap-1">
       <div class="mr-4 flex items-baseline gap-2">
@@ -122,6 +123,7 @@ function toggleCeiling(): void {
           variant="secondary"
           size="md"
           :title="shape.label"
+          :data-testid="`add-shape-${shape.kind}`"
           @click="addShape(shape.kind)"
         >
           <template #icon>

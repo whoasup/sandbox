@@ -236,7 +236,7 @@ function onActivateStair(): void {
     <UiText weight="bold" as="h2">Инспектор</UiText>
 
     <template v-if="selectedShape">
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2" data-testid="shape-inspector">
         <UiText size="xs" tone="muted" as="span">Фигура</UiText>
         <div class="flex flex-wrap gap-1">
           <UiButton
