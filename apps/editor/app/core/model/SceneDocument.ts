@@ -77,6 +77,63 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.notifyChange();
   }
 
+  /**
+   * Swap the concrete shape class while preserving id + transform +
+   * material. Unsupported kinds throw (caller / UI must filter the catalog).
+   */
+  public replaceKind(id: string, kind: ShapeKind): SceneObject {
+    if (!ShapeFactory.supports(kind)) {
+      throw new Error(`SceneDocument.replaceKind: unsupported kind "${kind}"`);
+    }
+    const existing = this.objects.get(id);
+    if (!existing) {
+      throw new Error(`SceneDocument.replaceKind: unknown id "${id}"`);
+    }
+    if (existing.kind === kind) return existing;
+
+    const snapshot = existing.toSnapshot();
+    const replacement = ShapeFactory.create(kind, {
+      id: snapshot.id,
+      position: { x: snapshot.position.x, z: snapshot.position.z },
+      rotationY: snapshot.rotationY,
+      scale: snapshot.scale,
+      surface: snapshot.surface,
+      color: snapshot.color,
+    });
+    this.objects.set(id, replacement);
+    this.select(id);
+    this.notifyChange();
+    return replacement;
+  }
+
+  public setRotationY(id: string, rotationY: number): void {
+    const shape = this.objects.get(id);
+    if (!shape) return;
+    shape.setRotationY(rotationY);
+    this.notifyChange();
+  }
+
+  public setScale(id: string, scale: number): void {
+    const shape = this.objects.get(id);
+    if (!shape) return;
+    shape.setScale(scale);
+    this.notifyChange();
+  }
+
+  public duplicate(id: string): SceneObject | null {
+    const source = this.objects.get(id);
+    if (!source) return null;
+    const snap = source.toSnapshot();
+    const clone = this.addShape(snap.kind, {
+      position: { x: snap.position.x + 1.2, z: snap.position.z + 1.2 },
+      rotationY: snap.rotationY,
+      scale: snap.scale,
+      surface: snap.surface,
+      color: snap.color,
+    });
+    return clone;
+  }
+
   public clear(): void {
     this.objects.clear();
     this.select(null);

@@ -70,10 +70,16 @@ export class ThreeRenderer implements ISceneRenderer {
     for (const object of objects) {
       seen.add(object.id);
       const existing = this.meshes.get(object.id);
-      if (existing) {
+      if (existing && existing.userData.shapeKind === object.kind) {
         ThreeMeshFactory.updateMesh(existing, object);
       } else {
+        if (existing) {
+          this.scene.remove(existing);
+          existing.geometry.dispose();
+          this.meshes.delete(object.id);
+        }
         const mesh = ThreeMeshFactory.createMesh(object);
+        mesh.userData.shapeKind = object.kind;
         this.meshes.set(object.id, mesh);
         this.scene.add(mesh);
       }

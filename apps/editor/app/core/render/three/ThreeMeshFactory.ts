@@ -55,6 +55,7 @@ export class ThreeMeshFactory {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     ThreeMeshFactory.applyTransform(mesh, object);
+    mesh.userData.shapeKind = object.kind;
     return mesh;
   }
 

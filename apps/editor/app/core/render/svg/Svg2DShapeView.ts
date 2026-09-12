@@ -1,4 +1,5 @@
 import type { SceneObject } from '../../model/SceneObject';
+import type { ShapeKind } from '../../model/types';
 import { patternIdFor } from './svgTexturePatterns';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -13,11 +14,13 @@ const ROUND_KINDS = new Set(['sphere', 'cylinder']);
  */
 export class Svg2DShapeView {
   public readonly group: SVGGElement;
+  public readonly kind: ShapeKind;
   private readonly base: SVGGraphicsElement;
   private readonly overlay: SVGGraphicsElement;
   private readonly isRound: boolean;
 
   public constructor(object: SceneObject) {
+    this.kind = object.kind;
     this.isRound = ROUND_KINDS.has(object.kind);
     const tagName = this.isRound ? 'circle' : 'rect';
 

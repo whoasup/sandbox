@@ -21,6 +21,10 @@ export interface EditorDocumentContext {
   applyColorToSelection: (color: string) => void;
   selectShape: (id: string | null) => void;
   moveShape: (id: string, x: number, z: number) => void;
+  replaceSelectedKind: (kind: ShapeKind) => void;
+  setSelectedRotation: (rotationY: number) => void;
+  setSelectedScale: (scale: number) => void;
+  duplicateSelected: () => void;
 }
 
 const EDITOR_DOCUMENT_KEY: InjectionKey<EditorDocumentContext> = Symbol('editor-document');
@@ -84,6 +88,22 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     },
     moveShape(id, x, z) {
       document.moveShape(id, x, z);
+    },
+    replaceSelectedKind(kind) {
+      if (!selectedId.value) return;
+      document.replaceKind(selectedId.value, kind);
+    },
+    setSelectedRotation(rotationY) {
+      if (!selectedId.value) return;
+      document.setRotationY(selectedId.value, rotationY);
+    },
+    setSelectedScale(scale) {
+      if (!selectedId.value) return;
+      document.setScale(selectedId.value, scale);
+    },
+    duplicateSelected() {
+      if (!selectedId.value) return;
+      document.duplicate(selectedId.value);
     },
   };
 
