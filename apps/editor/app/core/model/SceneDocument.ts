@@ -9,38 +9,52 @@ import {
   type SceneSettings,
   type SceneSettingsPatch,
 } from './SceneSettings';
-import type { SceneObjectInit, SceneSnapshot, ShapeKind, SurfaceKind } from './types';
+import type { SceneObjectInit, SceneSnapshot, SelectionRef, ShapeKind, SurfaceKind } from './types';
+import { WallObject, type Point2, type WallObjectInit } from './WallObject';
+
+export type SceneDocumentChange = {
+  objects: SceneObject[];
+  walls: WallObject[];
+};
 
 // A type literal (not an `interface`) so it structurally satisfies the
 // `EventMap` (`Record<string, unknown>`) constraint on `EventEmitter`.
 export type SceneDocumentEvents = {
-  change: SceneObject[];
-  select: string | null;
+  change: SceneDocumentChange;
+  select: SelectionRef;
   settings: SceneSettings;
 };
 
 /**
- * The single source of truth for the editor: a flat collection of
- * `SceneObject`s, document-level `SceneSettings`, plus a selection cursor.
- * Both the 2D (`SvgRenderer`) and 3D (`ThreeRenderer`) views subscribe to
- * the same document, so switching modes never loses state — only the
- * active renderer changes.
+ * The single source of truth for the editor: shapes + walls collections,
+ * document-level `SceneSettings`, plus a selection cursor that can point
+ * at either entity type. Both the 2D (`SvgRenderer`) and 3D
+ * (`ThreeRenderer`) views subscribe to the same document.
  */
 export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly objects = new Map<string, SceneObject>();
-  private selectedId: string | null = null;
+  private readonly walls = new Map<string, WallObject>();
+  private selection: SelectionRef = null;
   private sceneSettings: SceneSettings = createDefaultSceneSettings();
 
   public list(): SceneObject[] {
     return [...this.objects.values()];
   }
 
+  public listWalls(): WallObject[] {
+    return [...this.walls.values()];
+  }
+
   public get(id: string): SceneObject | undefined {
     return this.objects.get(id);
   }
 
-  public get selected(): SceneObject | null {
-    return this.selectedId ? (this.objects.get(this.selectedId) ?? null) : null;
+  public getWall(id: string): WallObject | undefined {
+    return this.walls.get(id);
+  }
+
+  public get selected(): SelectionRef {
+    return this.selection;
   }
 
   public get settings(): SceneSettings {
@@ -50,25 +64,54 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   public addShape(kind: ShapeKind, init?: SceneObjectInit): SceneObject {
     const shape = ShapeFactory.create(kind, init);
     this.objects.set(shape.id, shape);
-    this.select(shape.id);
+    this.select({ type: 'shape', id: shape.id });
     this.notifyChange();
     return shape;
   }
 
+  public addWall(init?: WallObjectInit): WallObject {
+    const wall = new WallObject(init);
+    const { snap, gridStep } = this.sceneSettings.field;
+    if (snap) {
+      wall.setEndpoints(
+        { x: roundToStep(wall.start.x, gridStep), z: roundToStep(wall.start.z, gridStep) },
+        { x: roundToStep(wall.end.x, gridStep), z: roundToStep(wall.end.z, gridStep) },
+      );
+    }
+    this.walls.set(wall.id, wall);
+    this.select({ type: 'wall', id: wall.id });
+    this.notifyChange();
+    return wall;
+  }
+
   public remove(id: string): void {
     if (!this.objects.delete(id)) return;
-    if (this.selectedId === id) this.select(null);
+    if (this.selection?.type === 'shape' && this.selection.id === id) {
+      this.select(null);
+    }
+    this.notifyChange();
+  }
+
+  public removeWall(id: string): void {
+    if (!this.walls.delete(id)) return;
+    if (this.selection?.type === 'wall' && this.selection.id === id) {
+      this.select(null);
+    }
     this.notifyChange();
   }
 
   public removeSelected(): void {
-    if (this.selectedId) this.remove(this.selectedId);
+    if (!this.selection) return;
+    if (this.selection.type === 'shape') this.remove(this.selection.id);
+    else this.removeWall(this.selection.id);
   }
 
-  public select(id: string | null): void {
-    if (this.selectedId === id) return;
-    this.selectedId = id;
-    this.emit('select', id);
+  public select(next: SelectionRef): void {
+    if (this.selection?.type === next?.type && this.selection?.id === next?.id) return;
+    if (next?.type === 'shape' && !this.objects.has(next.id)) return;
+    if (next?.type === 'wall' && !this.walls.has(next.id)) return;
+    this.selection = next;
+    this.emit('select', next);
   }
 
   public moveShape(id: string, x: number, z: number): void {
@@ -78,6 +121,49 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     const nextX = snap ? roundToStep(x, gridStep) : x;
     const nextZ = snap ? roundToStep(z, gridStep) : z;
     shape.moveTo(nextX, nextZ);
+    this.notifyChange();
+  }
+
+  /**
+   * Translate the wall so its midpoint follows `(x, z)` (floor plane).
+   * When snap is on, the midpoint snaps to the grid.
+   */
+  public moveWall(id: string, x: number, z: number): void {
+    const wall = this.walls.get(id);
+    if (!wall) return;
+    const { snap, gridStep } = this.sceneSettings.field;
+    const targetX = snap ? roundToStep(x, gridStep) : x;
+    const targetZ = snap ? roundToStep(z, gridStep) : z;
+    const mid = wall.midpoint;
+    wall.translate(targetX - mid.x, targetZ - mid.z);
+    this.notifyChange();
+  }
+
+  public setWallHeight(id: string, height: number): void {
+    const wall = this.walls.get(id);
+    if (!wall) return;
+    wall.setHeight(height);
+    this.notifyChange();
+  }
+
+  public setWallThickness(id: string, thickness: number): void {
+    const wall = this.walls.get(id);
+    if (!wall) return;
+    wall.setThickness(thickness);
+    this.notifyChange();
+  }
+
+  public setWallSurface(id: string, surface: SurfaceKind): void {
+    const wall = this.walls.get(id);
+    if (!wall) return;
+    wall.setSurface(surface);
+    this.notifyChange();
+  }
+
+  public setWallColor(id: string, color: string): void {
+    const wall = this.walls.get(id);
+    if (!wall) return;
+    wall.setColor(color);
     this.notifyChange();
   }
 
@@ -119,7 +205,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       color: snapshot.color,
     });
     this.objects.set(id, replacement);
-    this.select(id);
+    this.select({ type: 'shape', id });
     this.notifyChange();
     return replacement;
   }
@@ -162,9 +248,30 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.emit('settings', this.settings);
   }
 
+  /** Snap a floor-plane point to the grid and/or nearest wall endpoint. */
+  public snapPoint(point: Point2, endpointSnapRadius = 0.35): Point2 {
+    const { snap, gridStep } = this.sceneSettings.field;
+    let x = snap ? roundToStep(point.x, gridStep) : point.x;
+    let z = snap ? roundToStep(point.z, gridStep) : point.z;
+
+    let bestDist = endpointSnapRadius;
+    for (const wall of this.walls.values()) {
+      for (const endpoint of [wall.start, wall.end]) {
+        const dist = Math.hypot(point.x - endpoint.x, point.z - endpoint.z);
+        if (dist <= bestDist) {
+          bestDist = dist;
+          x = endpoint.x;
+          z = endpoint.z;
+        }
+      }
+    }
+    return { x, z };
+  }
+
   public toSnapshot(): SceneSnapshot {
     return {
       objects: this.list().map((object) => object.toSnapshot()),
+      walls: this.listWalls().map((wall) => wall.toSnapshot()),
       settings: this.settings,
     };
   }
@@ -172,7 +279,8 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   /** Replace the document contents from a persisted / imported snapshot. */
   public fromSnapshot(snapshot: SceneSnapshot): void {
     this.objects.clear();
-    this.selectedId = null;
+    this.walls.clear();
+    this.selection = null;
 
     for (const object of snapshot.objects) {
       if (!ShapeFactory.supports(object.kind)) {
@@ -189,6 +297,11 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       this.objects.set(shape.id, shape);
     }
 
+    for (const wallSnap of snapshot.walls ?? []) {
+      const wall = WallObject.fromSnapshot(wallSnap);
+      this.walls.set(wall.id, wall);
+    }
+
     this.sceneSettings = cloneSceneSettings(snapshot.settings ?? createDefaultSceneSettings());
     this.emit('settings', this.settings);
     this.emit('select', null);
@@ -197,11 +310,12 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public clear(): void {
     this.objects.clear();
+    this.walls.clear();
     this.select(null);
     this.notifyChange();
   }
 
   private notifyChange(): void {
-    this.emit('change', this.list());
+    this.emit('change', { objects: this.list(), walls: this.listWalls() });
   }
 }

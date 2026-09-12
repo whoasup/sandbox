@@ -1,6 +1,6 @@
 # Epic 06 — Walls
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/06-walls`  
 Depends on: Epic 05  
 Owners: `apps/editor`
@@ -103,11 +103,11 @@ trivial.
 
 ## 7. Definition of Done
 
-- [ ] Draw a closed four-wall box in 2D; walls visible in 3D
-- [ ] Select / move / delete wall; surface editable
-- [ ] Save / load via IndexedDB keeps walls
-- [ ] `schemaVersion` bumped with migration
-- [ ] Green lint / typecheck / test / build
+- [x] Draw a closed four-wall box in 2D; walls visible in 3D
+- [x] Select / move / delete wall; surface editable
+- [x] Save / load via IndexedDB keeps walls
+- [x] `schemaVersion` bumped with migration
+- [x] Green lint / typecheck / test / build
 
 ## 8. Out of scope
 

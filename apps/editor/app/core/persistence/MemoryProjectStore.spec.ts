@@ -45,6 +45,49 @@ describe('migrateProjectRecord', () => {
     });
     expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.snapshot.settings.background.mode).toBe('preset');
+    expect(migrated.snapshot.walls).toEqual([]);
+  });
+
+  it('migrates schemaVersion 1 snapshots by adding an empty walls array', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p2',
+      name: 'V1 project',
+      updatedAt: 2,
+      schemaVersion: 1,
+      snapshot: {
+        objects: [],
+        settings: createDefaultSceneSettings(),
+      },
+    });
+    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.snapshot.walls).toEqual([]);
+  });
+
+  it('parses wall snapshots on migrate', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p3',
+      name: 'With walls',
+      updatedAt: 3,
+      schemaVersion: 2,
+      snapshot: {
+        objects: [],
+        walls: [
+          {
+            id: 'wall_1',
+            start: { x: 0, z: 0 },
+            end: { x: 4, z: 0 },
+            height: 2.5,
+            thickness: 0.2,
+            surface: 'stone',
+            color: '#d8d2c8',
+          },
+        ],
+        settings: createDefaultSceneSettings(),
+      },
+    });
+    expect(migrated.snapshot.walls).toHaveLength(1);
+    expect(migrated.snapshot.walls[0]?.id).toBe('wall_1');
+    expect(migrated.snapshot.walls[0]?.end.x).toBe(4);
   });
 });
 
@@ -62,6 +105,17 @@ describe('serialize / import', () => {
           color: '#c9945f',
         },
       ],
+      walls: [
+        {
+          id: 'wall_1',
+          start: { x: 0, z: 0 },
+          end: { x: 2, z: 0 },
+          height: 2.5,
+          thickness: 0.2,
+          surface: 'stone',
+          color: '#d8d2c8',
+        },
+      ],
       settings: createDefaultSceneSettings(),
     });
 
@@ -72,6 +126,8 @@ describe('serialize / import', () => {
     expect(imported.name).toBe('Export me');
     expect(imported.snapshot.objects).toHaveLength(1);
     expect(imported.snapshot.objects[0]?.kind).toBe('cube');
+    expect(imported.snapshot.walls).toHaveLength(1);
+    expect(imported.snapshot.walls[0]?.id).toBe('wall_1');
     expect(imported.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 });

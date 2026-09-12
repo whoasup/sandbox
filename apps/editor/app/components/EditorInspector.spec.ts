@@ -20,7 +20,7 @@ function mountInspector() {
 describe('EditorInspector', () => {
   it('shows empty state when nothing is selected', () => {
     const wrapper = mountInspector();
-    expect(wrapper.text()).toContain('Выберите фигуру на сцене');
+    expect(wrapper.text()).toContain('Выберите объект на сцене');
   });
 
   it('exposes kind controls after a shape is added', async () => {

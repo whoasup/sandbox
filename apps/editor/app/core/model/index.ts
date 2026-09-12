@@ -5,3 +5,4 @@ export * from './shapeDimensions';
 export * from './ShapeFactory';
 export * from './shapes';
 export * from './types';
+export * from './WallObject';

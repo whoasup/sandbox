@@ -1,5 +1,6 @@
 import type { ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
 import type { SceneSettings } from './SceneSettings';
+import type { WallObjectSnapshot } from './WallObject';
 
 export type { ShapeKind, SurfaceKind };
 
@@ -33,8 +34,12 @@ export interface SceneObjectInit {
   color?: string;
 }
 
-/** In-memory / future IndexedDB snapshot shape (Epic 05). */
+/** Selection cursor pointing at either a shape or a wall. */
+export type SelectionRef = { type: 'shape' | 'wall'; id: string } | null;
+
+/** In-memory / IndexedDB snapshot shape. */
 export interface SceneSnapshot {
   objects: SceneObjectSnapshot[];
+  walls: WallObjectSnapshot[];
   settings: SceneSettings;
 }

@@ -4,12 +4,16 @@ import {
   resolveBackgroundColor,
   type SceneSettings,
 } from '../../model/SceneSettings';
-import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
+import type { SelectionRef } from '../../model/types';
+import type { Point2, WallObject } from '../../model/WallObject';
+import type { EditorTool, ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { Svg2DShapeView } from './Svg2DShapeView';
+import { Svg2DWallView } from './Svg2DWallView';
 import { createSurfacePatternDefs } from './svgTexturePatterns';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PX_PER_UNIT = 46;
+const MIN_WALL_LENGTH = 0.15;
 
 /**
  * OOP wrapper around a top-down SVG scene. Structurally mirrors
@@ -22,15 +26,23 @@ export class SvgRenderer implements ISceneRenderer {
   private readonly gridGroup: SVGGElement;
   private readonly axesGroup: SVGGElement;
   private readonly shapesGroup: SVGGElement;
+  private readonly wallsGroup: SVGGElement;
+  private readonly overlayGroup: SVGGElement;
   private readonly shapeViews = new Map<string, Svg2DShapeView>();
+  private readonly wallViews = new Map<string, Svg2DWallView>();
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private width = 0;
   private height = 0;
-  private draggingId: string | null = null;
+  private dragging: { type: 'shape'; id: string } | { type: 'wall'; id: string } | null = null;
+  private wallDraftStart: Point2 | null = null;
+  private rubberBand: SVGLineElement | null = null;
+  private snapMarker: SVGCircleElement | null = null;
+  private tool: EditorTool = 'select';
   private latestObjects: readonly SceneObject[] = [];
-  private latestSelectedId: string | null = null;
+  private latestWalls: readonly WallObject[] = [];
+  private latestSelection: SelectionRef = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
 
   public constructor(private readonly interactions: RendererInteractionEvents = {}) {
@@ -43,8 +55,23 @@ export class SvgRenderer implements ISceneRenderer {
     this.fieldGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.gridGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.axesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+    this.wallsGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.shapesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
-    this.svg.append(this.fieldGroup, this.gridGroup, this.axesGroup, this.shapesGroup);
+    this.overlayGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+    this.svg.append(
+      this.fieldGroup,
+      this.gridGroup,
+      this.axesGroup,
+      this.wallsGroup,
+      this.shapesGroup,
+      this.overlayGroup,
+    );
+  }
+
+  public setTool(tool: EditorTool): void {
+    this.tool = tool;
+    if (tool !== 'wall') this.cancelWallDraft();
+    this.svg.style.cursor = tool === 'wall' ? 'crosshair' : '';
   }
 
   public mount(container: HTMLElement): void {
@@ -59,6 +86,8 @@ export class SvgRenderer implements ISceneRenderer {
     this.svg.addEventListener('pointermove', this.handlePointerMove);
     this.svg.addEventListener('pointerup', this.handlePointerUp);
     this.svg.addEventListener('pointerleave', this.handlePointerUp);
+    this.svg.addEventListener('keydown', this.handleKeyDown);
+    this.svg.setAttribute('tabindex', '0');
 
     this.resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -70,18 +99,39 @@ export class SvgRenderer implements ISceneRenderer {
 
   public render(
     objects: readonly SceneObject[],
-    selectedId: string | null,
+    walls: readonly WallObject[],
+    selection: SelectionRef,
     settings: SceneSettings,
   ): void {
     this.latestObjects = objects;
-    this.latestSelectedId = selectedId;
+    this.latestWalls = walls;
+    this.latestSelection = selection;
     this.latestSettings = settings;
     this.svg.style.backgroundColor = resolveBackgroundColor(settings.background);
     this.drawField(settings);
     this.drawGrid(settings);
     this.drawAxes(settings);
+    this.syncShapes(objects, selection);
+    this.syncWalls(walls, selection);
+  }
 
+  public dispose(): void {
+    this.resizeObserver?.disconnect();
+    this.svg.removeEventListener('pointerdown', this.handlePointerDown);
+    this.svg.removeEventListener('pointermove', this.handlePointerMove);
+    this.svg.removeEventListener('pointerup', this.handlePointerUp);
+    this.svg.removeEventListener('pointerleave', this.handlePointerUp);
+    this.svg.removeEventListener('keydown', this.handleKeyDown);
+    this.shapeViews.clear();
+    this.wallViews.clear();
+    this.cancelWallDraft();
+    this.svg.remove();
+    this.container = null;
+  }
+
+  private syncShapes(objects: readonly SceneObject[], selection: SelectionRef): void {
     const seen = new Set<string>();
+    const selectedShapeId = selection?.type === 'shape' ? selection.id : null;
 
     for (const object of objects) {
       seen.add(object.id);
@@ -96,7 +146,7 @@ export class SvgRenderer implements ISceneRenderer {
         this.shapeViews.set(object.id, view);
         this.shapesGroup.appendChild(view.group);
       }
-      view.update(object, PX_PER_UNIT, this.origin, object.id === selectedId);
+      view.update(object, PX_PER_UNIT, this.origin, object.id === selectedShapeId);
     }
 
     for (const [id, view] of this.shapeViews) {
@@ -106,15 +156,26 @@ export class SvgRenderer implements ISceneRenderer {
     }
   }
 
-  public dispose(): void {
-    this.resizeObserver?.disconnect();
-    this.svg.removeEventListener('pointerdown', this.handlePointerDown);
-    this.svg.removeEventListener('pointermove', this.handlePointerMove);
-    this.svg.removeEventListener('pointerup', this.handlePointerUp);
-    this.svg.removeEventListener('pointerleave', this.handlePointerUp);
-    this.shapeViews.clear();
-    this.svg.remove();
-    this.container = null;
+  private syncWalls(walls: readonly WallObject[], selection: SelectionRef): void {
+    const seen = new Set<string>();
+    const selectedWallId = selection?.type === 'wall' ? selection.id : null;
+
+    for (const wall of walls) {
+      seen.add(wall.id);
+      let view = this.wallViews.get(wall.id);
+      if (!view) {
+        view = new Svg2DWallView(wall);
+        this.wallViews.set(wall.id, view);
+        this.wallsGroup.appendChild(view.group);
+      }
+      view.update(wall, PX_PER_UNIT, this.origin, wall.id === selectedWallId);
+    }
+
+    for (const [id, view] of this.wallViews) {
+      if (seen.has(id)) continue;
+      view.group.remove();
+      this.wallViews.delete(id);
+    }
   }
 
   private get origin(): { x: number; y: number } {
@@ -126,7 +187,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.width = width;
     this.height = height;
     this.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    this.render(this.latestObjects, this.latestSelectedId, this.latestSettings);
+    this.render(this.latestObjects, this.latestWalls, this.latestSelection, this.latestSettings);
   }
 
   private drawField(settings: SceneSettings): void {
@@ -207,13 +268,20 @@ export class SvgRenderer implements ISceneRenderer {
     this.axesGroup.appendChild(zAxis);
   }
 
-  private resolveShapeIdFromEvent(event: PointerEvent): string | null {
+  private resolveSelectionFromEvent(event: PointerEvent): SelectionRef {
     const target = event.target as Element | null;
-    const group = target?.closest<SVGGElement>('[data-shape-id]');
-    return group?.dataset.shapeId ?? null;
+    const wallGroup = target?.closest<SVGGElement>('[data-wall-id]');
+    if (wallGroup?.dataset.wallId) {
+      return { type: 'wall', id: wallGroup.dataset.wallId };
+    }
+    const shapeGroup = target?.closest<SVGGElement>('[data-shape-id]');
+    if (shapeGroup?.dataset.shapeId) {
+      return { type: 'shape', id: shapeGroup.dataset.shapeId };
+    }
+    return null;
   }
 
-  private eventToWorld(event: PointerEvent): { x: number; z: number } {
+  private eventToWorld(event: PointerEvent): Point2 {
     const rect = this.svg.getBoundingClientRect();
     const px = event.clientX - rect.left;
     const py = event.clientY - rect.top;
@@ -223,19 +291,115 @@ export class SvgRenderer implements ISceneRenderer {
     };
   }
 
+  private snapWorld(point: Point2): Point2 {
+    return this.interactions.snapPoint?.(point) ?? point;
+  }
+
+  private worldToPx(point: Point2): { x: number; y: number } {
+    return {
+      x: this.origin.x + point.x * PX_PER_UNIT,
+      y: this.origin.y + point.z * PX_PER_UNIT,
+    };
+  }
+
+  private ensureRubberBand(): SVGLineElement {
+    if (!this.rubberBand) {
+      this.rubberBand = document.createElementNS(SVG_NS, 'line');
+      this.rubberBand.setAttribute('stroke', '#3b7ded');
+      this.rubberBand.setAttribute('stroke-width', '3');
+      this.rubberBand.setAttribute('stroke-dasharray', '6 4');
+      this.rubberBand.setAttribute('pointer-events', 'none');
+      this.overlayGroup.appendChild(this.rubberBand);
+    }
+    return this.rubberBand;
+  }
+
+  private ensureSnapMarker(): SVGCircleElement {
+    if (!this.snapMarker) {
+      this.snapMarker = document.createElementNS(SVG_NS, 'circle');
+      this.snapMarker.setAttribute('r', '5');
+      this.snapMarker.setAttribute('fill', '#3b7ded');
+      this.snapMarker.setAttribute('pointer-events', 'none');
+      this.overlayGroup.appendChild(this.snapMarker);
+    }
+    return this.snapMarker;
+  }
+
+  private updateSnapMarker(point: Point2 | null): void {
+    if (!point) {
+      this.snapMarker?.remove();
+      this.snapMarker = null;
+      return;
+    }
+    const marker = this.ensureSnapMarker();
+    const px = this.worldToPx(point);
+    marker.setAttribute('cx', String(px.x));
+    marker.setAttribute('cy', String(px.y));
+  }
+
+  private cancelWallDraft(): void {
+    this.wallDraftStart = null;
+    this.rubberBand?.remove();
+    this.rubberBand = null;
+    this.updateSnapMarker(null);
+  }
+
+  private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape') this.cancelWallDraft();
+  };
+
   private readonly handlePointerDown = (event: PointerEvent): void => {
-    const id = this.resolveShapeIdFromEvent(event);
-    this.interactions.onSelect?.(id);
-    this.draggingId = id;
+    if (this.tool === 'wall') {
+      const snapped = this.snapWorld(this.eventToWorld(event));
+      if (!this.wallDraftStart) {
+        this.wallDraftStart = snapped;
+        this.updateSnapMarker(snapped);
+        const band = this.ensureRubberBand();
+        const px = this.worldToPx(snapped);
+        band.setAttribute('x1', String(px.x));
+        band.setAttribute('y1', String(px.y));
+        band.setAttribute('x2', String(px.x));
+        band.setAttribute('y2', String(px.y));
+      } else {
+        const start = this.wallDraftStart;
+        const end = snapped;
+        this.cancelWallDraft();
+        if (Math.hypot(end.x - start.x, end.z - start.z) >= MIN_WALL_LENGTH) {
+          this.interactions.onAddWall?.(start, end);
+        }
+      }
+      return;
+    }
+
+    const selection = this.resolveSelectionFromEvent(event);
+    this.interactions.onSelect?.(selection);
+    this.dragging = selection;
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
-    if (!this.draggingId) return;
+    if (this.tool === 'wall' && this.wallDraftStart) {
+      const snapped = this.snapWorld(this.eventToWorld(event));
+      this.updateSnapMarker(snapped);
+      const band = this.ensureRubberBand();
+      const startPx = this.worldToPx(this.wallDraftStart);
+      const endPx = this.worldToPx(snapped);
+      band.setAttribute('x1', String(startPx.x));
+      band.setAttribute('y1', String(startPx.y));
+      band.setAttribute('x2', String(endPx.x));
+      band.setAttribute('y2', String(endPx.y));
+      return;
+    }
+
+    if (!this.dragging) return;
     const { x, z } = this.eventToWorld(event);
-    this.interactions.onMove?.(this.draggingId, x, z);
+    if (this.dragging.type === 'shape') {
+      this.interactions.onMoveShape?.(this.dragging.id, x, z);
+    } else {
+      this.interactions.onMoveWall?.(this.dragging.id, x, z);
+    }
   };
 
   private readonly handlePointerUp = (): void => {
-    this.draggingId = null;
+    this.dragging = null;
   };
 }

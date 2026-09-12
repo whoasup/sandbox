@@ -13,34 +13,62 @@ import { useEditorDocument } from '../composables/useEditorDocument';
 
 const {
   objects,
-  selectedId,
+  walls,
+  selection,
   activeSurface,
   activeColor,
   replaceSelectedKind,
   setSelectedRotation,
   setSelectedScale,
+  setSelectedWallHeight,
+  setSelectedWallThickness,
   applySurfaceToSelection,
   applyColorToSelection,
   duplicateSelected,
   removeSelected,
 } = useEditorDocument();
 
-const selected = computed(
-  () => objects.value.find((object) => object.id === selectedId.value) ?? null,
-);
+const selectedShape = computed(() => {
+  if (selection.value?.type !== 'shape') return null;
+  return objects.value.find((object) => object.id === selection.value!.id) ?? null;
+});
+
+const selectedWall = computed(() => {
+  if (selection.value?.type !== 'wall') return null;
+  return walls.value.find((wall) => wall.id === selection.value!.id) ?? null;
+});
 
 const rotationDegrees = computed({
-  get: () => Math.round(((selected.value?.rotationY ?? 0) * 180) / Math.PI),
+  get: () => Math.round(((selectedShape.value?.rotationY ?? 0) * 180) / Math.PI),
   set: (degrees: number) => {
     setSelectedRotation((degrees * Math.PI) / 180);
   },
 });
 
 const scaleValue = computed({
-  get: () => selected.value?.scale ?? 1,
+  get: () => selectedShape.value?.scale ?? 1,
   set: (value: number) => {
     setSelectedScale(clamp(value, 0.25, 4));
   },
+});
+
+const wallHeight = computed({
+  get: () => selectedWall.value?.height ?? 2.5,
+  set: (value: number) => {
+    setSelectedWallHeight(clamp(value, 0.5, 10));
+  },
+});
+
+const wallThickness = computed({
+  get: () => selectedWall.value?.thickness ?? 0.2,
+  set: (value: number) => {
+    setSelectedWallThickness(clamp(value, 0.05, 2));
+  },
+});
+
+const wallLengthLabel = computed(() => {
+  const length = selectedWall.value?.length ?? 0;
+  return `${length.toFixed(2)} м`;
 });
 
 function onRotationInput(event: Event): void {
@@ -49,6 +77,14 @@ function onRotationInput(event: Event): void {
 
 function onScaleInput(event: Event): void {
   scaleValue.value = Number((event.target as HTMLInputElement).value);
+}
+
+function onWallHeightInput(event: Event): void {
+  wallHeight.value = Number((event.target as HTMLInputElement).value);
+}
+
+function onWallThicknessInput(event: Event): void {
+  wallThickness.value = Number((event.target as HTMLInputElement).value);
 }
 
 function onColorInput(event: Event): void {
@@ -63,7 +99,7 @@ function onColorInput(event: Event): void {
   >
     <UiText weight="bold" as="h2">Инспектор</UiText>
 
-    <template v-if="selected">
+    <template v-if="selectedShape">
       <div class="flex flex-col gap-2">
         <UiText size="xs" tone="muted" as="span">Фигура</UiText>
         <div class="flex flex-wrap gap-1">
@@ -71,8 +107,8 @@ function onColorInput(event: Event): void {
             v-for="shape in SHAPE_CATALOG"
             :key="shape.kind"
             size="sm"
-            :variant="selected.kind === shape.kind ? 'primary' : 'secondary'"
-            :pressed="selected.kind === shape.kind"
+            :variant="selectedShape.kind === shape.kind ? 'primary' : 'secondary'"
+            :pressed="selectedShape.kind === shape.kind"
             :title="shape.label"
             @click="replaceSelectedKind(shape.kind)"
           >
@@ -135,6 +171,63 @@ function onColorInput(event: Event): void {
       </div>
     </template>
 
-    <UiText v-else size="sm" tone="muted" as="p">Выберите фигуру на сцене</UiText>
+    <template v-else-if="selectedWall">
+      <div class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Стена</UiText>
+        <UiText size="sm" as="p">Длина · {{ wallLengthLabel }}</UiText>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <UiText size="xs" tone="muted" as="span">Поверхность</UiText>
+        <div class="flex flex-wrap items-center gap-2">
+          <UiTextureSwatch
+            v-for="texture in TEXTURE_LIST"
+            :key="texture.id"
+            :surface="texture.id"
+            :size="28"
+            :selected="activeSurface === texture.id"
+            :label="texture.label"
+            @click="applySurfaceToSelection(texture.id)"
+          />
+          <input
+            class="h-7 w-7 cursor-pointer rounded-sm border border-border bg-none p-0"
+            type="color"
+            :value="activeColor"
+            title="Цвет"
+            @input="onColorInput"
+          />
+        </div>
+      </div>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Высота · {{ wallHeight.toFixed(2) }} м</UiText>
+        <input
+          type="range"
+          min="0.5"
+          max="6"
+          step="0.05"
+          :value="wallHeight"
+          @input="onWallHeightInput"
+        />
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Толщина · {{ wallThickness.toFixed(2) }} м</UiText>
+        <input
+          type="range"
+          min="0.05"
+          max="1"
+          step="0.01"
+          :value="wallThickness"
+          @input="onWallThicknessInput"
+        />
+      </label>
+
+      <div class="mt-auto flex flex-col gap-2">
+        <UiButton variant="ghost" @click="removeSelected">Удалить</UiButton>
+      </div>
+    </template>
+
+    <UiText v-else size="sm" tone="muted" as="p">Выберите объект на сцене</UiText>
   </aside>
 </template>

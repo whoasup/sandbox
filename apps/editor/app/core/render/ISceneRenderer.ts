@@ -1,5 +1,7 @@
 import type { SceneObject } from '../model/SceneObject';
 import type { SceneSettings } from '../model/SceneSettings';
+import type { SelectionRef } from '../model/types';
+import type { Point2, WallObject } from '../model/WallObject';
 
 /**
  * Both the 2D (SVG) and 3D (three.js) views implement this contract, so
@@ -9,11 +11,26 @@ import type { SceneSettings } from '../model/SceneSettings';
  */
 export interface ISceneRenderer {
   mount(container: HTMLElement): void;
-  render(objects: readonly SceneObject[], selectedId: string | null, settings: SceneSettings): void;
+  render(
+    objects: readonly SceneObject[],
+    walls: readonly WallObject[],
+    selection: SelectionRef,
+    settings: SceneSettings,
+  ): void;
   dispose(): void;
 }
 
+export type EditorTool = 'select' | 'wall';
+
 export interface RendererInteractionEvents {
-  onSelect?: (id: string | null) => void;
-  onMove?: (id: string, x: number, z: number) => void;
+  onSelect?: (selection: SelectionRef) => void;
+  onMoveShape?: (id: string, x: number, z: number) => void;
+  onMoveWall?: (id: string, x: number, z: number) => void;
+  onAddWall?: (start: Point2, end: Point2) => void;
+  /** Optional snap helper used while drawing walls in 2D. */
+  snapPoint?: (point: Point2) => Point2;
+}
+
+export interface RendererToolState {
+  tool: EditorTool;
 }

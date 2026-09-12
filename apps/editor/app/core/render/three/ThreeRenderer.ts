@@ -6,14 +6,17 @@ import {
   resolveBackgroundColor,
   type SceneSettings,
 } from '../../model/SceneSettings';
+import type { SelectionRef } from '../../model/types';
+import type { WallObject } from '../../model/WallObject';
 import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { ThreeMeshFactory } from './ThreeMeshFactory';
+import { ThreeWallMesh } from './ThreeWallMesh';
 
 const DEFAULT_CAMERA_POSITION = new THREE.Vector3(6, 6, 8);
 
 /**
  * OOP wrapper around a three.js scene graph: owns the renderer, camera,
- * controls and render loop, and keeps a `Mesh` per `SceneObject` in sync
+ * controls and render loop, and keeps a `Mesh` per shape / wall in sync
  * with the document via `render()`. Vue only ever calls `mount`, `render`
  * and `dispose` — everything else is an implementation detail.
  */
@@ -26,12 +29,13 @@ export class ThreeRenderer implements ISceneRenderer {
   private readonly pointer = new THREE.Vector2();
   private readonly dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private readonly meshes = new Map<string, THREE.Mesh>();
+  private readonly wallMeshes = new Map<string, ThreeWallMesh>();
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private frameHandle = 0;
   private selectionHelper: THREE.BoxHelper | null = null;
-  private draggingId: string | null = null;
+  private dragging: { type: 'shape'; id: string } | { type: 'wall'; id: string } | null = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
 
   private gridHelper: THREE.GridHelper | null = null;
@@ -75,10 +79,41 @@ export class ThreeRenderer implements ISceneRenderer {
 
   public render(
     objects: readonly SceneObject[],
-    selectedId: string | null,
+    walls: readonly WallObject[],
+    selection: SelectionRef,
     settings: SceneSettings,
   ): void {
     this.applyEnvironment(settings);
+    this.syncShapes(objects);
+    this.syncWalls(walls);
+    this.updateSelection(selection);
+  }
+
+  public dispose(): void {
+    cancelAnimationFrame(this.frameHandle);
+    this.resizeObserver?.disconnect();
+    this.renderer.domElement.removeEventListener('pointerdown', this.handlePointerDown);
+    this.renderer.domElement.removeEventListener('pointermove', this.handlePointerMove);
+    this.renderer.domElement.removeEventListener('pointerup', this.handlePointerUp);
+    this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerUp);
+
+    for (const mesh of this.meshes.values()) {
+      mesh.geometry.dispose();
+    }
+    this.meshes.clear();
+    for (const wall of this.wallMeshes.values()) {
+      this.scene.remove(wall.mesh);
+      wall.dispose();
+    }
+    this.wallMeshes.clear();
+    this.clearEnvironment();
+    this.controls.dispose();
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
+    this.container = null;
+  }
+
+  private syncShapes(objects: readonly SceneObject[]): void {
     const seen = new Set<string>();
 
     for (const object of objects) {
@@ -94,6 +129,7 @@ export class ThreeRenderer implements ISceneRenderer {
         }
         const mesh = ThreeMeshFactory.createMesh(object);
         mesh.userData.shapeKind = object.kind;
+        mesh.userData.entityType = 'shape';
         this.meshes.set(object.id, mesh);
         this.scene.add(mesh);
       }
@@ -105,27 +141,29 @@ export class ThreeRenderer implements ISceneRenderer {
       mesh.geometry.dispose();
       this.meshes.delete(id);
     }
-
-    this.updateSelection(selectedId);
   }
 
-  public dispose(): void {
-    cancelAnimationFrame(this.frameHandle);
-    this.resizeObserver?.disconnect();
-    this.renderer.domElement.removeEventListener('pointerdown', this.handlePointerDown);
-    this.renderer.domElement.removeEventListener('pointermove', this.handlePointerMove);
-    this.renderer.domElement.removeEventListener('pointerup', this.handlePointerUp);
-    this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerUp);
+  private syncWalls(walls: readonly WallObject[]): void {
+    const seen = new Set<string>();
 
-    for (const mesh of this.meshes.values()) {
-      mesh.geometry.dispose();
+    for (const wall of walls) {
+      seen.add(wall.id);
+      let view = this.wallMeshes.get(wall.id);
+      if (!view) {
+        view = new ThreeWallMesh(wall);
+        this.wallMeshes.set(wall.id, view);
+        this.scene.add(view.mesh);
+      } else {
+        view.update(wall);
+      }
     }
-    this.meshes.clear();
-    this.clearEnvironment();
-    this.controls.dispose();
-    this.renderer.dispose();
-    this.renderer.domElement.remove();
-    this.container = null;
+
+    for (const [id, view] of this.wallMeshes) {
+      if (seen.has(id)) continue;
+      this.scene.remove(view.mesh);
+      view.dispose();
+      this.wallMeshes.delete(id);
+    }
   }
 
   private setupLighting(): void {
@@ -220,12 +258,16 @@ export class ThreeRenderer implements ISceneRenderer {
     tick();
   }
 
-  private updateSelection(selectedId: string | null): void {
+  private updateSelection(selection: SelectionRef): void {
     if (this.selectionHelper) {
       this.scene.remove(this.selectionHelper);
       this.selectionHelper = null;
     }
-    const mesh = selectedId ? this.meshes.get(selectedId) : undefined;
+    if (!selection) return;
+    const mesh =
+      selection.type === 'shape'
+        ? this.meshes.get(selection.id)
+        : this.wallMeshes.get(selection.id)?.mesh;
     if (!mesh) return;
     this.selectionHelper = new THREE.BoxHelper(mesh, 0x3b7ded);
     this.scene.add(this.selectionHelper);
@@ -237,34 +279,45 @@ export class ThreeRenderer implements ISceneRenderer {
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
-  private pickObjectId(): string | null {
+  private pickSelection(): SelectionRef {
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hit = this.raycaster.intersectObjects([...this.meshes.values()], false)[0];
-    return hit ? hit.object.name : null;
+    const candidates = [
+      ...this.meshes.values(),
+      ...[...this.wallMeshes.values()].map((view) => view.mesh),
+    ];
+    const hit = this.raycaster.intersectObjects(candidates, false)[0];
+    if (!hit) return null;
+    const entityType = hit.object.userData.entityType as 'shape' | 'wall' | undefined;
+    if (entityType === 'wall') return { type: 'wall', id: hit.object.name };
+    return { type: 'shape', id: hit.object.name };
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     this.updatePointer(event);
-    const id = this.pickObjectId();
-    this.interactions.onSelect?.(id);
-    if (id) {
-      this.draggingId = id;
+    const selection = this.pickSelection();
+    this.interactions.onSelect?.(selection);
+    if (selection) {
+      this.dragging = selection;
       this.controls.enabled = false;
     }
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
-    if (!this.draggingId) return;
+    if (!this.dragging) return;
     this.updatePointer(event);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const point = new THREE.Vector3();
     if (this.raycaster.ray.intersectPlane(this.dragPlane, point)) {
-      this.interactions.onMove?.(this.draggingId, point.x, point.z);
+      if (this.dragging.type === 'shape') {
+        this.interactions.onMoveShape?.(this.dragging.id, point.x, point.z);
+      } else {
+        this.interactions.onMoveWall?.(this.dragging.id, point.x, point.z);
+      }
     }
   };
 
   private readonly handlePointerUp = (): void => {
-    this.draggingId = null;
+    this.dragging = null;
     this.controls.enabled = true;
   };
 }
