@@ -1,8 +1,8 @@
 # Editor product roadmap
 
-Status: **Phase 1 + Phase 2 complete** on `main` (epics 01–15). **Phase 3**
-starts with Epic 16 (mobile-first responsive shell). Furniture, stairs,
-PNG/SVG/glTF export, CI/Playwright, and `@sandbox/editor-core` are landed.
+Status: **Phase 1 + Phase 2 complete**; **Epic 16** (mobile-first responsive
+shell) on `main`. Furniture, stairs, PNG/SVG/glTF export, CI/Playwright, and
+`@sandbox/editor-core` are landed.
 Each epic has a dedicated spec under [`docs/epics/`](./epics/).
 
 Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
