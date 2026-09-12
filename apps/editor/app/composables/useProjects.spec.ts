@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { MemoryProjectStore } from '../core/persistence/MemoryProjectStore';
+import { MemoryProjectStore } from '@sandbox/editor-core';
 import {
   createProject,
   formatRelativeUpdatedAt,

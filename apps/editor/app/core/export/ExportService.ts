@@ -1,8 +1,6 @@
-import { SceneDocument } from '../model/SceneDocument';
-import type { SceneSnapshot } from '../model/types';
+import { SceneDocument } from '@sandbox/editor-core';
+import type { SceneSnapshot } from '@sandbox/editor-core';
 import { downloadBlob, exportFilename } from './downloadBlob';
-import { GltfExportBuilder } from './GltfExportBuilder';
-import { PngCapture } from './PngCapture';
 import { SvgExportBuilder } from './SvgExportBuilder';
 
 export interface ExportFloorContext {
@@ -18,6 +16,9 @@ export interface ExportFloorSource {
 /**
  * Scene export facade: PNG / SVG / glTF for one active floor.
  * JSON project export stays on Epic 05 (`downloadProjectJson`).
+ *
+ * PNG / glTF paths dynamically import three.js so the editor shell does not
+ * pay for WebGL on first paint (SVG export stays eager).
  */
 export class ExportService {
   private livePngCapture: (() => Promise<Blob>) | null = null;
@@ -35,6 +36,7 @@ export class ExportService {
     }
     const ctx = await this.requireFloor(opts);
     const document = documentFromSnapshot(ctx.snapshot);
+    const { PngCapture } = await import('./PngCapture');
     return PngCapture.fromDocument(document);
   }
 
@@ -48,6 +50,7 @@ export class ExportService {
   public async exportGltf(opts: { projectId: string; floorId: string }): Promise<Blob> {
     const ctx = await this.requireFloor(opts);
     const document = documentFromSnapshot(ctx.snapshot);
+    const { GltfExportBuilder } = await import('./GltfExportBuilder');
     return GltfExportBuilder.exportBlob(document);
   }
 

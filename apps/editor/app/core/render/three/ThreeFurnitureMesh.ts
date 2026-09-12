@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getFurniturePreset, type FurnitureCatalogId } from '@sandbox/ui-kit';
-import type { FurnitureObject } from '../../model/FurnitureObject';
+import type { FurnitureObject } from '@sandbox/editor-core';
 import { TextureFactory } from './TextureFactory';
 
 /**

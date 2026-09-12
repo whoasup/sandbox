@@ -1,4 +1,4 @@
-import type { Point2, WallObject } from '../../../model/WallObject';
+import type { Point2, WallObject } from '@sandbox/editor-core';
 
 const PLAYER_RADIUS = 0.35;
 

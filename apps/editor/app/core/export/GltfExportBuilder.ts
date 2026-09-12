@@ -1,7 +1,8 @@
+import { SceneDocument } from '@sandbox/editor-core';
+import type { SceneSnapshot } from '@sandbox/editor-core';
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-import { SceneDocument } from '../model/SceneDocument';
-import type { SceneSnapshot } from '../model/types';
+
 import { ThreeFurnitureMesh } from '../render/three/ThreeFurnitureMesh';
 import { ThreeMeshFactory } from '../render/three/ThreeMeshFactory';
 import { ThreeRoomFloorMesh } from '../render/three/ThreeRoomFloorMesh';

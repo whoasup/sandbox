@@ -1,6 +1,26 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  onUnmounted,
+  provide,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue';
 import { UiButton, UiText } from '@sandbox/ui-kit';
+import {
+  type FloorRecord,
+  type Opening,
+  type ProjectRecord,
+  type Room,
+  type StairObjectSnapshot,
+  type WallObject,
+  removeStairPair,
+  SceneDocument,
+  upsertStairPair,
+} from '@sandbox/editor-core';
 import { createEditorDocumentContext } from '../composables/useEditorDocument';
 import { exportServiceKey } from '../composables/exportServiceKey';
 import {
@@ -14,22 +34,17 @@ import {
   setActiveFloor,
   updateFloorMeta,
 } from '../composables/useProjects';
-import type { FloorRecord, ProjectRecord } from '../core/persistence/ProjectStore';
 import { ExportService } from '../core/export/ExportService';
-import { SceneDocument } from '../core/model/SceneDocument';
-import type { Opening } from '../core/model/Opening';
-import type { Room } from '../core/model/Room';
-import type { StairObjectSnapshot } from '../core/model/StairObject';
-import { removeStairPair, upsertStairPair } from '../core/model/stairPairs';
-import type { WallObject } from '../core/model/WallObject';
 import EditorCanvas2D from './EditorCanvas2D.vue';
-import EditorCanvas3D from './EditorCanvas3D.vue';
 import EditorExportMenu from './EditorExportMenu.vue';
 import EditorInspector from './EditorInspector.vue';
 import EditorMeasurements from './EditorMeasurements.vue';
 import EditorScenePanel from './EditorScenePanel.vue';
 import EditorToolbar from './EditorToolbar.vue';
 import { useEditorHotkeys } from '../composables/useEditorHotkeys';
+
+/** Keep three.js off the editor shell critical path until 3D mode mounts. */
+const EditorCanvas3D = defineAsyncComponent(() => import('./EditorCanvas3D.vue'));
 
 const AUTOSAVE_MS = 400;
 const bootError = ref<string | null>(null);

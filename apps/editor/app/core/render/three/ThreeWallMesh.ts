@@ -1,7 +1,7 @@
+import { solidWallIntervals } from '@sandbox/editor-core';
+import type { Opening, WallObject } from '@sandbox/editor-core';
 import * as THREE from 'three';
-import type { Opening } from '../../model/Opening';
-import { solidWallIntervals } from '../../model/Opening';
-import type { WallObject } from '../../model/WallObject';
+
 import { TextureFactory } from './TextureFactory';
 
 /**

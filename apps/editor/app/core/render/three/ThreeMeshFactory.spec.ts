@@ -1,9 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { CubeObject } from '../../model/shapes/CubeObject';
-import { CylinderObject } from '../../model/shapes/CylinderObject';
-import { PyramidObject } from '../../model/shapes/PyramidObject';
-import { SphereObject } from '../../model/shapes/SphereObject';
+import { CubeObject, CylinderObject, PyramidObject, SphereObject } from '@sandbox/editor-core';
 import { ThreeMeshFactory } from './ThreeMeshFactory';
 
 describe('ThreeMeshFactory', () => {

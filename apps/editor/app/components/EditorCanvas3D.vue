@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject, onMounted, onUnmounted, ref, watch } from 'vue';
-import { ThreeRenderer } from '../core/render/three';
+import type { ThreeRenderer } from '../core/render/three';
 import { useEditorDocument } from '../composables/useEditorDocument';
 import { exportServiceKey } from '../composables/exportServiceKey';
 
@@ -36,9 +36,13 @@ const exportServiceRef = inject(exportServiceKey, null);
 
 const containerRef = ref<HTMLDivElement | null>(null);
 let renderer: ThreeRenderer | null = null;
+let disposed = false;
 
-onMounted(() => {
-  renderer = new ThreeRenderer({
+onMounted(async () => {
+  const { ThreeRenderer: ThreeRendererCtor } = await import('../core/render/three');
+  if (disposed) return;
+
+  renderer = new ThreeRendererCtor({
     onSelect: (next) => selectEntity(next),
     onMoveShape: (id, x, z) => moveShape(id, x, z),
     onMoveWall: (id, x, z) => moveWall(id, x, z),
@@ -114,6 +118,7 @@ watch(
 );
 
 onUnmounted(() => {
+  disposed = true;
   exportServiceRef?.value?.setLivePngCapture(null);
   renderer?.dispose();
   renderer = null;

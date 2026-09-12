@@ -1,5 +1,4 @@
-import type { SceneDocument } from '../model/SceneDocument';
-import type { Point2 } from '../model/WallObject';
+import type { SceneDocument, Point2 } from '@sandbox/editor-core';
 import { Svg2DFurnitureView } from '../render/svg/Svg2DFurnitureView';
 import { Svg2DRoomView } from '../render/svg/Svg2DRoomView';
 import { Svg2DShapeView } from '../render/svg/Svg2DShapeView';

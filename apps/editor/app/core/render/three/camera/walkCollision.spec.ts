@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WallObject } from '../../../model/WallObject';
+import { WallObject } from '@sandbox/editor-core';
 import { collidesWithWalls, resolveWalkMove } from './walkCollision';
 
 describe('walkCollision', () => {

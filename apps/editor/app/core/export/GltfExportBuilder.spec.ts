@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SceneDocument } from '../model/SceneDocument';
+import { SceneDocument } from '@sandbox/editor-core';
 import { GltfExportBuilder } from './GltfExportBuilder';
 
 async function readBlobBytes(blob: Blob): Promise<Uint8Array> {

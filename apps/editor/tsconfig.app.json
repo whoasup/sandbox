@@ -33,6 +33,9 @@
   "references": [
     {
       "path": "../../libs/ui-kit/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/editor-core/tsconfig.lib.json"
     }
   ]
 }

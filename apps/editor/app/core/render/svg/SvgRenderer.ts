@@ -1,15 +1,16 @@
-import type { FurnitureObject } from '../../model/FurnitureObject';
-import type { StairObject } from '../../model/StairObject';
-import type { Opening } from '../../model/Opening';
-import type { Room } from '../../model/Room';
-import type { SceneObject } from '../../model/SceneObject';
 import {
   createDefaultSceneSettings,
   resolveBackgroundColor,
+  type FurnitureObject,
+  type Opening,
+  type Point2,
+  type Room,
+  type SceneObject,
   type SceneSettings,
-} from '../../model/SceneSettings';
-import type { SelectionRef } from '../../model/types';
-import type { Point2, WallObject } from '../../model/WallObject';
+  type SelectionRef,
+  type StairObject,
+  type WallObject,
+} from '@sandbox/editor-core';
 import type { EditorTool, ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { Svg2DFurnitureView } from './Svg2DFurnitureView';
 import { Svg2DStairView } from './Svg2DStairView';

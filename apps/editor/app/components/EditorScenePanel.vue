@@ -9,7 +9,7 @@ import {
   type SurfaceKind,
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
-import type { BackgroundPreset } from '../core/model/SceneSettings';
+import type { BackgroundPreset } from '@sandbox/editor-core';
 import EditorCatalogPanel from './EditorCatalogPanel.vue';
 
 const { settings, patchSettings } = useEditorDocument();

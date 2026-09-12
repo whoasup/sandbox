@@ -1,19 +1,31 @@
+import {
+  HistoryStack,
+  SnapshotCommand,
+  captureSnapshotCommand,
+  SceneDocument,
+} from '@sandbox/editor-core';
+import type {
+  FurnitureObject,
+  Opening,
+  OpeningType,
+  Room,
+  SceneObject,
+  SceneSettings,
+  SceneSettingsPatch,
+  StairDirection,
+  StairObject,
+  StairObjectSnapshot,
+  SceneSnapshot,
+  SelectionRef,
+  Point2,
+  WallObject,
+} from '@sandbox/editor-core';
 import type { InjectionKey, Ref, ShallowRef } from 'vue';
 import { computed, inject, provide, reactive, ref, shallowRef } from 'vue';
 import type { FurnitureCatalogId, ShapeKind, SurfaceKind } from '@sandbox/ui-kit';
-import { HistoryStack } from '../core/history/HistoryStack';
-import { SnapshotCommand, captureSnapshotCommand } from '../core/history/SnapshotCommand';
-import { SceneDocument } from '../core/model/SceneDocument';
-import type { FurnitureObject } from '../core/model/FurnitureObject';
-import type { Opening, OpeningType } from '../core/model/Opening';
-import type { Room } from '../core/model/Room';
-import type { SceneObject } from '../core/model/SceneObject';
-import type { SceneSettings, SceneSettingsPatch } from '../core/model/SceneSettings';
-import type { StairDirection, StairObject, StairObjectSnapshot } from '../core/model/StairObject';
-import type { SceneSnapshot, SelectionRef } from '../core/model/types';
-import type { Point2, WallObject } from '../core/model/WallObject';
+
 import type { EditorTool } from '../core/render/ISceneRenderer';
-import type { CameraMode } from '../core/render/three/ThreeRenderer';
+import type { CameraMode } from '../core/render/three/cameraModes';
 
 export type EditorMode = '2d' | '3d';
 export type { CameraMode };

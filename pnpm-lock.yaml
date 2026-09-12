@@ -186,6 +186,9 @@ importers:
 
   apps/editor:
     dependencies:
+      '@sandbox/editor-core':
+        specifier: workspace:*
+        version: link:../../libs/editor-core
       '@sandbox/ui-kit':
         specifier: workspace:*
         version: link:../../libs/ui-kit
@@ -196,6 +199,15 @@ importers:
       '@types/three':
         specifier: 0.180.0
         version: 0.180.0
+
+  libs/editor-core:
+    dependencies:
+      '@sandbox/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      vue:
+        specifier: ^3.5.0
+        version: 3.5.41(typescript@6.0.3)
 
   libs/ui-kit:
     dependencies:

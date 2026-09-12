@@ -40,7 +40,7 @@ export default defineNuxtConfig({
       conditions: ['@sandbox/source'],
     },
     ssr: {
-      noExternal: ['@sandbox/ui-kit'],
+      noExternal: ['@sandbox/ui-kit', '@sandbox/editor-core'],
       resolve: {
         conditions: ['@sandbox/source'],
         externalConditions: ['@sandbox/source'],

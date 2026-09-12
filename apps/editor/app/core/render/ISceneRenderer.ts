@@ -1,17 +1,22 @@
-import type { FurnitureObject } from '../model/FurnitureObject';
-import type { Opening } from '../model/Opening';
-import type { Room } from '../model/Room';
-import type { SceneObject } from '../model/SceneObject';
-import type { SceneSettings } from '../model/SceneSettings';
-import type { StairObject } from '../model/StairObject';
-import type { SelectionRef } from '../model/types';
-import type { Point2, WallObject } from '../model/WallObject';
+import type {
+  FurnitureObject,
+  Opening,
+  Room,
+  SceneObject,
+  SceneSettings,
+  StairObject,
+  SelectionRef,
+  Point2,
+  WallObject,
+} from '@sandbox/editor-core';
 
 /**
- * Both the 2D (SVG) and 3D (three.js) views implement this contract, so
- * the Vue layer can mount/update/dispose either renderer identically —
- * the only thing that changes when the user flips the mode toggle is
- * which concrete class gets instantiated.
+ * DOM-bound renderer contract kept next to SVG/Three implementations in the
+ * app (not in `@sandbox/editor-core`) so the domain package stays free of
+ * `HTMLElement` / viewport types. Both the 2D (SVG) and 3D (three.js) views
+ * implement this contract so the Vue layer can mount/update/dispose either
+ * renderer identically — flipping the mode toggle only changes which
+ * concrete class is instantiated (3D via dynamic import).
  */
 export interface ISceneRenderer {
   mount(container: HTMLElement): void;

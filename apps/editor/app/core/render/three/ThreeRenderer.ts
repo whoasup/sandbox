@@ -1,17 +1,17 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import type { FurnitureObject } from '../../model/FurnitureObject';
-import type { Opening } from '../../model/Opening';
-import type { Room } from '../../model/Room';
-import type { SceneObject } from '../../model/SceneObject';
 import {
   createDefaultSceneSettings,
   resolveBackgroundColor,
+  type FurnitureObject,
+  type Opening,
+  type Room,
+  type SceneObject,
   type SceneSettings,
-} from '../../model/SceneSettings';
-import type { StairObject } from '../../model/StairObject';
-import type { SelectionRef } from '../../model/types';
-import type { WallObject } from '../../model/WallObject';
+  type SelectionRef,
+  type StairObject,
+  type WallObject,
+} from '@sandbox/editor-core';
 import type { ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
 import { ThreeFurnitureMesh } from './ThreeFurnitureMesh';
 import { ThreeMeshFactory } from './ThreeMeshFactory';
@@ -19,11 +19,12 @@ import { ThreeRoomFloorMesh } from './ThreeRoomFloorMesh';
 import { ThreeStairMesh } from './ThreeStairMesh';
 import { ThreeWallMesh } from './ThreeWallMesh';
 import { resolveWalkMove } from './camera/walkCollision';
+import type { CameraMode } from './cameraModes';
+
+export type { CameraMode } from './cameraModes';
 
 const DEFAULT_CAMERA_POSITION = new THREE.Vector3(6, 6, 8);
 const EYE_HEIGHT = 1.6;
-
-export type CameraMode = 'orbit' | 'top' | 'walk';
 
 /**
  * OOP wrapper around a three.js scene graph: owns the renderer, camera,

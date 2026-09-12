@@ -1,5 +1,4 @@
-import type { Room } from '../../model/Room';
-import type { Point2 } from '../../model/WallObject';
+import type { Room, Point2 } from '@sandbox/editor-core';
 import { patternIdFor } from './svgTexturePatterns';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

@@ -1,14 +1,13 @@
-import { IndexedDbProjectStore } from '../core/persistence/IndexedDbProjectStore';
-import { MemoryProjectStore } from '../core/persistence/MemoryProjectStore';
-import type { FloorRecord, ProjectRecord, ProjectStore } from '../core/persistence/ProjectStore';
-import { createDefaultFloor } from '../core/persistence/migrations';
 import {
+  IndexedDbProjectStore,
+  MemoryProjectStore,
+  createDefaultFloor,
   createProjectRecord,
   downloadProjectJson,
   getActiveFloor,
   parseImportedProject,
-} from '../core/persistence/serialize';
-import type { SceneSnapshot } from '../core/model/types';
+} from '@sandbox/editor-core';
+import type { FloorRecord, ProjectRecord, ProjectStore, SceneSnapshot } from '@sandbox/editor-core';
 
 const LAST_PROJECT_KEY = 'sandbox:lastProjectId';
 
