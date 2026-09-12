@@ -1,6 +1,6 @@
 # Epic 01 — App shell, routing, sidebar
 
-Status: **planned**  
+Status: **implemented** — branch `epic/01-app-shell`  
 Branch: `epic/01-app-shell`  
 Depends on: —  
 Owners: `apps/editor` (+ `libs/ui-kit` only if a nav primitive is required)
@@ -81,11 +81,11 @@ ui-kit **only** if app-level markup becomes unmaintainable.
 
 ## 7. Definition of Done
 
-- [ ] All three sections open from the sidebar; active item is highlighted
-- [ ] Theme switcher works from the shell with no FOWT regression
-- [ ] Editor works at `/editor/:projectId` with existing add / select /
+- [x] All three sections open from the sidebar; active item is highlighted
+- [x] Theme switcher works from the shell with no FOWT regression
+- [x] Editor works at `/editor/:projectId` with existing add / select /
       drag / delete / 2D–3D toggle
-- [ ] `pnpm lint`, `typecheck`, `test`, `build` green
+- [x] `pnpm lint`, `typecheck`, `test`, `build` green
 
 ## 8. Out of scope
 

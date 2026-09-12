@@ -1,25 +1,28 @@
 <script setup lang="ts">
-import { createEditorDocumentContext } from '../composables/useEditorDocument';
-import EditorCanvas2D from '../components/EditorCanvas2D.vue';
-import EditorCanvas3D from '../components/EditorCanvas3D.vue';
-import EditorToolbar from '../components/EditorToolbar.vue';
+import { UiText } from '@sandbox/ui-kit';
+import { DRAFT_PROJECT_ID } from '../constants/projects';
 
-const { mode } = createEditorDocumentContext();
+const draftHref = `/editor/${DRAFT_PROJECT_ID}`;
 </script>
 
 <template>
-  <div class="flex h-screen flex-col bg-surface-sunken">
-    <EditorToolbar />
-    <main class="relative min-h-0 flex-1">
-      <ClientOnly>
-        <EditorCanvas2D v-if="mode === '2d'" />
-        <EditorCanvas3D v-else />
-        <template #fallback>
-          <div class="flex h-full items-center justify-center text-text-muted">
-            Загрузка редактора…
-          </div>
-        </template>
-      </ClientOnly>
-    </main>
+  <div class="mx-auto flex h-full max-w-3xl flex-col gap-6 p-8" data-testid="projects-page">
+    <div>
+      <UiText size="lg" weight="bold" as="h1">Проекты</UiText>
+      <UiText size="sm" tone="muted" as="p" class="mt-1">
+        Локальная библиотека появится в Epic 05. Пока доступен черновик в памяти сессии.
+      </UiText>
+    </div>
+
+    <NuxtLink
+      :to="draftHref"
+      class="block rounded-lg border border-border bg-surface p-5 text-text no-underline shadow-sm transition-colors hover:border-primary hover:bg-surface-raised"
+      data-testid="draft-project-card"
+    >
+      <UiText weight="bold" as="p">Черновик</UiText>
+      <UiText size="sm" tone="muted" as="p" class="mt-1">
+        Открыть редактор · id «{{ DRAFT_PROJECT_ID }}»
+      </UiText>
+    </NuxtLink>
   </div>
 </template>

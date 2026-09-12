@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { createThemeContext } from '@sandbox/ui-kit';
 
-// Provided once, here at the app root, so every descendant (the theme
-// switcher in `EditorToolbar`, and anything else in the future) can read
-// and change the current theme via `useTheme()`.
+// Provided once at the app root so the shell sidebar (and every page)
+// can read/change theme via `useTheme()`. Editor document context is
+// *not* created here — only on `/editor/:projectId`.
 createThemeContext();
 </script>
 
 <template>
-  <div class="min-h-screen">
-    <NuxtPage />
+  <div class="h-full min-h-screen">
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </div>
 </template>
