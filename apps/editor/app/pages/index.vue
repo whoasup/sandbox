@@ -2,8 +2,10 @@
 import { onMounted, ref } from 'vue';
 import { UiButton, UiText } from '@sandbox/ui-kit';
 import type { ProjectRecord } from '@sandbox/editor-core';
+import { PROJECT_TEMPLATES } from '../constants/projectTemplates';
 import {
   createProject,
+  createProjectFromTemplate,
   deleteProject,
   duplicateProject,
   exportProject,
@@ -18,6 +20,7 @@ const router = useRouter();
 const projects = ref<ProjectRecord[]>([]);
 const loading = ref(true);
 const errorMessage = ref('');
+const creatingTemplateId = ref<string | null>(null);
 
 async function refresh(): Promise<void> {
   loading.value = true;
@@ -38,6 +41,20 @@ onMounted(() => {
 async function onCreate(): Promise<void> {
   const record = await createProject();
   await router.push(`/editor/${record.id}`);
+}
+
+async function onCreateFromTemplate(templateId: string): Promise<void> {
+  creatingTemplateId.value = templateId;
+  errorMessage.value = '';
+  try {
+    const record = await createProjectFromTemplate(templateId);
+    await router.push(`/editor/${record.id}`);
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Не удалось создать проект из шаблона';
+  } finally {
+    creatingTemplateId.value = null;
+  }
 }
 
 async function onRename(project: ProjectRecord): Promise<void> {
@@ -116,6 +133,24 @@ async function onImportFile(event: Event): Promise<void> {
       {{ errorMessage }}
     </UiText>
 
+    <section data-testid="project-templates" class="flex flex-col gap-3">
+      <UiText weight="bold" as="h2">Создать из шаблона</UiText>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <button
+          v-for="template in PROJECT_TEMPLATES"
+          :key="template.id"
+          type="button"
+          class="rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition-colors hover:bg-surface-raised disabled:opacity-60"
+          :data-testid="`template-card-${template.id}`"
+          :disabled="creatingTemplateId === template.id"
+          @click="onCreateFromTemplate(template.id)"
+        >
+          <UiText weight="bold" as="p">{{ template.title }}</UiText>
+          <UiText size="sm" tone="muted" as="p" class="mt-1">{{ template.description }}</UiText>
+        </button>
+      </div>
+    </section>
+
     <div v-if="loading" class="text-text-muted">Загрузка…</div>
 
     <div
@@ -125,7 +160,7 @@ async function onImportFile(event: Event): Promise<void> {
     >
       <UiText weight="bold" as="p">Пока нет проектов</UiText>
       <UiText size="sm" tone="muted" as="p" class="mt-2">
-        Создайте первый проект или импортируйте JSON.
+        Создайте первый проект, выберите шаблон или импортируйте JSON.
       </UiText>
       <UiButton class="mt-4" variant="primary" size="sm" @click="onCreate">Создать проект</UiButton>
     </div>

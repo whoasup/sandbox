@@ -24,6 +24,7 @@ import { createSurfacePatternDefs } from './svgTexturePatterns';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PX_PER_UNIT = 46;
 const MIN_WALL_LENGTH = 0.15;
+const MIN_ROOM_SIZE = 0.5;
 
 /**
  * OOP wrapper around a top-down SVG scene. Structurally mirrors
@@ -61,7 +62,9 @@ export class SvgRenderer implements ISceneRenderer {
     | { type: 'stair'; id: string }
     | null = null;
   private wallDraftStart: Point2 | null = null;
+  private roomDraftStart: Point2 | null = null;
   private rubberBand: SVGLineElement | null = null;
+  private roomRubberBand: SVGRectElement | null = null;
   private snapMarker: SVGCircleElement | null = null;
   private tool: EditorTool = 'select';
   private latestObjects: readonly SceneObject[] = [];
@@ -110,12 +113,14 @@ export class SvgRenderer implements ISceneRenderer {
   public setTool(tool: EditorTool): void {
     this.tool = tool;
     if (tool !== 'wall' && tool !== 'dimension') this.cancelWallDraft();
+    if (tool !== 'room') this.cancelRoomDraft();
     this.svg.style.cursor =
       tool === 'wall' ||
       tool === 'dimension' ||
       tool === 'door' ||
       tool === 'window' ||
-      tool === 'stair'
+      tool === 'stair' ||
+      tool === 'room'
         ? 'crosshair'
         : '';
   }
@@ -192,6 +197,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.roomViews.clear();
     this.dimensionViews.clear();
     this.cancelWallDraft();
+    this.cancelRoomDraft();
     this.svg.remove();
     this.container = null;
   }
@@ -585,8 +591,59 @@ export class SvgRenderer implements ISceneRenderer {
     this.interactions.onWallDraftLength?.(null);
   }
 
+  private ensureRoomRubberBand(): SVGRectElement {
+    if (!this.roomRubberBand) {
+      this.roomRubberBand = document.createElementNS(SVG_NS, 'rect');
+      this.roomRubberBand.setAttribute('fill', 'rgba(59, 125, 237, 0.12)');
+      this.roomRubberBand.setAttribute('stroke', '#3b7ded');
+      this.roomRubberBand.setAttribute('stroke-width', '2');
+      this.roomRubberBand.setAttribute('stroke-dasharray', '6 4');
+      this.roomRubberBand.setAttribute('pointer-events', 'none');
+      this.overlayGroup.appendChild(this.roomRubberBand);
+    }
+    return this.roomRubberBand;
+  }
+
+  private updateRoomRubberBand(start: Point2, end: Point2): void {
+    const a = this.worldToPx(start);
+    const b = this.worldToPx(end);
+    const x = Math.min(a.x, b.x);
+    const y = Math.min(a.y, b.y);
+    const w = Math.abs(b.x - a.x);
+    const h = Math.abs(b.y - a.y);
+    const band = this.ensureRoomRubberBand();
+    band.setAttribute('x', String(x));
+    band.setAttribute('y', String(y));
+    band.setAttribute('width', String(w));
+    band.setAttribute('height', String(h));
+  }
+
+  private cancelRoomDraft(): void {
+    this.roomDraftStart = null;
+    this.roomRubberBand?.remove();
+    this.roomRubberBand = null;
+    this.updateSnapMarker(null);
+  }
+
+  private commitRoomDraft(end: Point2): void {
+    const start = this.roomDraftStart;
+    this.cancelRoomDraft();
+    if (!start) return;
+    const width = end.x - start.x;
+    const depth = end.z - start.z;
+    if (Math.abs(width) < MIN_ROOM_SIZE || Math.abs(depth) < MIN_ROOM_SIZE) return;
+    const origin = {
+      x: Math.min(start.x, end.x),
+      z: Math.min(start.z, end.z),
+    };
+    this.interactions.onAddRoomRect?.(origin, Math.abs(width), Math.abs(depth));
+  }
+
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape') this.cancelWallDraft();
+    if (event.key === 'Escape') {
+      this.cancelWallDraft();
+      this.cancelRoomDraft();
+    }
   };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
@@ -601,6 +658,21 @@ export class SvgRenderer implements ISceneRenderer {
     if (this.tool === 'stair') {
       const point = this.snapWorld(this.eventToWorld(event));
       this.interactions.onAddStair?.(point);
+      return;
+    }
+
+    if (this.tool === 'room') {
+      const snapped = this.snapWorld(this.eventToWorld(event));
+      if (this.interactions.onPlacePendingRoom?.(snapped)) {
+        return;
+      }
+      if (!this.roomDraftStart) {
+        this.roomDraftStart = snapped;
+        this.updateSnapMarker(snapped);
+        this.updateRoomRubberBand(snapped, snapped);
+      } else {
+        this.commitRoomDraft(snapped);
+      }
       return;
     }
 
@@ -643,6 +715,13 @@ export class SvgRenderer implements ISceneRenderer {
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
+    if (this.tool === 'room' && this.roomDraftStart) {
+      const snapped = this.snapWorld(this.eventToWorld(event));
+      this.updateSnapMarker(snapped);
+      this.updateRoomRubberBand(this.roomDraftStart, snapped);
+      return;
+    }
+
     if ((this.tool === 'wall' || this.tool === 'dimension') && this.wallDraftStart) {
       const snapped = this.snapWorld(this.eventToWorld(event));
       this.updateSnapMarker(snapped);
@@ -672,7 +751,19 @@ export class SvgRenderer implements ISceneRenderer {
     }
   };
 
-  private readonly handlePointerUp = (): void => {
+  private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (this.tool === 'room' && this.roomDraftStart && event.type === 'pointerup') {
+      const snapped = this.snapWorld(this.eventToWorld(event));
+      // Drag-to-commit: only if the pointer moved enough from the start corner.
+      const dx = Math.abs(snapped.x - this.roomDraftStart.x);
+      const dz = Math.abs(snapped.z - this.roomDraftStart.z);
+      if (dx >= MIN_ROOM_SIZE || dz >= MIN_ROOM_SIZE) {
+        this.commitRoomDraft(snapped);
+        return;
+      }
+      // Click-click mode: keep start and wait for a second click.
+    }
+
     if (this.dragging) this.interactions.onMoveGestureEnd?.();
     this.dragging = null;
   };

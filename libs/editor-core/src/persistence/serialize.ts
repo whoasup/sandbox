@@ -70,9 +70,19 @@ export function getActiveFloor(record: ProjectRecord): FloorRecord {
   return record.floors.find((f) => f.id === id) ?? record.floors[0]!;
 }
 
+function remapId(map: Map<string, string>, oldId: string, prefix: string): string {
+  let next = map.get(oldId);
+  if (!next) {
+    next = createId(prefix);
+    map.set(oldId, next);
+  }
+  return next;
+}
+
 /**
- * Clone floors for project duplication: new floor / stair ids and remapped
- * stair `floorId` / `targetFloorId` / `linkId` so pairs stay inside the copy.
+ * Clone floors for project duplication / templates: new floor and entity ids,
+ * remapped stair floor/link refs, and remapped opening.wallId / room.wallIds
+ * so references stay consistent inside the copy.
  */
 export function cloneProjectFloors(floors: FloorRecord[]): FloorRecord[] {
   const floorIds = new Map(floors.map((floor) => [floor.id, createId('floor')]));
@@ -80,6 +90,41 @@ export function cloneProjectFloors(floors: FloorRecord[]): FloorRecord[] {
 
   return floors.map((floor) => {
     const snapshot = structuredClone(floor.snapshot);
+    const wallIds = new Map<string, string>();
+    const roomIds = new Map<string, string>();
+
+    snapshot.objects = (snapshot.objects ?? []).map((object) => ({
+      ...object,
+      id: createId('shape'),
+    }));
+
+    snapshot.walls = (snapshot.walls ?? []).map((wall) => {
+      const id = remapId(wallIds, wall.id, 'wall');
+      return { ...wall, id };
+    });
+
+    snapshot.rooms = (snapshot.rooms ?? []).map((room) => ({
+      ...room,
+      id: remapId(roomIds, room.id, 'room'),
+      wallIds: (room.wallIds ?? []).map((wid) => wallIds.get(wid) ?? wid),
+    }));
+
+    snapshot.openings = (snapshot.openings ?? []).map((opening) => ({
+      ...opening,
+      id: createId('opening'),
+      wallId: wallIds.get(opening.wallId) ?? opening.wallId,
+    }));
+
+    snapshot.furniture = (snapshot.furniture ?? []).map((item) => ({
+      ...item,
+      id: createId('furniture'),
+    }));
+
+    snapshot.dimensions = (snapshot.dimensions ?? []).map((dim) => ({
+      ...dim,
+      id: createId('dim'),
+    }));
+
     snapshot.stairs = (snapshot.stairs ?? []).map((stair) => {
       let linkId = linkIds.get(stair.linkId);
       if (!linkId) {
@@ -94,6 +139,7 @@ export function cloneProjectFloors(floors: FloorRecord[]): FloorRecord[] {
         targetFloorId: floorIds.get(stair.targetFloorId) ?? stair.targetFloorId,
       };
     });
+
     return {
       ...floor,
       id: floorIds.get(floor.id) ?? createId('floor'),

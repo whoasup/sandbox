@@ -3,6 +3,7 @@ import { MemoryProjectStore } from '@sandbox/editor-core';
 import {
   addFloorToProject,
   createProject,
+  createProjectFromTemplate,
   duplicateProject,
   formatRelativeUpdatedAt,
   getProject,
@@ -43,6 +44,28 @@ describe('useProjects helpers', () => {
     expect(copy!.floors[0]!.id).not.toBe(original!.floors[0]!.id);
     expect(copy!.floors[1]!.id).not.toBe(original!.floors[1]!.id);
     expect(new Set(copy!.floors.map((floor) => floor.id)).size).toBe(2);
+  });
+
+  it('creates a project from a template with remapped wall ids', async () => {
+    const first = await createProjectFromTemplate('studio');
+    expect(first.name).toBe('Студия');
+    expect(first.floors[0]!.snapshot.walls.length).toBeGreaterThanOrEqual(4);
+    expect(first.floors[0]!.snapshot.rooms.length).toBeGreaterThanOrEqual(1);
+
+    const second = await createProjectFromTemplate('studio');
+    expect(second.id).not.toBe(first.id);
+    expect(second.floors[0]!.id).not.toBe(first.floors[0]!.id);
+    const firstWallIds = first.floors[0]!.snapshot.walls.map((w) => w.id);
+    const secondWallIds = second.floors[0]!.snapshot.walls.map((w) => w.id);
+    expect(secondWallIds).not.toEqual(firstWallIds);
+    expect(secondWallIds.every((id) => !firstWallIds.includes(id))).toBe(true);
+
+    const listed = await listProjects();
+    expect(listed.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('rejects unknown templates', async () => {
+    await expect(createProjectFromTemplate('nope')).rejects.toThrow(/Unknown project template/);
   });
 
   it('formats relative updated times in Russian', () => {

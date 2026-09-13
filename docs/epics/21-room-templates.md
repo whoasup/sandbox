@@ -1,6 +1,6 @@
 # Epic 21 — Room gesture + project templates
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/21-room-templates`  
 Depends on: Epic 07 (rooms / walls), Epic 17 (hardening)  
 Owners: `apps/editor` + `libs/editor-core`
@@ -82,10 +82,10 @@ not).
 
 ## 7. Definition of Done
 
-- [ ] Room tool + size dialog place editable walls/rooms
-- [ ] ≥3 project templates creatable from `/`
-- [ ] Walls remain fully editable after placement
-- [ ] Lint / typecheck / test / e2e green
+- [x] Room tool + size dialog place editable walls/rooms
+- [x] ≥3 project templates creatable from `/`
+- [x] Walls remain fully editable after placement
+- [x] Lint / typecheck / test / e2e green
 
 ## 8. Out of scope
 

@@ -99,6 +99,33 @@ describe('createEditorDocumentContext', () => {
     });
   });
 
+  it('adds a rectangular room as one history entry', () => {
+    mountWithContext((ctx) => {
+      ctx.addRoomRect({ x: 0, z: 0 }, 4, 3, { name: 'Зал' });
+      expect(ctx.walls.value).toHaveLength(4);
+      expect(ctx.rooms.value).toHaveLength(1);
+      expect(ctx.rooms.value[0]?.name).toBe('Зал');
+      expect(ctx.canUndo.value).toBe(true);
+      ctx.undo();
+      expect(ctx.walls.value).toHaveLength(0);
+      expect(ctx.rooms.value).toHaveLength(0);
+    });
+  });
+
+  it('places a pending room from the size dialog at a click point', () => {
+    mountWithContext((ctx) => {
+      ctx.setPendingRoomPlacement({ width: 3, depth: 4, name: 'Кухня' });
+      expect(ctx.pendingRoomPlacement.value).toBeTruthy();
+      expect(ctx.tool.value).toBe('room');
+      expect(ctx.mode.value).toBe('2d');
+      const placed = ctx.placePendingRoomAt({ x: 1.5, z: 2 });
+      expect(placed).toBe(true);
+      expect(ctx.pendingRoomPlacement.value).toBeNull();
+      expect(ctx.walls.value).toHaveLength(4);
+      expect(ctx.rooms.value[0]?.name).toBe('Кухня');
+    });
+  });
+
   it('moves a shape via moveShape', () => {
     mountWithContext((ctx) => {
       ctx.addShape('cube');
