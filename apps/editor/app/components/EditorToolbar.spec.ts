@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditorDocumentContext } from '../composables/useEditorDocument';
 import EditorToolbar from './EditorToolbar.vue';
 
-function stubMatchMedia(): void {
+function stubMatchMedia(matches = false): void {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
+    matches,
     media: query,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
@@ -76,5 +76,27 @@ describe('EditorToolbar', () => {
   it('does not render the theme switcher (moved to the app shell)', () => {
     const wrapper = mountToolbar();
     expect(wrapper.findComponent({ name: 'UiThemeSwitcher' }).exists()).toBe(false);
+  });
+
+  it('hides split mode below lg', () => {
+    stubMatchMedia(false);
+    const wrapper = mountToolbar();
+    const labels = wrapper.findAll('[role="tab"]').map((btn) => btn.text());
+    expect(labels).toContain('2D');
+    expect(labels).toContain('3D');
+    expect(labels).not.toContain('Рядом');
+  });
+
+  it('offers split mode on lg and can enter it', async () => {
+    stubMatchMedia(true);
+    const wrapper = mountToolbar();
+    await wrapper.vm.$nextTick();
+    const splitTab = wrapper.findAll('[role="tab"]').find((btn) => btn.text() === 'Рядом');
+    expect(splitTab).toBeTruthy();
+    await splitTab!.trigger('click');
+    const harness = wrapper.vm as unknown as {
+      ctx: ReturnType<typeof createEditorDocumentContext>;
+    };
+    expect(harness.ctx.mode.value).toBe('split');
   });
 });

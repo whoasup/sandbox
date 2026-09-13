@@ -40,6 +40,7 @@ import EditorExportMenu from './EditorExportMenu.vue';
 import EditorInspector from './EditorInspector.vue';
 import EditorMeasurements from './EditorMeasurements.vue';
 import EditorScenePanel from './EditorScenePanel.vue';
+import EditorSplitPane from './EditorSplitPane.vue';
 import EditorToolbar from './EditorToolbar.vue';
 import { useEditorHotkeys } from '../composables/useEditorHotkeys';
 import { useViewportLg } from '../composables/useViewportLg';
@@ -485,7 +486,20 @@ const statusLabel = computed(() => {
         <EditorScenePanel v-if="isLgLayout" />
         <main class="relative min-h-0 min-w-0 flex-1">
           <ClientOnly>
-            <EditorCanvas2D v-if="mode === '2d'" />
+            <EditorSplitPane v-if="mode === 'split'" :active="true">
+              <template #left>
+                <EditorCanvas2D />
+              </template>
+              <template #right>
+                <EditorCanvas3D
+                  :floor-elevation="floorElevation"
+                  :below-walls="belowWallList"
+                  :below-rooms="belowRooms"
+                  :below-openings="belowOpenings"
+                />
+              </template>
+            </EditorSplitPane>
+            <EditorCanvas2D v-else-if="mode === '2d'" />
             <EditorCanvas3D
               v-else
               :floor-elevation="floorElevation"

@@ -8,7 +8,7 @@ export function useViewportLg() {
   let unsub: (() => void) | null = null;
 
   onMounted(() => {
-    if (!import.meta.client) return;
+    if (typeof window === 'undefined') return;
     const mq = window.matchMedia(LG_MEDIA);
     const sync = (): void => {
       isLgLayout.value = mq.matches;

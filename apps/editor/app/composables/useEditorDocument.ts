@@ -30,7 +30,7 @@ import type { FurnitureCatalogId, ShapeKind, SurfaceKind } from '@sandbox/ui-kit
 import type { EditorTool } from '../core/render/ISceneRenderer';
 import type { CameraMode } from '../core/render/three/cameraModes';
 
-export type EditorMode = '2d' | '3d';
+export type EditorMode = '2d' | '3d' | 'split';
 export type { CameraMode };
 
 const PLACEMENT_RADIUS = 2.2;
@@ -383,7 +383,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
       pendingRoomPlacement.value = pending;
       if (pending) {
         tool.value = 'room';
-        mode.value = '2d';
+        if (mode.value !== 'split') mode.value = '2d';
       }
     },
     placePendingRoomAt(point) {
