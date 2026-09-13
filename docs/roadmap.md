@@ -1,9 +1,9 @@
 # Editor product roadmap
 
-Status: **Phase 1–3 complete** on `main`; **Phase 4** (epics 18–22) planned —
-dimensioned plans, catalog v2, split view, room templates, plan
-presentation. Furniture, stairs, PNG/SVG/glTF export, CI/Playwright,
-`@sandbox/editor-core`, and the mobile-first shell are shipped.
+Status: **Phase 1–4 complete** on `main` — dimensioned plans, catalog v2,
+split view, room templates, and plan presentation are shipped alongside
+furniture, stairs, PNG/SVG/glTF/360 export, CI/Playwright,
+`@sandbox/editor-core`, and the mobile-first shell.
 Each epic has a dedicated spec under [`docs/epics/`](./epics/).
 
 Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
