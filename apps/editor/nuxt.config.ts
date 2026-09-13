@@ -54,6 +54,8 @@ export default defineNuxtConfig({
   app: {
     baseURL: isGitHubPages ? '/sandbox/' : '/',
     head: {
+      title: 'Sandbox',
+      titleTemplate: '%s · Sandbox',
       // Sets `data-theme` before Vue hydrates/paints, so the correct theme
       // (persisted choice, or the OS preference when `system`) applies with
       // no flash of the wrong theme. Mirrors `useTheme()`'s own resolution

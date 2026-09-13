@@ -321,3 +321,29 @@ export function migrateProjectRecord(raw: unknown): ProjectRecord {
     activeFloorId,
   };
 }
+
+/** Migrate a stored record and report whether the schema version changed. */
+export function hydrateStoredRecord(raw: unknown): {
+  record: ProjectRecord;
+  upgraded: boolean;
+} {
+  if (!isRecord(raw)) {
+    throw new Error('Invalid project record');
+  }
+  const incoming =
+    typeof raw.schemaVersion === 'number' && Number.isFinite(raw.schemaVersion)
+      ? raw.schemaVersion
+      : 0;
+  const record = migrateProjectRecord(raw);
+  return { record, upgraded: incoming !== CURRENT_SCHEMA_VERSION };
+}
+
+export function tryHydrateStoredRecord(
+  raw: unknown,
+): { record: ProjectRecord; upgraded: boolean } | null {
+  try {
+    return hydrateStoredRecord(raw);
+  } catch {
+    return null;
+  }
+}

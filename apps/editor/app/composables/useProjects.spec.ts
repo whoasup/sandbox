@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MemoryProjectStore } from '@sandbox/editor-core';
 import {
+  addFloorToProject,
   createProject,
+  duplicateProject,
   formatRelativeUpdatedAt,
+  getProject,
   listProjects,
   renameProject,
   setProjectStoreForTests,
@@ -25,6 +28,21 @@ describe('useProjects helpers', () => {
     const created = await createProject('Старое');
     const renamed = await renameProject(created.id, 'Новое');
     expect(renamed?.name).toBe('Новое');
+  });
+
+  it('duplicates a project with new floor ids', async () => {
+    const created = await createProject('Оригинал');
+    await addFloorToProject(created.id);
+    const original = await getProject(created.id);
+    expect(original?.floors).toHaveLength(2);
+
+    const copy = await duplicateProject(created.id);
+    expect(copy).toBeTruthy();
+    expect(copy!.id).not.toBe(created.id);
+    expect(copy!.floors).toHaveLength(2);
+    expect(copy!.floors[0]!.id).not.toBe(original!.floors[0]!.id);
+    expect(copy!.floors[1]!.id).not.toBe(original!.floors[1]!.id);
+    expect(new Set(copy!.floors.map((floor) => floor.id)).size).toBe(2);
   });
 
   it('formats relative updated times in Russian', () => {

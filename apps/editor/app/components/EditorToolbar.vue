@@ -10,6 +10,7 @@ import {
   UiToggleGroup,
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
+import { useViewportLg } from '../composables/useViewportLg';
 
 const props = withDefaults(
   defineProps<{
@@ -38,6 +39,8 @@ const {
   redo,
 } = useEditorDocument();
 
+const { isLgLayout } = useViewportLg();
+
 const modeOptions = [
   { value: '2d' as const, label: '2D' },
   { value: '3d' as const, label: '3D' },
@@ -49,7 +52,7 @@ const cameraOptions = [
   { value: 'walk' as const, label: 'Ходьба' },
 ];
 
-const toolOptions = [
+const toolOptionsFull = [
   { value: 'select' as const, label: 'Выбор' },
   { value: 'wall' as const, label: 'Стена' },
   { value: 'door' as const, label: 'Дверь' },
@@ -57,9 +60,20 @@ const toolOptions = [
   { value: 'stair' as const, label: 'Лестница' },
 ];
 
+const toolOptionsShort = [
+  { value: 'select' as const, label: 'Выбор' },
+  { value: 'wall' as const, label: 'Стена' },
+  { value: 'door' as const, label: 'Дверь' },
+  { value: 'window' as const, label: 'Окно' },
+  { value: 'stair' as const, label: 'Лестн.' },
+];
+
+const toolOptions = computed(() => (isLgLayout.value ? toolOptionsFull : toolOptionsShort));
+
 const hasSelection = computed(() => selection.value !== null);
 const showWallDefaults = computed(() => tool.value === 'wall' && mode.value === '2d');
 const showCamera = computed(() => mode.value === '3d');
+const toggleTouchClass = '[&_button]:min-h-11 lg:[&_button]:min-h-0';
 
 /** Draw tools only work in the 2D plan — switch automatically. */
 watch(tool, (next) => {
@@ -88,46 +102,90 @@ function toggleCeiling(): void {
 
 <template>
   <header
-    class="editor-toolbar flex flex-wrap items-center gap-3 border-b border-border bg-surface px-3 py-2 shadow-sm sm:gap-4 sm:px-4 lg:gap-6 lg:px-5 lg:py-3"
+    class="editor-toolbar flex min-w-0 flex-col gap-2 border-b border-border bg-surface px-3 py-2 shadow-sm sm:px-4 lg:gap-3 lg:px-5 lg:py-3"
     data-testid="editor-toolbar"
   >
-    <div class="flex flex-col gap-1">
-      <div class="mr-4 flex items-baseline gap-2">
-        <UiText size="lg" weight="bold" as="h1">Планировщик</UiText>
-        <UiText
-          v-if="props.projectId"
-          size="xs"
-          tone="muted"
-          as="span"
-          class="hidden max-w-[12rem] truncate sm:inline"
-          >{{ props.projectId }}</UiText
-        >
-      </div>
+    <div class="hidden items-baseline gap-2 lg:flex">
+      <UiText size="lg" weight="bold" as="h1">Планировщик</UiText>
+      <UiText
+        v-if="props.projectId"
+        size="xs"
+        tone="muted"
+        as="span"
+        class="max-w-[12rem] truncate"
+        >{{ props.projectId }}</UiText
+      >
+    </div>
+    <div class="hidden min-w-0 lg:block">
       <slot name="status" />
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-        <UiToggleGroup v-model="mode" :options="modeOptions" size="sm" />
-        <UiToggleGroup v-if="showCamera" v-model="cameraMode" :options="cameraOptions" size="sm" />
-        <UiToggleGroup v-model="tool" :options="toolOptions" size="sm" />
+    </div>
+
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
+      <UiToggleGroup v-model="mode" :options="modeOptions" size="sm" :class="toggleTouchClass" />
+      <UiToggleGroup
+        v-if="showCamera && isLgLayout"
+        v-model="cameraMode"
+        :options="cameraOptions"
+        size="sm"
+        :class="toggleTouchClass"
+      />
+      <UiToggleGroup
+        v-model="tool"
+        :options="toolOptions"
+        size="sm"
+        class="min-w-0"
+        :class="toggleTouchClass"
+      />
+      <UiButton
+        v-if="showCamera && isLgLayout"
+        size="sm"
+        class="min-h-11 lg:min-h-0"
+        :variant="showCeiling ? 'primary' : 'secondary'"
+        @click="toggleCeiling"
+      >
+        Потолок
+      </UiButton>
+
+      <div class="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
+        <slot name="export" />
         <UiButton
-          v-if="showCamera"
+          variant="ghost"
           size="sm"
-          :variant="showCeiling ? 'primary' : 'secondary'"
-          @click="toggleCeiling"
+          class="min-h-11 lg:min-h-0"
+          :disabled="!canUndo"
+          title="Ctrl+Z"
+          @click="undo"
+          >Отменить</UiButton
         >
-          Потолок
-        </UiButton>
+        <UiButton
+          variant="ghost"
+          size="sm"
+          class="min-h-11 lg:min-h-0"
+          :disabled="!canRedo"
+          title="Ctrl+Y"
+          @click="redo"
+          >Повтор</UiButton
+        >
+        <UiButton
+          variant="ghost"
+          size="sm"
+          class="min-h-11 lg:min-h-0"
+          :disabled="!hasSelection"
+          @click="removeSelected"
+          >Удалить</UiButton
+        >
       </div>
     </div>
 
-    <div class="flex flex-col gap-1">
-      <UiText size="xs" tone="muted" as="span">Фигуры</UiText>
-      <div class="flex flex-wrap items-center gap-2">
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+        <UiText v-if="isLgLayout" size="xs" tone="muted" as="span">Фигуры</UiText>
         <UiButton
           v-for="shape in SHAPE_CATALOG"
           :key="shape.kind"
           variant="secondary"
           size="sm"
-          class="lg:text-sm"
+          class="min-h-11 lg:min-h-0 lg:text-sm"
           :title="shape.label"
           :data-testid="`add-shape-${shape.kind}`"
           @click="addShape(shape.kind)"
@@ -138,11 +196,47 @@ function toggleCeiling(): void {
           <span class="hidden sm:inline">{{ shape.label }}</span>
         </UiButton>
       </div>
-    </div>
 
-    <div v-if="showWallDefaults" class="flex flex-col gap-1">
-      <UiText size="xs" tone="muted" as="span">Стена по умолчанию</UiText>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
+        <UiText v-if="isLgLayout" size="xs" tone="muted" as="span">Поверхность</UiText>
+        <UiTextureSwatch
+          v-for="texture in TEXTURE_LIST"
+          :key="texture.id"
+          :surface="texture.id"
+          :size="isLgLayout ? 34 : 28"
+          :selected="activeSurface === texture.id"
+          :label="texture.label"
+          :title="texture.label"
+          @click="applySurfaceToSelection(texture.id)"
+        />
+        <input
+          class="h-7 w-7 cursor-pointer rounded-sm border border-border bg-none p-0 lg:h-[34px] lg:w-[34px]"
+          type="color"
+          :value="activeColor"
+          title="Цвет"
+          @input="onColorInput"
+        />
+      </div>
+
+      <template v-if="showCamera && !isLgLayout">
+        <UiToggleGroup
+          v-model="cameraMode"
+          :options="cameraOptions"
+          size="sm"
+          :class="toggleTouchClass"
+        />
+        <UiButton
+          size="sm"
+          class="min-h-11"
+          :variant="showCeiling ? 'primary' : 'secondary'"
+          @click="toggleCeiling"
+        >
+          Потолок
+        </UiButton>
+      </template>
+
+      <div v-if="showWallDefaults" class="flex items-center gap-3">
+        <UiText v-if="isLgLayout" size="xs" tone="muted" as="span">Стена</UiText>
         <label class="flex items-center gap-1 text-xs text-text-muted">
           H
           <input
@@ -166,38 +260,6 @@ function toggleCeiling(): void {
           />
         </label>
       </div>
-    </div>
-
-    <div class="flex flex-col gap-1">
-      <UiText size="xs" tone="muted" as="span">Поверхность</UiText>
-      <div class="flex items-center gap-2">
-        <UiTextureSwatch
-          v-for="texture in TEXTURE_LIST"
-          :key="texture.id"
-          :surface="texture.id"
-          :size="34"
-          :selected="activeSurface === texture.id"
-          :label="texture.label"
-          :title="texture.label"
-          @click="applySurfaceToSelection(texture.id)"
-        />
-        <input
-          class="h-[34px] w-[34px] cursor-pointer rounded-sm border border-border bg-none p-0"
-          type="color"
-          :value="activeColor"
-          title="Цвет"
-          @input="onColorInput"
-        />
-      </div>
-    </div>
-
-    <div class="ml-auto flex items-center gap-2">
-      <slot name="export" />
-      <UiButton variant="ghost" :disabled="!canUndo" title="Ctrl+Z" @click="undo"
-        >Отменить</UiButton
-      >
-      <UiButton variant="ghost" :disabled="!canRedo" title="Ctrl+Y" @click="redo">Повтор</UiButton>
-      <UiButton variant="ghost" :disabled="!hasSelection" @click="removeSelected">Удалить</UiButton>
     </div>
   </header>
 </template>

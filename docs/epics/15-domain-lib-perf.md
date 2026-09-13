@@ -75,7 +75,8 @@ No new product UI. Loading state for 3D canvas may show the existing
 ## 5. Files to touch (expected)
 
 - `libs/editor-core/**` (new package)
-- Move `apps/editor/app/core/model/**`, persistence, related specs
+- Move domain from `apps/editor/app/core/model/**` into
+  `libs/editor-core/src/model/**` (done — app `core/` is render + export only)
 - Update imports across editor app + tests
 - `pnpm-workspace.yaml`, root tsconfig references, Nx config
 - `EditorCanvas3D.vue` — dynamic import

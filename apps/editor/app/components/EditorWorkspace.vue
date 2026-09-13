@@ -42,6 +42,7 @@ import EditorMeasurements from './EditorMeasurements.vue';
 import EditorScenePanel from './EditorScenePanel.vue';
 import EditorToolbar from './EditorToolbar.vue';
 import { useEditorHotkeys } from '../composables/useEditorHotkeys';
+import { useViewportLg } from '../composables/useViewportLg';
 
 /** Keep three.js off the editor shell critical path until 3D mode mounts. */
 const EditorCanvas3D = defineAsyncComponent(() => import('./EditorCanvas3D.vue'));
@@ -304,41 +305,61 @@ setStairProjectHooks({
   },
 });
 
-const sceneSheetOpen = ref(false);
-const inspectorSheetOpen = ref(false);
-/** Desktop dual-panel layout (`lg+`). Below that we use sheets only. */
-const isLgLayout = ref(false);
+type EditorSheet = 'scene' | 'inspector' | null;
+const openSheet = ref<EditorSheet>(null);
+const { isLgLayout } = useViewportLg();
 
-let unsubLgMedia: (() => void) | null = null;
+const sceneSheetOpen = computed(() => openSheet.value === 'scene');
+const inspectorSheetOpen = computed(() => openSheet.value === 'inspector');
+
+function openEditorSheet(sheet: Exclude<EditorSheet, null>): void {
+  openSheet.value = sheet;
+}
+
+function closeEditorSheet(): void {
+  openSheet.value = null;
+}
+
+function onSheetKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && openSheet.value) {
+    event.preventDefault();
+    closeEditorSheet();
+  }
+}
 
 watch(selection, (next) => {
   // On narrow layouts the inspector is a sheet — open it when something is selected.
   if (next && !isLgLayout.value) {
-    inspectorSheetOpen.value = true;
+    openSheet.value = 'inspector';
+  }
+});
+
+watch(isLgLayout, (desktop) => {
+  if (desktop) closeEditorSheet();
+});
+
+watch(openSheet, (sheet) => {
+  if (!import.meta.client) return;
+  document.body.style.overflow = sheet ? 'hidden' : '';
+  if (sheet) {
+    window.addEventListener('keydown', onSheetKeydown);
+  } else {
+    window.removeEventListener('keydown', onSheetKeydown);
   }
 });
 
 onMounted(() => {
   if (!bootError.value) void loadProject();
-  if (!import.meta.client) return;
-  const mq = window.matchMedia('(min-width: 1024px)');
-  const syncLg = (): void => {
-    isLgLayout.value = mq.matches;
-    if (mq.matches) {
-      sceneSheetOpen.value = false;
-      inspectorSheetOpen.value = false;
-    }
-  };
-  syncLg();
-  mq.addEventListener('change', syncLg);
-  unsubLgMedia = () => mq.removeEventListener('change', syncLg);
 });
 
 onUnmounted(() => {
   if (autosaveTimer) clearTimeout(autosaveTimer);
   unsubChange?.();
   unsubSettings?.();
-  unsubLgMedia?.();
+  window.removeEventListener('keydown', onSheetKeydown);
+  if (import.meta.client) {
+    document.body.style.overflow = '';
+  }
   exportService.value?.setLivePngCapture(null);
 });
 
@@ -372,7 +393,7 @@ const statusLabel = computed(() => {
 
     <template v-else-if="loadState === 'missing'">
       <div
-        class="mx-auto flex max-w-md flex-col items-center gap-4 p-8 text-center"
+        class="mx-auto flex max-w-md flex-col items-center gap-4 p-4 text-center sm:p-6 lg:p-8"
         data-testid="editor-not-found"
       >
         <UiText size="lg" weight="bold" as="h1">Проект не найден</UiText>
@@ -413,7 +434,7 @@ const statusLabel = computed(() => {
         v-if="exportError"
         size="xs"
         as="p"
-        class="border-b border-border bg-surface px-5 py-1 text-danger"
+        class="border-b border-border bg-surface px-3 py-1 text-danger sm:px-5"
         data-testid="export-error"
       >
         {{ exportError }}
@@ -440,7 +461,9 @@ const statusLabel = computed(() => {
             variant="secondary"
             class="min-h-11"
             data-testid="editor-open-scene"
-            @click="sceneSheetOpen = true"
+            :aria-expanded="sceneSheetOpen"
+            aria-controls="editor-scene-sheet"
+            @click="openEditorSheet('scene')"
           >
             Сцена
           </UiButton>
@@ -449,7 +472,9 @@ const statusLabel = computed(() => {
             variant="secondary"
             class="min-h-11"
             data-testid="editor-open-inspector"
-            @click="inspectorSheetOpen = true"
+            :aria-expanded="inspectorSheetOpen"
+            aria-controls="editor-inspector-sheet"
+            @click="openEditorSheet('inspector')"
           >
             Инспектор
           </UiButton>
@@ -492,49 +517,57 @@ const statusLabel = computed(() => {
       <!-- Mobile / tablet sheets (< lg) -->
       <div
         v-if="!isLgLayout && sceneSheetOpen"
+        id="editor-scene-sheet"
         class="fixed inset-0 z-30 flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="editor-scene-sheet-title"
         data-testid="editor-scene-sheet"
       >
         <button
           type="button"
           class="absolute inset-0 cursor-default border-0 bg-black/40"
           aria-label="Закрыть панель сцены"
-          @click="sceneSheetOpen = false"
+          @click="closeEditorSheet"
         />
         <div
           class="relative z-10 mt-auto flex max-h-[85vh] min-h-0 flex-col rounded-t-lg bg-surface shadow-lg"
         >
           <div class="flex items-center justify-between border-b border-border px-4 py-3">
-            <UiText weight="bold" as="h2">Сцена</UiText>
-            <UiButton size="sm" variant="ghost" class="min-h-11" @click="sceneSheetOpen = false"
+            <UiText id="editor-scene-sheet-title" weight="bold" as="h2">Сцена</UiText>
+            <UiButton size="sm" variant="ghost" class="min-h-11" @click="closeEditorSheet"
               >Закрыть</UiButton
             >
           </div>
-          <EditorScenePanel class="min-h-0 flex-1 border-r-0" />
+          <EditorScenePanel hide-heading class="min-h-0 flex-1 border-r-0" />
         </div>
       </div>
 
       <div
         v-if="!isLgLayout && inspectorSheetOpen"
+        id="editor-inspector-sheet"
         class="fixed inset-0 z-30 flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="editor-inspector-sheet-title"
         data-testid="editor-inspector-sheet"
       >
         <button
           type="button"
           class="absolute inset-0 cursor-default border-0 bg-black/40"
           aria-label="Закрыть инспектор"
-          @click="inspectorSheetOpen = false"
+          @click="closeEditorSheet"
         />
         <div
           class="relative z-10 mt-auto flex max-h-[85vh] min-h-0 flex-col rounded-t-lg bg-surface shadow-lg"
         >
           <div class="flex items-center justify-between border-b border-border px-4 py-3">
-            <UiText weight="bold" as="h2">Инспектор</UiText>
-            <UiButton size="sm" variant="ghost" class="min-h-11" @click="inspectorSheetOpen = false"
+            <UiText id="editor-inspector-sheet-title" weight="bold" as="h2">Инспектор</UiText>
+            <UiButton size="sm" variant="ghost" class="min-h-11" @click="closeEditorSheet"
               >Закрыть</UiButton
             >
           </div>
-          <EditorInspector class="min-h-0 flex-1 border-l-0" />
+          <EditorInspector hide-heading class="min-h-0 flex-1 border-l-0" />
         </div>
       </div>
     </template>

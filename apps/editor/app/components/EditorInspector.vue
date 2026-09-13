@@ -13,6 +13,14 @@ import {
 import { useEditorDocument } from '../composables/useEditorDocument';
 import type { StairDirection } from '@sandbox/editor-core';
 
+withDefaults(
+  defineProps<{
+    /** Hide the panel title when the parent sheet already shows one. */
+    hideHeading?: boolean;
+  }>(),
+  { hideHeading: false },
+);
+
 const {
   objects,
   walls,
@@ -233,7 +241,7 @@ function onActivateStair(): void {
     class="editor-inspector flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface p-4 lg:w-64"
     data-testid="editor-inspector"
   >
-    <UiText weight="bold" as="h2">Инспектор</UiText>
+    <UiText v-if="!hideHeading" weight="bold" as="h2">Инспектор</UiText>
 
     <template v-if="selectedShape">
       <div class="flex flex-col gap-2" data-testid="shape-inspector">
@@ -499,6 +507,7 @@ function onActivateStair(): void {
       </label>
 
       <div class="mt-auto flex flex-col gap-2">
+        <UiButton variant="secondary" @click="duplicateSelected">Дублировать</UiButton>
         <UiButton variant="ghost" @click="removeSelected">Удалить</UiButton>
       </div>
     </template>
@@ -597,6 +606,7 @@ function onActivateStair(): void {
       </label>
 
       <div class="mt-auto flex flex-col gap-2">
+        <UiButton variant="secondary" @click="duplicateSelected">Дублировать</UiButton>
         <UiButton variant="ghost" @click="removeSelected">Удалить</UiButton>
       </div>
     </template>

@@ -55,4 +55,27 @@ describe('EditorExportMenu', () => {
     await wrapper.get('[data-testid="export-json"]').trigger('click');
     expect(wrapper.emitted('exportJson')).toHaveLength(1);
   });
+
+  it('closes the menu on outside pointerdown', async () => {
+    const service = new ExportService({
+      getFloor: async () => null,
+    });
+    const wrapper = mount(EditorExportMenu, {
+      props: {
+        exportService: service,
+        projectId: 'proj_1',
+        floorId: 'floor_1',
+      },
+      attachTo: document.body,
+    });
+
+    await wrapper.get('[data-testid="export-menu-trigger"]').trigger('click');
+    expect(wrapper.find('[data-testid="export-menu-panel"]').exists()).toBe(true);
+
+    document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('[data-testid="export-menu-panel"]').exists()).toBe(false);
+
+    wrapper.unmount();
+  });
 });

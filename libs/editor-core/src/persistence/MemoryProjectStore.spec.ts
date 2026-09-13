@@ -4,6 +4,7 @@ import { MemoryProjectStore } from './MemoryProjectStore';
 import { migrateProjectRecord } from './migrations';
 import { CURRENT_SCHEMA_VERSION, type FloorRecord } from './ProjectStore';
 import {
+  cloneProjectFloors,
   createProjectRecord,
   getActiveFloor,
   parseImportedProject,
@@ -28,6 +29,41 @@ describe('MemoryProjectStore', () => {
     await store.delete(older.id);
     expect(await store.get(older.id)).toBeNull();
     expect(await store.list()).toHaveLength(1);
+  });
+
+  it('migrates and rewrites stale records on get and list', async () => {
+    const store = new MemoryProjectStore();
+    const legacy = {
+      id: 'legacy-idb',
+      name: 'Старый',
+      updatedAt: 9,
+      schemaVersion: 5,
+      floors: [
+        {
+          id: 'f1',
+          name: 'Этаж 1',
+          elevation: 0,
+          snapshot: {
+            objects: [],
+            walls: [],
+            rooms: [],
+            openings: [],
+            settings: createDefaultSceneSettings(),
+          },
+        },
+      ],
+      activeFloorId: 'f1',
+    };
+    await store.save(legacy as unknown as ReturnType<typeof createProjectRecord>);
+
+    const loaded = await store.get('legacy-idb');
+    expect(loaded?.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(loaded?.floors[0]?.snapshot.furniture).toEqual([]);
+    expect(loaded?.floors[0]?.snapshot.stairs).toEqual([]);
+
+    const listed = await store.list();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 });
 
@@ -223,6 +259,81 @@ describe('serialize / import', () => {
     expect(imported.floors[0]!.snapshot.objects).toHaveLength(1);
     expect(imported.floors[0]!.snapshot.walls).toHaveLength(1);
     expect(imported.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+  });
+});
+
+describe('cloneProjectFloors', () => {
+  it('assigns new floor ids and remaps stair links', () => {
+    const floors = cloneProjectFloors([
+      {
+        id: 'floor_a',
+        name: 'Этаж 1',
+        elevation: 0,
+        snapshot: {
+          objects: [],
+          walls: [],
+          rooms: [],
+          openings: [],
+          furniture: [],
+          stairs: [
+            {
+              id: 'stair_1',
+              linkId: 'link_1',
+              floorId: 'floor_a',
+              targetFloorId: 'floor_b',
+              position: { x: 0, z: 0 },
+              rotationY: 0,
+              width: 1,
+              depth: 2.5,
+              stepCount: 12,
+              direction: 'up',
+            },
+          ],
+          settings: createDefaultSceneSettings(),
+        },
+      },
+      {
+        id: 'floor_b',
+        name: 'Этаж 2',
+        elevation: 3,
+        snapshot: {
+          objects: [],
+          walls: [],
+          rooms: [],
+          openings: [],
+          furniture: [],
+          stairs: [
+            {
+              id: 'stair_2',
+              linkId: 'link_1',
+              floorId: 'floor_b',
+              targetFloorId: 'floor_a',
+              position: { x: 0, z: 0 },
+              rotationY: 0,
+              width: 1,
+              depth: 2.5,
+              stepCount: 12,
+              direction: 'down',
+            },
+          ],
+          settings: createDefaultSceneSettings(),
+        },
+      },
+    ]);
+
+    expect(floors[0]!.id).not.toBe('floor_a');
+    expect(floors[1]!.id).not.toBe('floor_b');
+    expect(floors[0]!.id).not.toBe(floors[1]!.id);
+
+    const up = floors[0]!.snapshot.stairs[0]!;
+    const down = floors[1]!.snapshot.stairs[0]!;
+    expect(up.floorId).toBe(floors[0]!.id);
+    expect(up.targetFloorId).toBe(floors[1]!.id);
+    expect(down.floorId).toBe(floors[1]!.id);
+    expect(down.targetFloorId).toBe(floors[0]!.id);
+    expect(up.linkId).toBe(down.linkId);
+    expect(up.linkId).not.toBe('link_1');
+    expect(up.id).not.toBe('stair_1');
   });
 });
 

@@ -47,4 +47,28 @@ test('mobile viewport: drawer nav and editor sheets', async ({ page }) => {
     page.getByTestId('editor-inspector-sheet').getByTestId('shape-inspector'),
   ).toBeVisible();
   await expect(page.getByTestId('scene-shape')).toHaveCount(1);
+
+  const noOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+  );
+  expect(noOverflow).toBe(true);
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('editor-inspector-sheet')).toBeHidden();
+});
+
+test('docs storybook uses the app base URL', async ({ page }) => {
+  await page.goto('/docs/storybook');
+  await expect(page.getByTestId('docs-storybook-page')).toBeVisible();
+
+  const iframe = page.getByTestId('docs-storybook-iframe');
+  const missing = page.getByTestId('docs-storybook-missing');
+  if (await iframe.count()) {
+    const src = await iframe.getAttribute('src');
+    expect(src).toMatch(/docs-storybook\/index\.html$/);
+    const base = new URL(page.url()).pathname.startsWith('/sandbox/') ? '/sandbox/' : '/';
+    expect(src?.startsWith('http') || src?.startsWith(base)).toBe(true);
+  } else {
+    await expect(missing).toBeVisible();
+  }
 });
