@@ -1,6 +1,6 @@
 # Epic 19 — Furniture catalog v2
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/19-catalog-v2`  
 Depends on: Epic 11 (catalog), Epic 17 (hardening)  
 Owners: `apps/editor` + `libs/ui-kit` (+ `libs/editor-core` for size fields)
@@ -88,11 +88,11 @@ interface FurniturePreset {
 
 ## 7. Definition of Done
 
-- [ ] ≥12 presets across ≥4 categories with search
-- [ ] Exact W×D×H in inspector; persist + undo
-- [ ] Objects list selects entities
-- [ ] No marketplace / upload paths introduced
-- [ ] Lint / typecheck / test / build green
+- [x] ≥12 presets across ≥4 categories with search
+- [x] Exact W×D×H in inspector; persist + undo
+- [x] Objects list selects entities
+- [x] No marketplace / upload paths introduced
+- [x] Lint / typecheck / test / build green
 
 ## 8. Out of scope
 

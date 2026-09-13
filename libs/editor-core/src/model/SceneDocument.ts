@@ -543,11 +543,18 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public setFurnitureTransform(
     id: string,
-    patch: Partial<Pick<FurnitureObject, 'rotationY' | 'scale'>>,
+    patch: Partial<Pick<FurnitureObject, 'rotationY' | 'scale' | 'width' | 'depth' | 'height'>>,
   ): void {
     const item = this.furniture.get(id);
     if (!item) return;
     if (patch.rotationY !== undefined) item.setRotationY(patch.rotationY);
+    if (patch.width !== undefined || patch.depth !== undefined || patch.height !== undefined) {
+      item.setSize({
+        width: patch.width,
+        depth: patch.depth,
+        height: patch.height,
+      });
+    }
     if (patch.scale !== undefined) item.setScale(patch.scale);
     this.notifyChange();
   }
@@ -584,7 +591,9 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     return this.addFurniture(snap.catalogId, {
       position: { x: snap.position.x + 1.2, z: snap.position.z + 1.2 },
       rotationY: snap.rotationY,
-      scale: snap.scale,
+      width: snap.width,
+      depth: snap.depth,
+      height: snap.height,
       surface: snap.surface,
       color: snap.color,
     });

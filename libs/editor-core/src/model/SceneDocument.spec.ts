@@ -328,11 +328,18 @@ describe('SceneDocument', () => {
     expect(chair.position.z).toBe(4);
 
     doc.setFurnitureMaterial(chair.id, { surface: 'stone', color: '#abcdef' });
-    doc.setFurnitureTransform(chair.id, { rotationY: Math.PI / 4, scale: 1.5 });
+    doc.setFurnitureTransform(chair.id, {
+      rotationY: Math.PI / 4,
+      width: 0.75,
+      depth: 0.75,
+      height: 1.2,
+    });
     expect(chair.surface).toBe('stone');
     expect(chair.color).toBe('#abcdef');
     expect(chair.rotationY).toBeCloseTo(Math.PI / 4);
-    expect(chair.scale).toBe(1.5);
+    expect(chair.width).toBeCloseTo(0.75);
+    expect(chair.depth).toBeCloseTo(0.75);
+    expect(chair.height).toBeCloseTo(1.2);
 
     const clone = doc.duplicateFurniture(chair.id);
     expect(clone).toBeTruthy();

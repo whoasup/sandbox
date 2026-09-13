@@ -11,6 +11,7 @@ import {
 import { useEditorDocument } from '../composables/useEditorDocument';
 import type { BackgroundPreset } from '@sandbox/editor-core';
 import EditorCatalogPanel from './EditorCatalogPanel.vue';
+import EditorObjectsList from './EditorObjectsList.vue';
 
 withDefaults(
   defineProps<{
@@ -227,6 +228,7 @@ function setFloorSurface(surface: SurfaceKind): void {
       </div>
     </div>
 
+    <EditorObjectsList />
     <EditorCatalogPanel />
   </aside>
 </template>
