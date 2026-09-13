@@ -1,8 +1,9 @@
 # Editor product roadmap
 
-Status: **Phase 1–3 complete**; **Epic 17** (hardening) on
-`epic/17-hardening`. Furniture, stairs, PNG/SVG/glTF export, CI/Playwright,
-`@sandbox/editor-core`, and the mobile-first shell are on `main`.
+Status: **Phase 1–3 complete** on `main`; **Phase 4** (epics 18–22) planned —
+dimensioned plans, catalog v2, split view, room templates, plan
+presentation. Furniture, stairs, PNG/SVG/glTF export, CI/Playwright,
+`@sandbox/editor-core`, and the mobile-first shell are shipped.
 Each epic has a dedicated spec under [`docs/epics/`](./epics/).
 
 Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
@@ -42,6 +43,13 @@ Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
 10. Harden the shipped app (Epic 17): compact mobile chrome, migrate-on-read,
     stair undo pairs, Pages Storybook path, duplication fixes.
 
+### Phase 4
+
+11. Close the biggest gaps vs Planner 5D / Sweet Home 3D / Floorplanner /
+    RoomSketcher **without** backend, marketplace, or photoreal: dimensioned
+    2D plans, a larger categorized catalog, split 2D+3D, room-by-gesture +
+    templates, and presentation-quality plan export.
+
 ## 2. Current state (shipped)
 
 - **Monorepo**: Nx 23 + pnpm workspaces. Three packages: `apps/editor`
@@ -67,9 +75,11 @@ Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
 |-------|----------|
 | Planner depth (Phase 1) | Walls, rooms, doors/windows, floor/wall materials, primitives. |
 | Furniture (Phase 2) | **Small built-in catalog** (chair, table, bed, wardrobe). No marketplace, no user mesh upload. |
+| Furniture (Phase 4) | Catalog **v2**: 12–20 procedural presets, categories + search. Still no marketplace / mesh upload. |
 | Persistence | IndexedDB for projects; `localStorage` for prefs (theme already). |
 | Kit docs | Hybrid: native Nuxt overview pages + Storybook embed/link. |
 | Export (Phase 2) | PNG (3D view), SVG (2D plan), glTF (active floor). JSON project file stays Epic 05. |
+| Export (Phase 4) | Dimensioned / annotated plan SVG+PNG; simple 360 capture from walk camera. No PDF packs, no DXF. |
 | Domain packaging (Phase 2) | Extract to `libs/editor-core` after furniture lands (Epic 15). |
 
 ## 4. Target architecture
@@ -84,8 +94,9 @@ ProjectRecord
       walls: WallObject[]          // segments
       rooms: Room[]                // derived + editable materials
       openings: Opening[]          // doors / windows on walls
-      furniture: FurnitureObject[] // Phase 2 catalog instances
+      furniture: FurnitureObject[] // Phase 2+4 catalog instances
       stairs: StairObject[]        // Phase 2 inter-floor links
+      dimensions: DimensionLine[]  // Phase 4 user dimension annotations
 ```
 
 - **Vue bridge**: `createEditorDocumentContext()` stays scoped to the
@@ -93,11 +104,11 @@ ProjectRecord
 - **Render contract**: keep `ISceneRenderer` (`mount` / `render` /
   `dispose` + `onSelect` / `onMove`). New callbacks are optional.
 - **Shared vocabulary**: shapes, textures, and furniture **icons/presets
-  metadata** live in ui-kit; walls / openings / stairs / furniture
-  **instances** are editor-domain (later `libs/editor-core`).
-- **Snapshots**: introduce `schemaVersion` in Epic 05; migrations live in
-  one module and bump with entity additions (walls, rooms, floors,
-  furniture, stairs).
+  metadata** live in ui-kit; walls / openings / stairs / furniture /
+  dimensions **instances** live in `@sandbox/editor-core`.
+- **Snapshots**: `schemaVersion` from Epic 05; migrations live in
+  `libs/editor-core` and bump with entity additions (walls, rooms, floors,
+  furniture, stairs, dimensions).
 
 ### Target routes (after Epic 01)
 
@@ -141,6 +152,16 @@ ProjectRecord
 |---|------|--------|------------|------|
 | 16 | Responsive layout (mobile-first) | `epic/16-responsive-layout` | 01, 03, 04 | [16-responsive-layout.md](./epics/16-responsive-layout.md) |
 | 17 | Hardening (chrome + persistence) | `epic/17-hardening` | 05, 09, 12, 16 | [17-hardening.md](./epics/17-hardening.md) |
+
+### Phase 4
+
+| # | Slug | Branch | Depends on | Spec |
+|---|------|--------|------------|------|
+| 18 | Dimensioned 2D plan | `epic/18-dimensioned-plan` | 07, 09, 17 | [18-dimensioned-plan.md](./epics/18-dimensioned-plan.md) |
+| 19 | Furniture catalog v2 | `epic/19-catalog-v2` | 11, 17 | [19-catalog-v2.md](./epics/19-catalog-v2.md) |
+| 20 | Split 2D + 3D view | `epic/20-split-view` | 16, 17 | [20-split-view.md](./epics/20-split-view.md) |
+| 21 | Room gesture + templates | `epic/21-room-templates` | 07, 17 | [21-room-templates.md](./epics/21-room-templates.md) |
+| 22 | Plan presentation export | `epic/22-plan-presentation` | 13, 18 | [22-plan-presentation.md](./epics/22-plan-presentation.md) |
 
 ### Dependency graph (Phase 1)
 
@@ -225,6 +246,41 @@ flowchart TB
 13. `epic/16-responsive-layout` after Phase 2 shell/editor chrome is stable
 14. `epic/17-hardening` after 16 (audit follow-up)
 
+**Phase 4**
+
+15. `epic/18-dimensioned-plan` first (closes the largest gap vs SH3D / RoomSketcher)
+16. Parallel: `epic/19-catalog-v2` + `epic/21-room-templates`
+17. `epic/20-split-view` after chrome is stable (16/17)
+18. `epic/22-plan-presentation` after 18 (and preferably 13 already merged)
+
+### Dependency graph (Phase 4)
+
+```mermaid
+flowchart TB
+  subgraph phase3done [Phase3 assumed done]
+    E17[E17 hardening]
+    E13[E13 export]
+    E07[E07 rooms]
+    E11[E11 furniture]
+  end
+  subgraph phase4 [Phase4]
+    E18[E18 dimensions]
+    E19[E19 catalog v2]
+    E20[E20 split view]
+    E21[E21 room templates]
+    E22[E22 plan presentation]
+  end
+  E17 --> E18
+  E07 --> E18
+  E17 --> E19
+  E11 --> E19
+  E17 --> E20
+  E17 --> E21
+  E07 --> E21
+  E18 --> E22
+  E13 --> E22
+```
+
 ## 6. Branch and PR rules
 
 - Branch name: `epic/NN-slug` matching the tables above.
@@ -252,12 +308,21 @@ flowchart TB
 - Accounts, cloud sync, multiplayer / collaboration
 - Backend API or auth
 - Furniture **marketplace**, user-uploaded meshes, parametric kitchens
-- Photorealistic / path-traced rendering
+- Photorealistic / path-traced rendering; 4K/8K AI renders
+- Planner 5D–style AI (photo → plan), LiDAR capture, VR walkthroughs
+- DXF / CAD export
 - Replacing Storybook with MDX-only docs
 - PDF print packs with annotations; cloud share links
 - Elevators; spiral stairs; full slab CSG for stair openings
 - Chromatic / full visual-regression SaaS (one Playwright screenshot
   smoke is enough in Epic 14)
+
+### Phase 4 swap candidates (not scheduled)
+
+If one of 18–22 is deferred, prefer these frontend-only substitutes (still
+no backend): multi-select + align + wall-snap; blueprint image underlay;
+simple scene lights (day/evening); electrical 2D symbol layer; wall
+elevation / section view (after split view).
 
 ## 9. How to use this roadmap
 
