@@ -75,6 +75,18 @@ function toggleAxes(): void {
   patchSettings({ field: { axesVisible: !settings.value.field.axesVisible } });
 }
 
+function toggleWallLengths(): void {
+  patchSettings({ field: { wallLengthsVisible: !settings.value.field.wallLengthsVisible } });
+}
+
+function toggleRoomAreas(): void {
+  patchSettings({ field: { roomAreasVisible: !settings.value.field.roomAreasVisible } });
+}
+
+function toggleCompass(): void {
+  patchSettings({ field: { compassVisible: !settings.value.field.compassVisible } });
+}
+
 function setFloorSurface(surface: SurfaceKind): void {
   patchSettings({ floor: { surface } });
 }
@@ -166,6 +178,30 @@ function setFloorSurface(surface: SurfaceKind): void {
         @click="toggleAxes"
       >
         Оси
+      </UiButton>
+      <UiButton
+        size="sm"
+        :variant="settings.field.wallLengthsVisible ? 'primary' : 'secondary'"
+        :pressed="settings.field.wallLengthsVisible"
+        @click="toggleWallLengths"
+      >
+        Длины стен
+      </UiButton>
+      <UiButton
+        size="sm"
+        :variant="settings.field.roomAreasVisible ? 'primary' : 'secondary'"
+        :pressed="settings.field.roomAreasVisible"
+        @click="toggleRoomAreas"
+      >
+        Площади
+      </UiButton>
+      <UiButton
+        size="sm"
+        :variant="settings.field.compassVisible ? 'primary' : 'secondary'"
+        :pressed="settings.field.compassVisible"
+        @click="toggleCompass"
+      >
+        Компас
       </UiButton>
     </div>
 

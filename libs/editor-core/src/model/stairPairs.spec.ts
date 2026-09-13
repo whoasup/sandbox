@@ -16,6 +16,7 @@ function emptyFloor(id: string, name: string): FloorRecord {
       openings: [],
       furniture: [],
       stairs: [],
+      dimensions: [],
       settings: createDefaultSceneSettings(),
     },
   };

@@ -1,4 +1,5 @@
 import type {
+  DimensionLine,
   FurnitureObject,
   Opening,
   Room,
@@ -27,13 +28,14 @@ export interface ISceneRenderer {
     openings: readonly Opening[],
     furniture: readonly FurnitureObject[],
     stairs: readonly StairObject[],
+    dimensions: readonly DimensionLine[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void;
   dispose(): void;
 }
 
-export type EditorTool = 'select' | 'wall' | 'door' | 'window' | 'stair';
+export type EditorTool = 'select' | 'wall' | 'door' | 'window' | 'stair' | 'dimension';
 
 export interface RendererInteractionEvents {
   onSelect?: (selection: SelectionRef) => void;
@@ -42,6 +44,7 @@ export interface RendererInteractionEvents {
   onMoveFurniture?: (id: string, x: number, z: number) => void;
   onMoveStair?: (id: string, x: number, z: number) => void;
   onAddWall?: (start: Point2, end: Point2) => void;
+  onAddDimension?: (start: Point2, end: Point2) => void;
   onAddOpening?: (type: 'door' | 'window', point: Point2, wallId?: string) => void;
   onAddStair?: (point: Point2) => void;
   onActivateStair?: (id: string) => void;

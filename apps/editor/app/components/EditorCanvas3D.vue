@@ -18,6 +18,7 @@ const {
   openings,
   furniture,
   stairs,
+  dimensions,
   selection,
   settings,
   cameraMode,
@@ -67,6 +68,7 @@ onMounted(async () => {
       openings.value,
       furniture.value,
       stairs.value,
+      dimensions.value,
       selection.value,
       settings.value,
     );
@@ -77,7 +79,7 @@ onMounted(async () => {
   });
 });
 
-watch([objects, walls, rooms, openings, furniture, stairs, selection, settings], () => {
+watch([objects, walls, rooms, openings, furniture, stairs, dimensions, selection, settings], () => {
   renderer?.render(
     objects.value,
     walls.value,
@@ -85,6 +87,7 @@ watch([objects, walls, rooms, openings, furniture, stairs, selection, settings],
     openings.value,
     furniture.value,
     stairs.value,
+    dimensions.value,
     selection.value,
     settings.value,
   );

@@ -5,6 +5,7 @@ import {
   SceneDocument,
 } from '@sandbox/editor-core';
 import type {
+  DimensionLine,
   FurnitureObject,
   Opening,
   OpeningType,
@@ -73,6 +74,7 @@ export interface EditorDocumentContext {
   openings: ShallowRef<Opening[]>;
   furniture: ShallowRef<FurnitureObject[]>;
   stairs: ShallowRef<StairObject[]>;
+  dimensions: ShallowRef<DimensionLine[]>;
   selection: ShallowRef<SelectionRef>;
   selectedId: ShallowRef<string | null>;
   settings: ShallowRef<SceneSettings>;
@@ -93,6 +95,7 @@ export interface EditorDocumentContext {
   addWall: (start: Point2, end: Point2) => void;
   addOpeningAtPoint: (type: OpeningType, point: Point2, wallId?: string) => void;
   addStairAtPoint: (point: Point2) => void;
+  addDimension: (start: Point2, end: Point2) => void;
   updateSelectedOpening: (
     patch: Partial<{ type: OpeningType; t: number; width: number; height: number; sill: number }>,
   ) => void;
@@ -158,6 +161,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const openings = shallowRef<Opening[]>(document.listOpenings());
   const furniture = shallowRef<FurnitureObject[]>(document.listFurniture());
   const stairs = shallowRef<StairObject[]>(document.listStairs());
+  const dimensions = shallowRef<DimensionLine[]>(document.listDimensions());
   const selection = shallowRef<SelectionRef>(null);
   const selectedId = shallowRef<string | null>(null);
   const settings = shallowRef<SceneSettings>(document.settings);
@@ -191,6 +195,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     openings.value = payload.openings;
     furniture.value = payload.furniture;
     stairs.value = payload.stairs;
+    dimensions.value = payload.dimensions;
   });
   document.on('settings', (next) => {
     settings.value = next;
@@ -259,6 +264,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     openings,
     furniture,
     stairs,
+    dimensions,
     selection,
     selectedId,
     settings,
@@ -331,6 +337,11 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         created = stair.toSnapshot();
       });
       if (created) stairHooks.onStairUpsert?.(created);
+    },
+    addDimension(start, end) {
+      run('Добавить размер', () => {
+        document.addDimension({ start, end });
+      });
     },
     updateSelectedOpening(patch) {
       if (selection.value?.type !== 'opening') return;
@@ -527,7 +538,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     },
     copySelected() {
       const sel = selection.value;
-      if (!sel || sel.type === 'room' || sel.type === 'stair') return;
+      if (!sel || sel.type === 'room' || sel.type === 'stair' || sel.type === 'dimension') return;
       clipboard = {
         kind: sel.type,
         snapshot: document.toSnapshot(),

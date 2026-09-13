@@ -179,6 +179,34 @@ describe('migrateProjectRecord', () => {
     expect(migrated.floors[0]!.snapshot.stairs).toEqual([]);
   });
 
+  it('adds empty dimensions arrays when migrating schemaVersion 7', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p7-dims',
+      name: 'V7 no dimensions',
+      updatedAt: 7,
+      schemaVersion: 7,
+      floors: [
+        {
+          id: 'f1',
+          name: 'Этаж 1',
+          elevation: 0,
+          snapshot: {
+            objects: [],
+            walls: [],
+            rooms: [],
+            openings: [],
+            furniture: [],
+            stairs: [],
+            settings: createDefaultSceneSettings(),
+          },
+        },
+      ],
+      activeFloorId: 'f1',
+    });
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.floors[0]!.snapshot.dimensions).toEqual([]);
+  });
+
   it('preserves multi-floor projects', () => {
     const migrated = migrateProjectRecord({
       id: 'p5',
@@ -247,6 +275,7 @@ describe('serialize / import', () => {
       openings: [],
       furniture: [],
       stairs: [],
+      dimensions: [],
       settings: createDefaultSceneSettings(),
     });
 
@@ -289,6 +318,7 @@ describe('cloneProjectFloors', () => {
               direction: 'up',
             },
           ],
+          dimensions: [],
           settings: createDefaultSceneSettings(),
         },
       },
@@ -316,6 +346,7 @@ describe('cloneProjectFloors', () => {
               direction: 'down',
             },
           ],
+          dimensions: [],
           settings: createDefaultSceneSettings(),
         },
       },
@@ -374,6 +405,7 @@ describe('floor switch round-trip', () => {
         openings: [],
         furniture: [],
         stairs: [],
+        dimensions: [],
         settings: createDefaultSceneSettings(),
       },
       showCeiling: false,

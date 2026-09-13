@@ -1,6 +1,7 @@
 import {
   createDefaultSceneSettings,
   resolveBackgroundColor,
+  type DimensionLine,
   type FurnitureObject,
   type Opening,
   type Point2,
@@ -12,6 +13,7 @@ import {
   type WallObject,
 } from '@sandbox/editor-core';
 import type { EditorTool, ISceneRenderer, RendererInteractionEvents } from '../ISceneRenderer';
+import { Svg2DDimensionView } from './Svg2DDimensionView';
 import { Svg2DFurnitureView } from './Svg2DFurnitureView';
 import { Svg2DStairView } from './Svg2DStairView';
 import { Svg2DRoomView } from './Svg2DRoomView';
@@ -38,12 +40,15 @@ export class SvgRenderer implements ISceneRenderer {
   private readonly furnitureGroup: SVGGElement;
   private readonly stairsGroup: SVGGElement;
   private readonly wallsGroup: SVGGElement;
+  private readonly dimensionsGroup: SVGGElement;
+  private readonly compassGroup: SVGGElement;
   private readonly overlayGroup: SVGGElement;
   private readonly shapeViews = new Map<string, Svg2DShapeView>();
   private readonly furnitureViews = new Map<string, Svg2DFurnitureView>();
   private readonly stairViews = new Map<string, Svg2DStairView>();
   private readonly wallViews = new Map<string, Svg2DWallView>();
   private readonly roomViews = new Map<string, Svg2DRoomView>();
+  private readonly dimensionViews = new Map<string, Svg2DDimensionView>();
 
   private container: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -65,6 +70,7 @@ export class SvgRenderer implements ISceneRenderer {
   private latestOpenings: readonly Opening[] = [];
   private latestFurniture: readonly FurnitureObject[] = [];
   private latestStairs: readonly StairObject[] = [];
+  private latestDimensions: readonly DimensionLine[] = [];
   private latestSelection: SelectionRef = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -83,6 +89,8 @@ export class SvgRenderer implements ISceneRenderer {
     this.shapesGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.furnitureGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.stairsGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+    this.dimensionsGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
+    this.compassGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.overlayGroup = document.createElementNS(SVG_NS, 'g') as SVGGElement;
     this.svg.append(
       this.fieldGroup,
@@ -93,15 +101,21 @@ export class SvgRenderer implements ISceneRenderer {
       this.shapesGroup,
       this.furnitureGroup,
       this.stairsGroup,
+      this.dimensionsGroup,
+      this.compassGroup,
       this.overlayGroup,
     );
   }
 
   public setTool(tool: EditorTool): void {
     this.tool = tool;
-    if (tool !== 'wall') this.cancelWallDraft();
+    if (tool !== 'wall' && tool !== 'dimension') this.cancelWallDraft();
     this.svg.style.cursor =
-      tool === 'wall' || tool === 'door' || tool === 'window' || tool === 'stair'
+      tool === 'wall' ||
+      tool === 'dimension' ||
+      tool === 'door' ||
+      tool === 'window' ||
+      tool === 'stair'
         ? 'crosshair'
         : '';
   }
@@ -137,6 +151,7 @@ export class SvgRenderer implements ISceneRenderer {
     openings: readonly Opening[],
     furniture: readonly FurnitureObject[],
     stairs: readonly StairObject[],
+    dimensions: readonly DimensionLine[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {
@@ -146,17 +161,20 @@ export class SvgRenderer implements ISceneRenderer {
     this.latestOpenings = openings;
     this.latestFurniture = furniture;
     this.latestStairs = stairs;
+    this.latestDimensions = dimensions;
     this.latestSelection = selection;
     this.latestSettings = settings;
     this.svg.style.backgroundColor = resolveBackgroundColor(settings.background);
     this.drawField(settings);
     this.drawGrid(settings);
     this.drawAxes(settings);
-    this.syncRooms(rooms, selection);
+    this.syncRooms(rooms, selection, settings.field.roomAreasVisible);
     this.syncShapes(objects, selection);
     this.syncFurniture(furniture, selection);
     this.syncStairs(stairs, selection);
-    this.syncWalls(walls, openings, selection);
+    this.syncWalls(walls, openings, selection, settings.field.wallLengthsVisible);
+    this.syncDimensions(dimensions, selection);
+    this.drawCompass(settings);
   }
 
   public dispose(): void {
@@ -172,6 +190,7 @@ export class SvgRenderer implements ISceneRenderer {
     this.stairViews.clear();
     this.wallViews.clear();
     this.roomViews.clear();
+    this.dimensionViews.clear();
     this.cancelWallDraft();
     this.svg.remove();
     this.container = null;
@@ -208,6 +227,7 @@ export class SvgRenderer implements ISceneRenderer {
     walls: readonly WallObject[],
     openings: readonly Opening[],
     selection: SelectionRef,
+    showLength: boolean,
   ): void {
     const seen = new Set<string>();
     const selectedWallId = selection?.type === 'wall' ? selection.id : null;
@@ -229,6 +249,7 @@ export class SvgRenderer implements ISceneRenderer {
         this.origin,
         wall.id === selectedWallId,
         selectedOpeningId,
+        showLength,
       );
     }
 
@@ -283,7 +304,7 @@ export class SvgRenderer implements ISceneRenderer {
     }
   }
 
-  private syncRooms(rooms: readonly Room[], selection: SelectionRef): void {
+  private syncRooms(rooms: readonly Room[], selection: SelectionRef, showArea: boolean): void {
     const seen = new Set<string>();
     const selectedRoomId = selection?.type === 'room' ? selection.id : null;
 
@@ -295,13 +316,35 @@ export class SvgRenderer implements ISceneRenderer {
         this.roomViews.set(room.id, view);
         this.roomsGroup.appendChild(view.group);
       }
-      view.update(room, PX_PER_UNIT, this.origin, room.id === selectedRoomId);
+      view.update(room, PX_PER_UNIT, this.origin, room.id === selectedRoomId, showArea);
     }
 
     for (const [id, view] of this.roomViews) {
       if (seen.has(id)) continue;
       view.group.remove();
       this.roomViews.delete(id);
+    }
+  }
+
+  private syncDimensions(dimensions: readonly DimensionLine[], selection: SelectionRef): void {
+    const seen = new Set<string>();
+    const selectedId = selection?.type === 'dimension' ? selection.id : null;
+
+    for (const dim of dimensions) {
+      seen.add(dim.id);
+      let view = this.dimensionViews.get(dim.id);
+      if (!view) {
+        view = new Svg2DDimensionView(dim);
+        this.dimensionViews.set(dim.id, view);
+        this.dimensionsGroup.appendChild(view.group);
+      }
+      view.update(dim, PX_PER_UNIT, this.origin, dim.id === selectedId);
+    }
+
+    for (const [id, view] of this.dimensionViews) {
+      if (seen.has(id)) continue;
+      view.group.remove();
+      this.dimensionViews.delete(id);
     }
   }
 
@@ -321,6 +364,7 @@ export class SvgRenderer implements ISceneRenderer {
       this.latestOpenings,
       this.latestFurniture,
       this.latestStairs,
+      this.latestDimensions,
       this.latestSelection,
       this.latestSettings,
     );
@@ -404,6 +448,44 @@ export class SvgRenderer implements ISceneRenderer {
     this.axesGroup.appendChild(zAxis);
   }
 
+  private drawCompass(settings: SceneSettings): void {
+    this.compassGroup.replaceChildren();
+    if (!settings.field.compassVisible) return;
+
+    const cx = this.width - 36;
+    const cy = 36;
+    const r = 22;
+
+    const bg = document.createElementNS(SVG_NS, 'circle');
+    bg.setAttribute('cx', String(cx));
+    bg.setAttribute('cy', String(cy));
+    bg.setAttribute('r', String(r));
+    bg.setAttribute('fill', 'rgba(255,255,255,0.92)');
+    bg.setAttribute('stroke', '#9ca3af');
+    bg.setAttribute('stroke-width', '1');
+    bg.setAttribute('pointer-events', 'none');
+    this.compassGroup.appendChild(bg);
+
+    const needle = document.createElementNS(SVG_NS, 'polygon');
+    needle.setAttribute('points', `${cx},${cy - r + 6} ${cx - 5},${cy + 4} ${cx + 5},${cy + 4}`);
+    needle.setAttribute('fill', '#e5484d');
+    needle.setAttribute('pointer-events', 'none');
+    this.compassGroup.appendChild(needle);
+
+    const label = document.createElementNS(SVG_NS, 'text');
+    label.setAttribute('x', String(cx));
+    label.setAttribute('y', String(cy - r + 14));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'middle');
+    label.setAttribute('font-size', '11');
+    label.setAttribute('font-weight', '600');
+    label.setAttribute('font-family', 'ui-sans-serif, system-ui, sans-serif');
+    label.setAttribute('fill', '#374151');
+    label.setAttribute('pointer-events', 'none');
+    label.textContent = 'N';
+    this.compassGroup.appendChild(label);
+  }
+
   private resolveSelectionFromEvent(event: MouseEvent): SelectionRef {
     const target = event.target as Element | null;
     const openingGroup = target?.closest<SVGGElement>('[data-opening-id]');
@@ -417,6 +499,10 @@ export class SvgRenderer implements ISceneRenderer {
     const furnitureGroup = target?.closest<SVGGElement>('[data-furniture-id]');
     if (furnitureGroup?.dataset.furnitureId) {
       return { type: 'furniture', id: furnitureGroup.dataset.furnitureId };
+    }
+    const dimensionGroup = target?.closest<SVGGElement>('[data-dimension-id]');
+    if (dimensionGroup?.dataset.dimensionId) {
+      return { type: 'dimension', id: dimensionGroup.dataset.dimensionId };
     }
     const wallGroup = target?.closest<SVGGElement>('[data-wall-id]');
     if (wallGroup?.dataset.wallId) {
@@ -444,7 +530,8 @@ export class SvgRenderer implements ISceneRenderer {
   }
 
   private snapWorld(point: Point2): Point2 {
-    const angleFrom = this.tool === 'wall' ? this.wallDraftStart : null;
+    const angleFrom =
+      this.tool === 'wall' || this.tool === 'dimension' ? this.wallDraftStart : null;
     return this.interactions.snapPoint?.(point, angleFrom) ?? point;
   }
 
@@ -517,7 +604,7 @@ export class SvgRenderer implements ISceneRenderer {
       return;
     }
 
-    if (this.tool === 'wall') {
+    if (this.tool === 'wall' || this.tool === 'dimension') {
       const snapped = this.snapWorld(this.eventToWorld(event));
       if (!this.wallDraftStart) {
         this.wallDraftStart = snapped;
@@ -533,7 +620,11 @@ export class SvgRenderer implements ISceneRenderer {
         const end = snapped;
         this.cancelWallDraft();
         if (Math.hypot(end.x - start.x, end.z - start.z) >= MIN_WALL_LENGTH) {
-          this.interactions.onAddWall?.(start, end);
+          if (this.tool === 'wall') {
+            this.interactions.onAddWall?.(start, end);
+          } else {
+            this.interactions.onAddDimension?.(start, end);
+          }
         }
       }
       return;
@@ -552,7 +643,7 @@ export class SvgRenderer implements ISceneRenderer {
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
-    if (this.tool === 'wall' && this.wallDraftStart) {
+    if ((this.tool === 'wall' || this.tool === 'dimension') && this.wallDraftStart) {
       const snapped = this.snapWorld(this.eventToWorld(event));
       this.updateSnapMarker(snapped);
       const band = this.ensureRubberBand();

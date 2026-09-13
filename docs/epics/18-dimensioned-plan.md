@@ -1,6 +1,6 @@
 # Epic 18 — Dimensioned 2D plan
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/18-dimensioned-plan`  
 Depends on: Epic 07 (rooms), Epic 09 (measurements / history), Epic 17 (hardening)  
 Owners: `apps/editor` + `libs/editor-core`
@@ -82,11 +82,11 @@ dimensions: DimensionLineSnapshot[];
 
 ## 7. Definition of Done
 
-- [ ] Auto wall lengths and room areas visible on 2D plan
-- [ ] User dimension tool + persistence + undo
-- [ ] Optional compass; toggle for auto labels
-- [ ] schemaVersion 8 + migrate-on-read green
-- [ ] Lint / typecheck / test / build green
+- [x] Auto wall lengths and room areas visible on 2D plan
+- [x] User dimension tool + persistence + undo
+- [x] Optional compass; toggle for auto labels
+- [x] schemaVersion 8 + migrate-on-read green
+- [x] Lint / typecheck / test / build green
 
 ## 8. Out of scope
 

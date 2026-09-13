@@ -8,6 +8,7 @@ export class Svg2DRoomView {
   public readonly group: SVGGElement;
   private readonly fill: SVGPolygonElement;
   private readonly stroke: SVGPolygonElement;
+  private readonly label: SVGTextElement;
 
   public constructor(room: Room) {
     this.group = document.createElementNS(SVG_NS, 'g') as SVGGElement;
@@ -23,7 +24,15 @@ export class Svg2DRoomView {
     this.stroke.setAttribute('stroke-width', '1.5');
     this.stroke.setAttribute('pointer-events', 'none');
 
-    this.group.append(this.fill, this.stroke);
+    this.label = document.createElementNS(SVG_NS, 'text') as SVGTextElement;
+    this.label.setAttribute('text-anchor', 'middle');
+    this.label.setAttribute('dominant-baseline', 'middle');
+    this.label.setAttribute('font-size', '12');
+    this.label.setAttribute('font-family', 'ui-sans-serif, system-ui, sans-serif');
+    this.label.setAttribute('fill', '#1f2937');
+    this.label.setAttribute('pointer-events', 'none');
+
+    this.group.append(this.fill, this.stroke, this.label);
   }
 
   public update(
@@ -31,6 +40,7 @@ export class Svg2DRoomView {
     pxPerUnit: number,
     origin: { x: number; y: number },
     selected: boolean,
+    showArea = false,
   ): void {
     this.group.dataset.roomId = room.id;
     const points = room.polygon
@@ -50,5 +60,18 @@ export class Svg2DRoomView {
     }
     this.stroke.setAttribute('stroke', selected ? '#3b7ded' : 'rgba(0,0,0,0.18)');
     this.stroke.setAttribute('stroke-width', selected ? '2.5' : '1.5');
+
+    if (showArea) {
+      const c = room.centroid;
+      const cx = origin.x + c.x * pxPerUnit;
+      const cy = origin.y + c.z * pxPerUnit;
+      this.label.setAttribute('x', String(cx));
+      this.label.setAttribute('y', String(cy));
+      this.label.setAttribute('opacity', '1');
+      this.label.textContent = `${room.name} · ${room.areaM2.toFixed(1)} м²`;
+    } else {
+      this.label.setAttribute('opacity', '0');
+      this.label.textContent = '';
+    }
   }
 }
