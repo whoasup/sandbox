@@ -27,13 +27,16 @@ so switching modes never loses state.
   toolbar's `UiTextureSwatch` preview.
 - **Interaction** — click a shape in either view to select it (blue
   outline), drag it to move it, delete it, or repaint its surface/color.
-- **Export** — toolbar **Экспорт** menu: PNG (3D view), SVG (2D plan from
-  the document model), glTF/GLB (active-floor meshes), plus Epic 05
-  project JSON. Filenames: `{project}-{floor}.{ext}`.
+- **Export** — toolbar **Экспорт** menu: PNG (annotated 2D plan rasterized
+  from SVG), SVG (2D plan with legend / dimensions), glTF/GLB (active-floor
+  meshes), 360° equirect from walk / offscreen capture, plus Epic 05 project
+  JSON. Filenames: `{project}-{floor}.{ext}` (360: `{project}-{floor}-360.png`).
+  Scene panel **Чертёж / Чистовик** toggles draught furniture outlines for
+  live 2D and plan export.
 - Architecture: domain in `libs/editor-core` (`SceneDocument`, walls,
   rooms, openings, furniture, stairs, persistence, history), renderers in
   `app/core/render/{svg,three}` (`ISceneRenderer`), export in
-  `app/core/export` (PNG / SVG / glTF; three paths lazy-loaded), Vue bridge
+  `app/core/export` (PNG plan / SVG / glTF / 360; three paths lazy-loaded), Vue bridge
   in `app/composables/useEditorDocument.ts`, UI in `app/components`.
   Three.js loads via dynamic import of `EditorCanvas3D` / `ThreeRenderer`.
 

@@ -14,6 +14,7 @@ const {
   selection,
   settings,
   tool,
+  planStyle,
   selectEntity,
   moveShape,
   moveWall,
@@ -57,6 +58,7 @@ onMounted(() => {
   if (containerRef.value) {
     renderer.mount(containerRef.value);
     renderer.setTool(tool.value);
+    renderer.setPlanStyle(planStyle.value);
     renderer.render(
       objects.value,
       walls.value,
@@ -87,6 +89,10 @@ watch([objects, walls, rooms, openings, furniture, stairs, dimensions, selection
 
 watch(tool, (next) => {
   renderer?.setTool(next);
+});
+
+watch(planStyle, (next) => {
+  renderer?.setPlanStyle(next);
 });
 
 onUnmounted(() => {

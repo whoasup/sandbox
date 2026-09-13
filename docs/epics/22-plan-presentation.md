@@ -1,6 +1,6 @@
 # Epic 22 — Plan presentation export
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/22-plan-presentation`  
 Depends on: Epic 13 (export), Epic 18 (dimensions / areas)  
 Owners: `apps/editor`
@@ -85,11 +85,11 @@ per floor, bump schema and migrate default `'clean'`.
 
 ## 7. Definition of Done
 
-- [ ] Annotated SVG/PNG export with legend
-- [ ] 360 download from walk / offscreen capture
-- [ ] Чертёж / Чистовик affects live 2D + export
-- [ ] No PDF / cloud / DXF paths
-- [ ] Lint / typecheck / test / build green
+- [x] Annotated SVG/PNG export with legend
+- [x] 360 download from walk / offscreen capture
+- [x] Чертёж / Чистовик affects live 2D + export
+- [x] No PDF / cloud / DXF paths
+- [x] Lint / typecheck / test / build green
 
 ## 8. Out of scope
 

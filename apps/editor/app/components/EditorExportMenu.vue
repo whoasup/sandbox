@@ -2,15 +2,24 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { UiButton, UiText } from '@sandbox/ui-kit';
 import type { ExportService } from '../core/export/ExportService';
+import type { PlanStyle } from '../core/export/PlanExportOptions';
 
 const props = withDefaults(
   defineProps<{
     exportService: ExportService | null;
     projectId: string;
     floorId: string;
+    planStyle?: PlanStyle;
+    includeDimensions?: boolean;
+    includeLegend?: boolean;
     disabled?: boolean;
   }>(),
-  { disabled: false },
+  {
+    planStyle: 'clean',
+    includeDimensions: true,
+    includeLegend: true,
+    disabled: false,
+  },
 );
 
 const emit = defineEmits<{
@@ -42,17 +51,36 @@ const canExport = computed(
   () => !props.disabled && !busy.value && props.exportService !== null && Boolean(props.floorId),
 );
 
-async function run(kind: 'png' | 'svg' | 'gltf'): Promise<void> {
+function planOpts() {
+  return {
+    projectId: props.projectId,
+    floorId: props.floorId,
+    style: props.planStyle,
+    includeDimensions: props.includeDimensions,
+    includeLegend: props.includeLegend,
+  };
+}
+
+async function run(kind: 'png' | 'svg' | 'gltf' | '360'): Promise<void> {
   if (!props.exportService || !canExport.value) return;
   open.value = false;
   busy.value = true;
   busyLabel.value =
-    kind === 'png' ? 'PNG…' : kind === 'svg' ? 'SVG…' : kind === 'gltf' ? 'glTF…' : '';
+    kind === 'png'
+      ? 'PNG…'
+      : kind === 'svg'
+        ? 'SVG…'
+        : kind === 'gltf'
+          ? 'glTF…'
+          : kind === '360'
+            ? '360…'
+            : '';
   try {
-    const opts = { projectId: props.projectId, floorId: props.floorId };
-    if (kind === 'png') await props.exportService.downloadPng(opts);
-    else if (kind === 'svg') await props.exportService.downloadSvg(opts);
-    else await props.exportService.downloadGltf(opts);
+    const floorOpts = { projectId: props.projectId, floorId: props.floorId };
+    if (kind === 'png') await props.exportService.downloadPng(planOpts());
+    else if (kind === 'svg') await props.exportService.downloadSvg(planOpts());
+    else if (kind === '360') await props.exportService.download360(floorOpts);
+    else await props.exportService.downloadGltf(floorOpts);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ошибка экспорта';
     emit('error', message);
@@ -122,6 +150,16 @@ function toggle(): void {
         @click="run('gltf')"
       >
         glTF
+      </button>
+      <button
+        type="button"
+        class="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
+        role="menuitem"
+        :disabled="!canExport"
+        data-testid="export-360"
+        @click="run('360')"
+      >
+        360
       </button>
       <div class="my-1 border-t border-border" />
       <button

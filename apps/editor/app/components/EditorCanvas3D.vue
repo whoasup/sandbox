@@ -73,9 +73,9 @@ onMounted(async () => {
       settings.value,
     );
   }
-  exportServiceRef?.value?.setLivePngCapture(() => {
+  exportServiceRef?.value?.setLive360Capture(() => {
     if (!renderer) return Promise.reject(new Error('3D renderer is not mounted'));
-    return renderer.capturePng();
+    return renderer.capture360();
   });
 });
 
@@ -122,7 +122,7 @@ watch(
 
 onUnmounted(() => {
   disposed = true;
-  exportServiceRef?.value?.setLivePngCapture(null);
+  exportServiceRef?.value?.setLive360Capture(null);
   renderer?.dispose();
   renderer = null;
 });

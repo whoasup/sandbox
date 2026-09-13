@@ -133,6 +133,54 @@ export class ThreeRenderer implements ISceneRenderer {
     });
   }
 
+  /**
+   * Capture a 360° equirectangular PNG from walk eye position (or orbit target
+   * at eye height). Renders six cube faces and stitches them.
+   */
+  public async capture360(faceSize = 256): Promise<Blob> {
+    const { stitchEquirect, CUBE_FACES, canvasToPngBlob } = await importCubeHelpers();
+    const eye = this.resolve360Eye();
+    const previousSize = this.renderer.getSize(new THREE.Vector2());
+    const faces: HTMLCanvasElement[] = [];
+
+    const camera = new THREE.PerspectiveCamera(90, 1, 0.1, 200);
+    this.renderer.setSize(faceSize, faceSize, false);
+
+    try {
+      for (const face of CUBE_FACES) {
+        camera.position.copy(eye);
+        camera.up.copy(face.up);
+        camera.lookAt(eye.clone().add(face.dir));
+        camera.updateProjectionMatrix();
+        this.renderer.render(this.scene, camera);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = faceSize;
+        canvas.height = faceSize;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('2D canvas context unavailable');
+        ctx.drawImage(this.renderer.domElement, 0, 0);
+        faces.push(canvas);
+      }
+    } finally {
+      this.renderer.setSize(previousSize.x, previousSize.y, false);
+    }
+
+    const equirect = stitchEquirect(faces, faceSize * 4, faceSize * 2);
+    return canvasToPngBlob(equirect);
+  }
+
+  private resolve360Eye(): THREE.Vector3 {
+    if (this.cameraMode === 'walk') {
+      return this.camera.position.clone();
+    }
+    return new THREE.Vector3(
+      this.controls.target.x,
+      this.floorElevation + EYE_HEIGHT,
+      this.controls.target.z,
+    );
+  }
+
   public setBelowFloor(
     walls: readonly WallObject[],
     rooms: readonly Room[],
@@ -695,4 +743,12 @@ export class ThreeRenderer implements ISceneRenderer {
       this.interactions.onActivateStair?.(selection.id);
     }
   };
+}
+
+async function importCubeHelpers() {
+  const [{ stitchEquirect, CUBE_FACES }, { canvasToPngBlob }] = await Promise.all([
+    import('../../export/capture360'),
+    import('../../export/PngCapture'),
+  ]);
+  return { stitchEquirect, CUBE_FACES, canvasToPngBlob };
 }

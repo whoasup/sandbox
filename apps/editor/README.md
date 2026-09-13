@@ -42,7 +42,7 @@ app/
     editor/[projectId].vue  editor (document context lives here)
     docs/                 kit docs + Storybook embed
   core/
-    export/           PNG / SVG / glTF builders + ExportService (three paths lazy)
+    export/           PNG plan / SVG / glTF / 360 + ExportService (three paths lazy)
     render/
       ISceneRenderer.ts        shared mount/render/dispose contract (app-local)
       three/                   3D renderer (three.js): ThreeRenderer, meshes (dynamic import)
@@ -54,7 +54,7 @@ app/
     AppSidebar.vue             shell navigation + theme switcher
     AppShellHeader.vue         mobile top bar + hamburger
     EditorToolbar.vue          compact chrome, tools, shapes, surfaces, export slot
-    EditorExportMenu.vue       Экспорт: PNG / SVG / glTF / Проект JSON…
+    EditorExportMenu.vue       Экспорт: PNG / SVG / glTF / 360 / Проект JSON…
     EditorCanvas3D.vue         async; mounts ThreeRenderer into a <div>
     EditorCanvas2D.vue         mounts SvgRenderer into a <div>
 ```
