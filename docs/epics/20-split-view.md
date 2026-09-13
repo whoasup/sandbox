@@ -1,6 +1,6 @@
 # Epic 20 — Split 2D + 3D view
 
-Status: **planned**  
+Status: **implemented**  
 Branch: `epic/20-split-view`  
 Depends on: Epic 16 (responsive), Epic 17 (hardening)  
 Owners: `apps/editor`
@@ -75,11 +75,11 @@ type EditorViewMode = '2d' | '3d' | 'split';
 
 ## 7. Definition of Done
 
-- [ ] Split mode on `lg+` with shared selection
-- [ ] Resizable splitter; ratio persists
-- [ ] Mobile keeps single-view behavior
-- [ ] No three.js on `/` / `/docs`
-- [ ] Lint / typecheck / test / e2e green
+- [x] Split mode on `lg+` with shared selection
+- [x] Resizable splitter; ratio persists
+- [x] Mobile keeps single-view behavior
+- [x] No three.js on `/` / `/docs`
+- [x] Lint / typecheck / test / e2e green
 
 ## 8. Out of scope
 

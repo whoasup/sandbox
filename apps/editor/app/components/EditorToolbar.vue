@@ -44,10 +44,16 @@ const {
 const { isLgLayout } = useViewportLg();
 const roomDialogOpen = ref(false);
 
-const modeOptions = [
-  { value: '2d' as const, label: '2D' },
-  { value: '3d' as const, label: '3D' },
-];
+const modeOptions = computed(() => {
+  const base = [
+    { value: '2d' as const, label: '2D' },
+    { value: '3d' as const, label: '3D' },
+  ];
+  if (isLgLayout.value) {
+    return [...base, { value: 'split' as const, label: 'Рядом' }];
+  }
+  return base;
+});
 
 const cameraOptions = [
   { value: 'orbit' as const, label: 'Орбита' },
@@ -78,10 +84,11 @@ const toolOptionsShort = [
 const toolOptions = computed(() => (isLgLayout.value ? toolOptionsFull : toolOptionsShort));
 
 const hasSelection = computed(() => selection.value !== null);
+const planVisible = computed(() => mode.value === '2d' || mode.value === 'split');
 const showWallDefaults = computed(
-  () => (tool.value === 'wall' || tool.value === 'room') && mode.value === '2d',
+  () => (tool.value === 'wall' || tool.value === 'room') && planVisible.value,
 );
-const showCamera = computed(() => mode.value === '3d');
+const showCamera = computed(() => mode.value === '3d' || mode.value === 'split');
 const toggleTouchClass = '[&_button]:min-h-11 lg:[&_button]:min-h-0';
 const pendingHint = computed(() =>
   pendingRoomPlacement.value
@@ -89,7 +96,7 @@ const pendingHint = computed(() =>
     : null,
 );
 
-/** Draw tools only work in the 2D plan — switch automatically. */
+/** Draw tools need the plan — keep split if active, otherwise switch to 2D. */
 watch(tool, (next) => {
   if (
     next === 'wall' ||
@@ -99,8 +106,13 @@ watch(tool, (next) => {
     next === 'dimension' ||
     next === 'room'
   ) {
-    mode.value = '2d';
+    if (mode.value !== 'split') mode.value = '2d';
   }
+});
+
+/** Below lg, split is unavailable — fall back to 2D. */
+watch(isLgLayout, (lg) => {
+  if (!lg && mode.value === 'split') mode.value = '2d';
 });
 
 function onColorInput(event: Event): void {
