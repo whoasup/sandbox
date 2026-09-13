@@ -21,7 +21,7 @@ function isActive(to: string): boolean {
       v-for="item in DOCS_NAV"
       :key="item.to"
       :to="item.to"
-      class="rounded-md px-3 py-1.5 text-sm font-medium no-underline transition-colors"
+      class="min-h-11 rounded-md px-3 py-2 text-sm font-medium no-underline transition-colors"
       :class="
         isActive(item.to)
           ? 'bg-primary text-text-on-primary hover:bg-primary-hover'

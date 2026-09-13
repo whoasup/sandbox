@@ -1,10 +1,21 @@
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import AppShellHeader from '../components/AppShellHeader.vue';
 import AppSidebar from '../components/AppSidebar.vue';
 
 const route = useRoute();
 const navOpen = ref(false);
+
+const pageTitle = computed(() => {
+  if (route.path.startsWith('/editor')) return 'Редактор';
+  if (route.path.startsWith('/docs/storybook')) return 'Storybook';
+  if (route.path.startsWith('/docs')) return 'Документация';
+  return 'Проекты';
+});
+
+useHead({
+  title: pageTitle,
+});
 
 function closeNav(): void {
   navOpen.value = false;

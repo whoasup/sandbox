@@ -6,8 +6,15 @@ export {
 } from './ProjectStore';
 export { MemoryProjectStore } from './MemoryProjectStore';
 export { IndexedDbProjectStore } from './IndexedDbProjectStore';
-export { createDefaultFloor, createEmptySnapshot, migrateProjectRecord } from './migrations';
 export {
+  createDefaultFloor,
+  createEmptySnapshot,
+  hydrateStoredRecord,
+  migrateProjectRecord,
+  tryHydrateStoredRecord,
+} from './migrations';
+export {
+  cloneProjectFloors,
   createProjectRecord,
   downloadProjectJson,
   getActiveFloor,

@@ -12,6 +12,13 @@ import { useEditorDocument } from '../composables/useEditorDocument';
 import type { BackgroundPreset } from '@sandbox/editor-core';
 import EditorCatalogPanel from './EditorCatalogPanel.vue';
 
+withDefaults(
+  defineProps<{
+    hideHeading?: boolean;
+  }>(),
+  { hideHeading: false },
+);
+
 const { settings, patchSettings } = useEditorDocument();
 
 const backgroundModeOptions = [
@@ -78,7 +85,7 @@ function setFloorSurface(surface: SurfaceKind): void {
     class="editor-scene-panel flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-4 lg:w-64"
     data-testid="editor-scene-panel"
   >
-    <UiText weight="bold" as="h2">Сцена / поле</UiText>
+    <UiText v-if="!hideHeading" weight="bold" as="h2">Сцена / поле</UiText>
 
     <div class="flex flex-col gap-2">
       <UiText size="xs" tone="muted" as="span">Фон</UiText>

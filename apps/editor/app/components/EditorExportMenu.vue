@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { UiButton, UiText } from '@sandbox/ui-kit';
 import type { ExportService } from '../core/export/ExportService';
 
@@ -21,6 +21,22 @@ const emit = defineEmits<{
 const open = ref(false);
 const busy = ref(false);
 const busyLabel = ref('');
+const rootRef = ref<HTMLElement | null>(null);
+
+function onDocumentPointerDown(event: PointerEvent): void {
+  if (!open.value || !rootRef.value) return;
+  if (!rootRef.value.contains(event.target as Node)) {
+    open.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocumentPointerDown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown);
+});
 
 const canExport = computed(
   () => !props.disabled && !busy.value && props.exportService !== null && Boolean(props.floorId),
@@ -58,16 +74,17 @@ function toggle(): void {
 </script>
 
 <template>
-  <div class="relative" data-testid="editor-export-menu">
+  <div ref="rootRef" class="relative" data-testid="editor-export-menu">
     <UiButton
       variant="secondary"
       size="sm"
+      class="min-h-11 lg:min-h-0"
       :disabled="disabled && !busy"
       :title="busy ? `Экспорт ${busyLabel}` : 'Экспорт'"
       data-testid="export-menu-trigger"
       @click="toggle"
     >
-      {{ busy ? `Экспорт ${busyLabel}` : 'Экспорт' }}
+      {{ busy ? '…' : 'Экспорт' }}
     </UiButton>
 
     <div
@@ -78,7 +95,7 @@ function toggle(): void {
     >
       <button
         type="button"
-        class="block w-full px-3 py-1.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
+        class="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
         role="menuitem"
         :disabled="!canExport"
         data-testid="export-png"
@@ -88,7 +105,7 @@ function toggle(): void {
       </button>
       <button
         type="button"
-        class="block w-full px-3 py-1.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
+        class="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
         role="menuitem"
         :disabled="!canExport"
         data-testid="export-svg"
@@ -98,7 +115,7 @@ function toggle(): void {
       </button>
       <button
         type="button"
-        class="block w-full px-3 py-1.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
+        class="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
         role="menuitem"
         :disabled="!canExport"
         data-testid="export-gltf"
@@ -109,7 +126,7 @@ function toggle(): void {
       <div class="my-1 border-t border-border" />
       <button
         type="button"
-        class="block w-full px-3 py-1.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
+        class="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-text hover:bg-surface-sunken disabled:opacity-50"
         role="menuitem"
         :disabled="disabled || busy"
         data-testid="export-json"

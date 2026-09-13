@@ -548,6 +548,33 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     });
   }
 
+  public duplicateWall(id: string): WallObject | null {
+    const source = this.walls.get(id);
+    if (!source) return null;
+    const snap = source.toSnapshot();
+    return this.addWall({
+      start: { x: snap.start.x + 1.2, z: snap.start.z + 1.2 },
+      end: { x: snap.end.x + 1.2, z: snap.end.z + 1.2 },
+      height: snap.height,
+      thickness: snap.thickness,
+      surface: snap.surface,
+      color: snap.color,
+    });
+  }
+
+  public duplicateOpening(id: string): Opening | null {
+    const source = this.openings.get(id);
+    if (!source) return null;
+    const snap = source.toSnapshot();
+    if (!this.walls.get(snap.wallId)) return null;
+    return this.addOpening(snap.wallId, snap.type, {
+      t: Math.min(0.9, snap.t + 0.1),
+      width: snap.width,
+      height: snap.height,
+      sill: snap.sill,
+    });
+  }
+
   public patchSettings(patch: SceneSettingsPatch): void {
     this.sceneSettings = mergeSceneSettings(this.sceneSettings, patch);
     this.emit('settings', this.settings);

@@ -120,7 +120,7 @@ async function onImportFile(event: Event): Promise<void> {
 
     <div
       v-else-if="projects.length === 0"
-      class="rounded-lg border border-dashed border-border bg-surface p-8 text-center"
+      class="rounded-lg border border-dashed border-border bg-surface p-4 text-center sm:p-6 lg:p-8"
       data-testid="projects-empty"
     >
       <UiText weight="bold" as="p">Пока нет проектов</UiText>

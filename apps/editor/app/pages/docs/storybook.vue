@@ -4,17 +4,23 @@ import { UiText } from '@sandbox/ui-kit';
 import DocsNav from '../../components/docs/DocsNav.vue';
 
 const isDev = import.meta.dev;
-const staticSrc = '/docs-storybook/index.html';
+const runtimeConfig = useRuntimeConfig();
+const staticSrc = computed(() => {
+  const base = runtimeConfig.app.baseURL.endsWith('/')
+    ? runtimeConfig.app.baseURL
+    : `${runtimeConfig.app.baseURL}/`;
+  return `${base}docs-storybook/index.html`;
+});
 const devSrc = 'http://localhost:4400/';
 
-const iframeSrc = computed(() => (isDev ? devSrc : staticSrc));
+const iframeSrc = computed(() => (isDev ? devSrc : staticSrc.value));
 const staticAvailable = ref(!isDev);
 const checked = ref(isDev);
 
 onMounted(async () => {
   if (isDev) return;
   try {
-    const response = await fetch(staticSrc, { method: 'HEAD' });
+    const response = await fetch(staticSrc.value, { method: 'HEAD' });
     staticAvailable.value = response.ok;
   } catch {
     staticAvailable.value = false;

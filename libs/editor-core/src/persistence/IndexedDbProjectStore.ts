@@ -1,4 +1,5 @@
 import type { ProjectRecord, ProjectStore } from './ProjectStore';
+import { upgradeOnList, upgradeOnRead } from './upgradeOnRead';
 
 const DB_NAME = 'sandbox-editor';
 const DB_VERSION = 1;
@@ -48,18 +49,18 @@ export class IndexedDbProjectStore implements ProjectStore {
     const db = await this.open();
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
-    const records = await requestToPromise(store.getAll() as IDBRequest<ProjectRecord[]>);
+    const records = await requestToPromise(store.getAll() as IDBRequest<unknown[]>);
     await transactionDone(tx);
-    return records.sort((a, b) => b.updatedAt - a.updatedAt);
+    return upgradeOnList(records, (record) => this.save(record));
   }
 
   public async get(id: string): Promise<ProjectRecord | null> {
     const db = await this.open();
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
-    const record = await requestToPromise(store.get(id) as IDBRequest<ProjectRecord | undefined>);
+    const record = await requestToPromise(store.get(id) as IDBRequest<unknown>);
     await transactionDone(tx);
-    return record ?? null;
+    return upgradeOnRead(record, (next) => this.save(next));
   }
 
   public async save(record: ProjectRecord): Promise<void> {

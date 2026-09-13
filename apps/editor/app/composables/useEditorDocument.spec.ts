@@ -66,6 +66,39 @@ describe('createEditorDocumentContext', () => {
     });
   });
 
+  it('duplicates the selected wall', () => {
+    mountWithContext((ctx) => {
+      ctx.addWall({ x: 0, z: 0 }, { x: 3, z: 0 });
+      expect(ctx.walls.value).toHaveLength(1);
+      ctx.duplicateSelected();
+      expect(ctx.walls.value).toHaveLength(2);
+    });
+  });
+
+  it('syncs stair pair hooks on undo', () => {
+    mountWithContext((ctx) => {
+      ctx.setFloorContext({
+        activeFloorId: 'floor_1',
+        floors: [
+          { id: 'floor_1', name: 'Этаж 1' },
+          { id: 'floor_2', name: 'Этаж 2' },
+        ],
+      });
+      const upserts: string[] = [];
+      const removed: string[] = [];
+      ctx.setStairProjectHooks({
+        onStairUpsert: (stair) => upserts.push(stair.linkId),
+        onStairRemoved: (linkId) => removed.push(linkId),
+      });
+      ctx.addStairAtPoint({ x: 1, z: 1 });
+      expect(ctx.stairs.value).toHaveLength(1);
+      expect(upserts).toHaveLength(1);
+      ctx.undo();
+      expect(ctx.stairs.value).toHaveLength(0);
+      expect(removed).toEqual(upserts);
+    });
+  });
+
   it('moves a shape via moveShape', () => {
     mountWithContext((ctx) => {
       ctx.addShape('cube');

@@ -1,8 +1,8 @@
 # Editor product roadmap
 
-Status: **Phase 1 + Phase 2 complete**; **Epic 16** (mobile-first responsive
-shell) on `main`. Furniture, stairs, PNG/SVG/glTF export, CI/Playwright, and
-`@sandbox/editor-core` are landed.
+Status: **Phase 1–3 complete**; **Epic 17** (hardening) on
+`epic/17-hardening`. Furniture, stairs, PNG/SVG/glTF export, CI/Playwright,
+`@sandbox/editor-core`, and the mobile-first shell are on `main`.
 Each epic has a dedicated spec under [`docs/epics/`](./epics/).
 
 Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
@@ -39,37 +39,27 @@ Owners: editor (`apps/editor`) + ui-kit (`libs/ui-kit`) +
 
 9. Ship a **mobile-first responsive shell** (viewport breakpoints): drawer
    nav and editor sheets below `lg`, desktop dual-panel layout at `lg+`.
+10. Harden the shipped app (Epic 17): compact mobile chrome, migrate-on-read,
+    stair undo pairs, Pages Storybook path, duplication fixes.
 
-## 2. Current state (audit)
+## 2. Current state (shipped)
 
-- **Monorepo**: Nx 23 + pnpm workspaces. Two projects: `apps/editor`
-  (Nuxt 4, SSR, port 4300) and `libs/ui-kit` (Vue 3 library, Storybook 10
-  on port 4400). Runtime pinned to **Node 22**.
-- **Routing today**: a single page —
-  [`apps/editor/app/pages/index.vue`](../apps/editor/app/pages/index.vue).
-  No `app/layouts/`, no sidebar, no project list, no docs routes.
-- **Editor domain**: `SceneDocument` holds a flat `Map` of `SceneObject`
-  subclasses (`CubeObject`, `SphereObject`, `CylinderObject`,
-  `PyramidObject`) created via `ShapeFactory`. Shapes share vocabulary
-  with ui-kit (`SHAPE_CATALOG`). Surfaces: `wood` / `fabric` / `stone`
-  plus per-object hex color.
-- **Transform gaps**: `rotationY` and `scale` exist on `SceneObject` and
-  are rendered, but the toolbar has **no UI** to edit them. Kind cannot
-  be swapped after create.
-- **Renderers**: `ISceneRenderer` → `SvgRenderer` (2D floor plan) and
-  `ThreeRenderer` (3D orbit). Both read/write the same document through
-  `useEditorDocument` (provide/inject). Selection, drag, delete work;
-  no walls, rooms, openings, undo, or persistence.
+- **Monorepo**: Nx 23 + pnpm workspaces. Three packages: `apps/editor`
+  (Nuxt 4, port 4300), `libs/ui-kit` (Vue 3 + Storybook 10 on 4400),
+  `libs/editor-core` (domain, persistence, history, snap). Node 22.
+- **Routes**: `/` project library (IndexedDB CRUD), `/editor/:projectId`
+  room editor, `/docs/**` kit docs + Storybook embed.
+- **Domain** (`@sandbox/editor-core`): `SceneDocument` with shapes,
+  walls, rooms, openings, furniture, stairs, floors, settings,
+  snapshots/migrations (`schemaVersion` 7), history, snap.
+- **Editor UI**: 2D SVG + 3D three.js (lazy), inspector (kind / rotation
+  / scale), scene panel, furniture catalog, export PNG/SVG/glTF/JSON,
+  camera orbit/top/walk.
+- **Shell**: sidebar at `lg+`, drawer + editor sheets below `lg` (Epic
+  16). Epic 17 compact toolbar + sheet a11y + IDB migrate-on-read.
 - **Theming**: `createThemeContext()` in `app.vue`, `UiThemeSwitcher` in
-  the toolbar; FOWT boot script in `nuxt.config.ts`.
-- **ui-kit**: six components (`UiButton`, `UiText`, `UiToggleGroup`,
-  `UiShapeIcon`, `UiTextureSwatch`, `UiThemeSwitcher`), helpers/utils,
-  two-layer tokens, Storybook autodocs. **No in-app docs page.**
-- **Storage**: none. Scene lives only in memory for the session.
-- **CI / E2E**: GitHub Actions + Playwright smoke + coverage gates (Epic 14).
-
-Section 2 is the **pre-Phase-1 audit** snapshot. Phases 1–2 closed the
-gaps above; see epic specs for what shipped.
+  the shell; FOWT boot script in `nuxt.config.ts`.
+- **CI / E2E**: GitHub Actions + Playwright smoke + coverage gates.
 
 ## 3. Product decisions (locked)
 
@@ -150,6 +140,7 @@ ProjectRecord
 | # | Slug | Branch | Depends on | Spec |
 |---|------|--------|------------|------|
 | 16 | Responsive layout (mobile-first) | `epic/16-responsive-layout` | 01, 03, 04 | [16-responsive-layout.md](./epics/16-responsive-layout.md) |
+| 17 | Hardening (chrome + persistence) | `epic/17-hardening` | 05, 09, 12, 16 | [17-hardening.md](./epics/17-hardening.md) |
 
 ### Dependency graph (Phase 1)
 
@@ -232,6 +223,7 @@ flowchart TB
 **Phase 3**
 
 13. `epic/16-responsive-layout` after Phase 2 shell/editor chrome is stable
+14. `epic/17-hardening` after 16 (audit follow-up)
 
 ## 6. Branch and PR rules
 

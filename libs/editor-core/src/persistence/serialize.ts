@@ -69,3 +69,35 @@ export function getActiveFloor(record: ProjectRecord): FloorRecord {
   const id = record.activeFloorId;
   return record.floors.find((f) => f.id === id) ?? record.floors[0]!;
 }
+
+/**
+ * Clone floors for project duplication: new floor / stair ids and remapped
+ * stair `floorId` / `targetFloorId` / `linkId` so pairs stay inside the copy.
+ */
+export function cloneProjectFloors(floors: FloorRecord[]): FloorRecord[] {
+  const floorIds = new Map(floors.map((floor) => [floor.id, createId('floor')]));
+  const linkIds = new Map<string, string>();
+
+  return floors.map((floor) => {
+    const snapshot = structuredClone(floor.snapshot);
+    snapshot.stairs = (snapshot.stairs ?? []).map((stair) => {
+      let linkId = linkIds.get(stair.linkId);
+      if (!linkId) {
+        linkId = createId('stairlink');
+        linkIds.set(stair.linkId, linkId);
+      }
+      return {
+        ...stair,
+        id: createId('stair'),
+        linkId,
+        floorId: floorIds.get(stair.floorId) ?? stair.floorId,
+        targetFloorId: floorIds.get(stair.targetFloorId) ?? stair.targetFloorId,
+      };
+    });
+    return {
+      ...floor,
+      id: floorIds.get(floor.id) ?? createId('floor'),
+      snapshot,
+    };
+  });
+}

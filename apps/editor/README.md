@@ -1,12 +1,12 @@
 # @sandbox/editor
 
-Nuxt 4 app: a minimal planner5d-style 2D/3D room editor.
+Nuxt 4 app: a planner5d-style 2D/3D room editor.
 
 ## Routes
 
 | Path | Page |
 |------|------|
-| `/` | Project library stub (draft card until Epic 05) |
+| `/` | Project library (IndexedDB CRUD, JSON import/export) |
 | `/editor/:projectId` | Room editor (toolbar + 2D/3D canvases) |
 | `/docs` | ui-kit docs hub (overview) |
 | `/docs/foundations` | Tokens, shapes, textures |
@@ -14,8 +14,9 @@ Nuxt 4 app: a minimal planner5d-style 2D/3D room editor.
 | `/docs/storybook` | Storybook iframe (dev `:4400` / prod static) |
 
 Shell: `app/layouts/default.vue` + `AppSidebar` (Проекты / Редактор /
-Документация) with `UiThemeSwitcher`. Editor document context is created
-only on `/editor/:projectId`.
+Документация) with `UiThemeSwitcher`. Below `lg` the rail becomes a
+drawer (`AppShellHeader`). Editor document context is created only on
+`/editor/:projectId`.
 
 Build static Storybook into the editor public folder (required before
 `build:pages` so `/docs/storybook` is included in the Pages artifact):
@@ -27,18 +28,19 @@ pnpm build:pages       # SPA + baseURL=/sandbox/ → apps/editor/.output/public
 
 Production site: https://whoasup.github.io/sandbox/ (GitHub Actions workflow
 `pages.yml`). Local `nx run editor:serve` / `editor:build` keep SSR and
-`baseURL=/`.
+`baseURL=/`. The Storybook embed resolves
+`{app.baseURL}docs-storybook/index.html`.
 
 ## Structure
 
 ```
 app/
   layouts/
-    default.vue           sidebar shell + page slot
+    default.vue           sidebar / drawer shell + page titles
   pages/
-    index.vue             project library stub
+    index.vue             project library
     editor/[projectId].vue  editor (document context lives here)
-    docs/index.vue        docs hub stub
+    docs/                 kit docs + Storybook embed
   core/
     export/           PNG / SVG / glTF builders + ExportService (three paths lazy)
     render/
@@ -47,14 +49,14 @@ app/
       svg/                     2D renderer (SVG): SvgRenderer, Svg2DShapeView, texture patterns
   composables/
     useEditorDocument.ts       Vue-reactive bridge over @sandbox/editor-core SceneDocument
+    useProjects.ts             IndexedDB / memory project store
   components/
     AppSidebar.vue             shell navigation + theme switcher
-    EditorToolbar.vue          mode toggle, shape buttons, surface/color pickers, export slot
+    AppShellHeader.vue         mobile top bar + hamburger
+    EditorToolbar.vue          compact chrome, tools, shapes, surfaces, export slot
     EditorExportMenu.vue       Экспорт: PNG / SVG / glTF / Проект JSON…
     EditorCanvas3D.vue         async; mounts ThreeRenderer into a <div>
     EditorCanvas2D.vue         mounts SvgRenderer into a <div>
-  constants/
-    projects.ts                DRAFT_PROJECT_ID stub
 ```
 
 Domain lives in `libs/editor-core` (`@sandbox/editor-core`). Renderers in

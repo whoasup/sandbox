@@ -391,4 +391,27 @@ describe('SceneDocument', () => {
     expect(loaded.stepCount).toBe(10);
     expect(loaded.linkId).toBe(stair.linkId);
   });
+
+  it('duplicates a wall offset from the source', () => {
+    const doc = new SceneDocument();
+    const wall = doc.addWall({ start: { x: 0, z: 0 }, end: { x: 2, z: 0 } });
+    const clone = doc.duplicateWall(wall.id);
+    expect(clone).toBeTruthy();
+    expect(doc.listWalls()).toHaveLength(2);
+    expect(clone!.start).toEqual({ x: 1.2, z: 1.2 });
+    expect(clone!.end).toEqual({ x: 3.2, z: 1.2 });
+    expect(clone!.id).not.toBe(wall.id);
+  });
+
+  it('duplicates an opening along the same wall', () => {
+    const doc = new SceneDocument();
+    const wall = doc.addWall({ start: { x: 0, z: 0 }, end: { x: 4, z: 0 } });
+    const opening = doc.addOpening(wall.id, 'door', { t: 0.4, width: 0.9 });
+    expect(opening).toBeTruthy();
+    const clone = doc.duplicateOpening(opening!.id);
+    expect(clone).toBeTruthy();
+    expect(doc.listOpenings()).toHaveLength(2);
+    expect(clone!.wallId).toBe(wall.id);
+    expect(clone!.t).toBeCloseTo(0.5);
+  });
 });

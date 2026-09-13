@@ -229,6 +229,20 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     void historyTick.value;
     return history.canUndo;
   });
+
+  const syncStairsAfterHistory = (apply: () => void) => {
+    const before = new Set(document.listStairs().map((stair) => stair.linkId));
+    apply();
+    bumpHistory();
+    const afterStairs = document.listStairs();
+    const after = new Set(afterStairs.map((stair) => stair.linkId));
+    for (const stair of afterStairs) {
+      stairHooks.onStairUpsert?.(stair.toSnapshot());
+    }
+    for (const linkId of before) {
+      if (!after.has(linkId)) stairHooks.onStairRemoved?.(linkId);
+    }
+  };
   const canRedo = computed(() => {
     void historyTick.value;
     return history.canRedo;
@@ -462,6 +476,10 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         run('Дублировать', () => document.duplicate(sel.id));
       } else if (sel.type === 'furniture') {
         run('Дублировать', () => document.duplicateFurniture(sel.id));
+      } else if (sel.type === 'wall') {
+        run('Дублировать', () => document.duplicateWall(sel.id));
+      } else if (sel.type === 'opening') {
+        run('Дублировать', () => document.duplicateOpening(sel.id));
       }
     },
     patchSettings(patch) {
@@ -471,12 +489,10 @@ export function createEditorDocumentContext(): EditorDocumentContext {
       return document.snapPoint(point, 0.35, angleFrom);
     },
     undo() {
-      history.undo();
-      bumpHistory();
+      syncStairsAfterHistory(() => history.undo());
     },
     redo() {
-      history.redo();
-      bumpHistory();
+      syncStairsAfterHistory(() => history.redo());
     },
     clearHistory() {
       history.clear();

@@ -18,6 +18,11 @@ function mountInspector() {
 }
 
 describe('EditorInspector', () => {
+  it('keeps the inspector scrollable', () => {
+    const wrapper = mountInspector();
+    expect(wrapper.find('[data-testid="editor-inspector"]').classes()).toContain('overflow-y-auto');
+  });
+
   it('shows empty state when nothing is selected', () => {
     const wrapper = mountInspector();
     expect(wrapper.text()).toContain('Выберите объект на сцене');

@@ -1,6 +1,7 @@
 import {
   IndexedDbProjectStore,
   MemoryProjectStore,
+  cloneProjectFloors,
   createDefaultFloor,
   createProjectRecord,
   downloadProjectJson,
@@ -166,14 +167,12 @@ export async function renameProject(id: string, name: string): Promise<ProjectRe
 export async function duplicateProject(id: string): Promise<ProjectRecord | null> {
   const existing = await getProjectStore().get(id);
   if (!existing) return null;
-  const copy = createProjectRecord(
-    `${existing.name} (копия)`,
-    existing.floors.map((f) => ({
-      ...f,
-      id: `${f.id}_copy`,
-      snapshot: structuredClone(f.snapshot),
-    })),
-  );
+  const floors = cloneProjectFloors(existing.floors);
+  const copy = createProjectRecord(`${existing.name} (копия)`, floors);
+  const sourceActive = existing.floors.findIndex((floor) => floor.id === existing.activeFloorId);
+  if (sourceActive >= 0 && floors[sourceActive]) {
+    copy.activeFloorId = floors[sourceActive]!.id;
+  }
   await getProjectStore().save(copy);
   return copy;
 }
