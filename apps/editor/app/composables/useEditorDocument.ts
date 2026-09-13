@@ -128,6 +128,7 @@ export interface EditorDocumentContext {
   replaceSelectedKind: (kind: ShapeKind) => void;
   setSelectedRotation: (rotationY: number) => void;
   setSelectedScale: (scale: number) => void;
+  setSelectedFurnitureSize: (patch: { width?: number; depth?: number; height?: number }) => void;
   duplicateSelected: () => void;
   patchSettings: (patch: SceneSettingsPatch) => void;
   snapPoint: (point: Point2, angleFrom?: Point2 | null) => Point2;
@@ -480,6 +481,11 @@ export function createEditorDocumentContext(): EditorDocumentContext {
         run('Масштаб', () => document.setFurnitureTransform(sel.id, { scale }));
       }
     },
+    setSelectedFurnitureSize(patch) {
+      if (selection.value?.type !== 'furniture') return;
+      const id = selection.value.id;
+      run('Размер мебели', () => document.setFurnitureTransform(id, patch));
+    },
     duplicateSelected() {
       const sel = selection.value;
       if (!sel) return;
@@ -586,7 +592,9 @@ export function createEditorDocumentContext(): EditorDocumentContext {
           document.addFurniture(item.catalogId, {
             position: { x: item.position.x + step, z: item.position.z + step },
             rotationY: item.rotationY,
-            scale: item.scale,
+            width: item.width,
+            depth: item.depth,
+            height: item.height,
             surface: item.surface,
             color: item.color,
           });

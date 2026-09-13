@@ -36,6 +36,7 @@ const {
   replaceSelectedKind,
   setSelectedRotation,
   setSelectedScale,
+  setSelectedFurnitureSize,
   setSelectedWallHeight,
   setSelectedWallThickness,
   setSelectedRoomName,
@@ -100,10 +101,25 @@ const rotationDegrees = computed({
 });
 
 const scaleValue = computed({
-  get: () => (selectedShape.value ?? selectedFurniture.value)?.scale ?? 1,
+  get: () => selectedShape.value?.scale ?? 1,
   set: (value: number) => {
     setSelectedScale(clamp(value, 0.25, 4));
   },
+});
+
+const furnitureWidth = computed({
+  get: () => selectedFurniture.value?.width ?? 1,
+  set: (value: number) => setSelectedFurnitureSize({ width: clamp(value, 0.01, 20) }),
+});
+
+const furnitureDepth = computed({
+  get: () => selectedFurniture.value?.depth ?? 1,
+  set: (value: number) => setSelectedFurnitureSize({ depth: clamp(value, 0.01, 20) }),
+});
+
+const furnitureHeight = computed({
+  get: () => selectedFurniture.value?.height ?? 1,
+  set: (value: number) => setSelectedFurnitureSize({ height: clamp(value, 0.01, 10) }),
 });
 
 const wallHeight = computed({
@@ -163,6 +179,18 @@ function onRotationInput(event: Event): void {
 
 function onScaleInput(event: Event): void {
   scaleValue.value = Number((event.target as HTMLInputElement).value);
+}
+
+function onFurnitureWidthInput(event: Event): void {
+  furnitureWidth.value = Number((event.target as HTMLInputElement).value);
+}
+
+function onFurnitureDepthInput(event: Event): void {
+  furnitureDepth.value = Number((event.target as HTMLInputElement).value);
+}
+
+function onFurnitureHeightInput(event: Event): void {
+  furnitureHeight.value = Number((event.target as HTMLInputElement).value);
 }
 
 function onWallHeightInput(event: Event): void {
@@ -359,14 +387,44 @@ function onActivateStair(): void {
       </label>
 
       <label class="flex flex-col gap-1">
-        <UiText size="xs" tone="muted" as="span">Масштаб · {{ scaleValue.toFixed(2) }}</UiText>
+        <UiText size="xs" tone="muted" as="span">Ширина · м</UiText>
         <input
-          type="range"
-          min="0.25"
-          max="4"
+          class="rounded-sm border border-border bg-surface px-2 py-1 text-sm"
+          type="number"
+          min="0.01"
+          max="20"
           step="0.05"
-          :value="scaleValue"
-          @input="onScaleInput"
+          :value="furnitureWidth"
+          data-testid="furniture-width"
+          @change="onFurnitureWidthInput"
+        />
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Глубина · м</UiText>
+        <input
+          class="rounded-sm border border-border bg-surface px-2 py-1 text-sm"
+          type="number"
+          min="0.01"
+          max="20"
+          step="0.05"
+          :value="furnitureDepth"
+          data-testid="furniture-depth"
+          @change="onFurnitureDepthInput"
+        />
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <UiText size="xs" tone="muted" as="span">Высота · м</UiText>
+        <input
+          class="rounded-sm border border-border bg-surface px-2 py-1 text-sm"
+          type="number"
+          min="0.01"
+          max="10"
+          step="0.05"
+          :value="furnitureHeight"
+          data-testid="furniture-height"
+          @change="onFurnitureHeightInput"
         />
       </label>
 

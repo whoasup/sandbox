@@ -66,6 +66,9 @@ describe('EditorInspector', () => {
     expect(wrapper.find('[data-testid="furniture-inspector"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Стол');
     expect(wrapper.text()).toContain('Поворот');
+    expect(wrapper.find('[data-testid="furniture-width"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="furniture-depth"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="furniture-height"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Дублировать');
   });
 });

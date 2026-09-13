@@ -207,6 +207,49 @@ describe('migrateProjectRecord', () => {
     expect(migrated.floors[0]!.snapshot.dimensions).toEqual([]);
   });
 
+  it('adds furniture width/depth/height when migrating schemaVersion 8', () => {
+    const migrated = migrateProjectRecord({
+      id: 'p8-furniture-size',
+      name: 'V8 scale-only furniture',
+      updatedAt: 8,
+      schemaVersion: 8,
+      floors: [
+        {
+          id: 'f1',
+          name: 'Этаж 1',
+          elevation: 0,
+          snapshot: {
+            objects: [],
+            walls: [],
+            rooms: [],
+            openings: [],
+            furniture: [
+              {
+                id: 'furn_1',
+                catalogId: 'chair',
+                position: { x: 1, y: 0.45, z: 2 },
+                rotationY: 0,
+                scale: 2,
+                surface: 'wood',
+                color: '#c9945f',
+              },
+            ],
+            stairs: [],
+            dimensions: [],
+            settings: createDefaultSceneSettings(),
+          },
+        },
+      ],
+      activeFloorId: 'f1',
+    });
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    const chair = migrated.floors[0]!.snapshot.furniture[0]!;
+    expect(chair.width).toBeCloseTo(1);
+    expect(chair.depth).toBeCloseTo(1);
+    expect(chair.height).toBeCloseTo(1.8);
+    expect(chair.scale).toBeCloseTo(2);
+  });
+
   it('preserves multi-floor projects', () => {
     const migrated = migrateProjectRecord({
       id: 'p5',

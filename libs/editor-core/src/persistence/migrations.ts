@@ -1,4 +1,9 @@
-import { createId, isFurnitureCatalogId, type SurfaceKind } from '@sandbox/ui-kit';
+import {
+  createId,
+  getFurniturePreset,
+  isFurnitureCatalogId,
+  type SurfaceKind,
+} from '@sandbox/ui-kit';
 import { ShapeFactory } from '../model/ShapeFactory';
 import { createDefaultSceneSettings, type SceneSettings } from '../model/SceneSettings';
 import type { FurnitureObjectSnapshot } from '../model/FurnitureObject';
@@ -153,6 +158,25 @@ function parseFurnitureSnapshot(value: unknown): FurnitureObjectSnapshot | null 
     value.surface === 'wood' || value.surface === 'fabric' || value.surface === 'stone'
       ? value.surface
       : 'wood';
+  const preset = getFurniturePreset(catalogId);
+  const scale =
+    typeof value.scale === 'number' && Number.isFinite(value.scale) && value.scale > 0
+      ? value.scale
+      : 1;
+  const width =
+    typeof value.width === 'number' && Number.isFinite(value.width) && value.width > 0
+      ? value.width
+      : preset.footprint.width * scale;
+  const depth =
+    typeof value.depth === 'number' && Number.isFinite(value.depth) && value.depth > 0
+      ? value.depth
+      : preset.footprint.depth * scale;
+  const height =
+    typeof value.height === 'number' && Number.isFinite(value.height) && value.height > 0
+      ? value.height
+      : preset.height * scale;
+  const derivedScale =
+    (width / preset.footprint.width + depth / preset.footprint.depth + height / preset.height) / 3;
   return {
     id: typeof value.id === 'string' && value.id.length > 0 ? value.id : createId('furniture'),
     catalogId,
@@ -163,10 +187,10 @@ function parseFurnitureSnapshot(value: unknown): FurnitureObjectSnapshot | null 
     },
     rotationY:
       typeof value.rotationY === 'number' && Number.isFinite(value.rotationY) ? value.rotationY : 0,
-    scale:
-      typeof value.scale === 'number' && Number.isFinite(value.scale) && value.scale > 0
-        ? value.scale
-        : 1,
+    scale: derivedScale,
+    width,
+    depth,
+    height,
     surface,
     color: typeof value.color === 'string' ? value.color : '#c9945f',
   };
@@ -294,6 +318,8 @@ export function createDefaultFloor(snapshot = createEmptySnapshot(), index = 1) 
  * v4→v5: wrap flat snapshot into floors[].
  * v5→v6: ensure furniture array on each floor snapshot.
  * v6→v7: ensure stairs array on each floor snapshot.
+ * v7→v8: ensure dimensions array on each floor snapshot.
+ * v8→v9: furniture width/depth/height from preset × scale when missing.
  */
 export function migrateProjectRecord(raw: unknown): ProjectRecord {
   if (!isRecord(raw)) {
