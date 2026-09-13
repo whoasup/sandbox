@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import {
   SHAPE_CATALOG,
   TEXTURE_LIST,
@@ -11,6 +11,7 @@ import {
 } from '@sandbox/ui-kit';
 import { useEditorDocument } from '../composables/useEditorDocument';
 import { useViewportLg } from '../composables/useViewportLg';
+import EditorRoomDialog from './EditorRoomDialog.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -31,6 +32,7 @@ const {
   selection,
   canUndo,
   canRedo,
+  pendingRoomPlacement,
   addShape,
   removeSelected,
   applySurfaceToSelection,
@@ -40,6 +42,7 @@ const {
 } = useEditorDocument();
 
 const { isLgLayout } = useViewportLg();
+const roomDialogOpen = ref(false);
 
 const modeOptions = [
   { value: '2d' as const, label: '2D' },
@@ -55,6 +58,7 @@ const cameraOptions = [
 const toolOptionsFull = [
   { value: 'select' as const, label: 'Выбор' },
   { value: 'wall' as const, label: 'Стена' },
+  { value: 'room' as const, label: 'Комната' },
   { value: 'door' as const, label: 'Дверь' },
   { value: 'window' as const, label: 'Окно' },
   { value: 'stair' as const, label: 'Лестница' },
@@ -64,6 +68,7 @@ const toolOptionsFull = [
 const toolOptionsShort = [
   { value: 'select' as const, label: 'Выбор' },
   { value: 'wall' as const, label: 'Стена' },
+  { value: 'room' as const, label: 'Комн.' },
   { value: 'door' as const, label: 'Дверь' },
   { value: 'window' as const, label: 'Окно' },
   { value: 'stair' as const, label: 'Лестн.' },
@@ -73,9 +78,16 @@ const toolOptionsShort = [
 const toolOptions = computed(() => (isLgLayout.value ? toolOptionsFull : toolOptionsShort));
 
 const hasSelection = computed(() => selection.value !== null);
-const showWallDefaults = computed(() => tool.value === 'wall' && mode.value === '2d');
+const showWallDefaults = computed(
+  () => (tool.value === 'wall' || tool.value === 'room') && mode.value === '2d',
+);
 const showCamera = computed(() => mode.value === '3d');
 const toggleTouchClass = '[&_button]:min-h-11 lg:[&_button]:min-h-0';
+const pendingHint = computed(() =>
+  pendingRoomPlacement.value
+    ? `${pendingRoomPlacement.value.width}×${pendingRoomPlacement.value.depth} м — кликните на плане`
+    : null,
+);
 
 /** Draw tools only work in the 2D plan — switch automatically. */
 watch(tool, (next) => {
@@ -84,7 +96,8 @@ watch(tool, (next) => {
     next === 'door' ||
     next === 'window' ||
     next === 'stair' ||
-    next === 'dimension'
+    next === 'dimension' ||
+    next === 'room'
   ) {
     mode.value = '2d';
   }
@@ -105,6 +118,10 @@ function onWallThicknessInput(event: Event): void {
 
 function toggleCeiling(): void {
   showCeiling.value = !showCeiling.value;
+}
+
+function openRoomDialog(): void {
+  roomDialogOpen.value = true;
 }
 </script>
 
@@ -267,7 +284,22 @@ function toggleCeiling(): void {
             @input="onWallThicknessInput"
           />
         </label>
+        <UiButton
+          v-if="tool === 'room'"
+          size="sm"
+          variant="secondary"
+          class="min-h-11 lg:min-h-0"
+          data-testid="room-sizes-button"
+          @click="openRoomDialog"
+        >
+          Размеры…
+        </UiButton>
+        <UiText v-if="pendingHint" size="xs" tone="muted" as="span" data-testid="room-pending-hint">
+          {{ pendingHint }}
+        </UiText>
       </div>
     </div>
+
+    <EditorRoomDialog :open="roomDialogOpen" @close="roomDialogOpen = false" />
   </header>
 </template>

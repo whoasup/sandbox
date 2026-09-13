@@ -35,7 +35,7 @@ export interface ISceneRenderer {
   dispose(): void;
 }
 
-export type EditorTool = 'select' | 'wall' | 'door' | 'window' | 'stair' | 'dimension';
+export type EditorTool = 'select' | 'wall' | 'door' | 'window' | 'stair' | 'dimension' | 'room';
 
 export interface RendererInteractionEvents {
   onSelect?: (selection: SelectionRef) => void;
@@ -45,6 +45,9 @@ export interface RendererInteractionEvents {
   onMoveStair?: (id: string, x: number, z: number) => void;
   onAddWall?: (start: Point2, end: Point2) => void;
   onAddDimension?: (start: Point2, end: Point2) => void;
+  onAddRoomRect?: (origin: Point2, width: number, depth: number) => void;
+  /** Place a dialog-sized room at a click; return true if handled. */
+  onPlacePendingRoom?: (point: Point2) => boolean;
   onAddOpening?: (type: 'door' | 'window', point: Point2, wallId?: string) => void;
   onAddStair?: (point: Point2) => void;
   onActivateStair?: (id: string) => void;

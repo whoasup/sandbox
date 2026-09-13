@@ -3,6 +3,8 @@ import {
   SnapshotCommand,
   captureSnapshotCommand,
   SceneDocument,
+  addRectangularRoom,
+  addLShapedRoom,
 } from '@sandbox/editor-core';
 import type {
   DimensionLine,
@@ -36,6 +38,13 @@ const PLACEMENT_RADIUS = 2.2;
 export interface WallDefaults {
   height: number;
   thickness: number;
+}
+
+export interface PendingRoomPlacement {
+  width: number;
+  depth: number;
+  name?: string;
+  wallHeight?: number;
 }
 
 export interface EditorClipboard {
@@ -93,6 +102,26 @@ export interface EditorDocumentContext {
   addShape: (kind: ShapeKind) => void;
   addFurniture: (catalogId: FurnitureCatalogId) => void;
   addWall: (start: Point2, end: Point2) => void;
+  addRoomRect: (
+    origin: Point2,
+    width: number,
+    depth: number,
+    opts?: { name?: string; wallHeight?: number },
+  ) => void;
+  addRoomL: (
+    origin: Point2,
+    opts: {
+      width: number;
+      depth: number;
+      cutWidth: number;
+      cutDepth: number;
+      name?: string;
+      wallHeight?: number;
+    },
+  ) => void;
+  pendingRoomPlacement: Ref<PendingRoomPlacement | null>;
+  setPendingRoomPlacement: (pending: PendingRoomPlacement | null) => void;
+  placePendingRoomAt: (point: Point2) => boolean;
   addOpeningAtPoint: (type: OpeningType, point: Point2, wallId?: string) => void;
   addStairAtPoint: (point: Point2) => void;
   addDimension: (start: Point2, end: Point2) => void;
@@ -174,6 +203,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const activeSurface = shallowRef<SurfaceKind>('wood');
   const activeColor = shallowRef<string>('#c9945f');
   const wallDraftLength = ref<number | null>(null);
+  const pendingRoomPlacement = ref<PendingRoomPlacement | null>(null);
   const activeFloorId = ref('');
   const floorOptions = shallowRef<FloorOption[]>([]);
   let stairHooks: StairProjectHooks = {};
@@ -317,6 +347,66 @@ export function createEditorDocumentContext(): EditorDocumentContext {
           color: activeColor.value,
         });
       });
+    },
+    addRoomRect(origin, width, depth, opts) {
+      run('Добавить комнату', () => {
+        addRectangularRoom(document, {
+          origin,
+          width,
+          depth,
+          wallHeight: opts?.wallHeight ?? wallDefaults.height,
+          thickness: wallDefaults.thickness,
+          surface: activeSurface.value,
+          color: activeColor.value,
+          name: opts?.name,
+        });
+      });
+    },
+    addRoomL(origin, opts) {
+      run('Добавить комнату L', () => {
+        addLShapedRoom(document, {
+          origin,
+          width: opts.width,
+          depth: opts.depth,
+          cutWidth: opts.cutWidth,
+          cutDepth: opts.cutDepth,
+          wallHeight: opts.wallHeight ?? wallDefaults.height,
+          thickness: wallDefaults.thickness,
+          surface: activeSurface.value,
+          color: activeColor.value,
+          name: opts.name,
+        });
+      });
+    },
+    pendingRoomPlacement,
+    setPendingRoomPlacement(pending) {
+      pendingRoomPlacement.value = pending;
+      if (pending) {
+        tool.value = 'room';
+        mode.value = '2d';
+      }
+    },
+    placePendingRoomAt(point) {
+      const pending = pendingRoomPlacement.value;
+      if (!pending) return false;
+      const origin = {
+        x: point.x - pending.width / 2,
+        z: point.z - pending.depth / 2,
+      };
+      pendingRoomPlacement.value = null;
+      run('Добавить комнату', () => {
+        addRectangularRoom(document, {
+          origin,
+          width: pending.width,
+          depth: pending.depth,
+          wallHeight: pending.wallHeight ?? wallDefaults.height,
+          thickness: wallDefaults.thickness,
+          surface: activeSurface.value,
+          color: activeColor.value,
+          name: pending.name,
+        });
+      });
+      return true;
     },
     addOpeningAtPoint(type, point, wallId) {
       run(type === 'door' ? 'Добавить дверь' : 'Добавить окно', () => {

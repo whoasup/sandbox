@@ -13,3 +13,4 @@ export * from './StairObject';
 export * from './DimensionLine';
 export * from './stairPairs';
 export * from './rooms/detectRooms';
+export * from './roomBuilders';

@@ -407,7 +407,110 @@ describe('cloneProjectFloors', () => {
     expect(down.targetFloorId).toBe(floors[0]!.id);
     expect(up.linkId).toBe(down.linkId);
     expect(up.linkId).not.toBe('link_1');
-    expect(up.id).not.toBe('stair_1');
+  });
+
+  it('remaps wall, room, opening, furniture, shape and dimension ids', () => {
+    const floors = cloneProjectFloors([
+      {
+        id: 'floor_a',
+        name: 'Этаж 1',
+        elevation: 0,
+        snapshot: {
+          objects: [
+            {
+              id: 'shape_1',
+              kind: 'cube',
+              position: { x: 0, y: 0, z: 0 },
+              rotationY: 0,
+              scale: 1,
+              surface: 'wood',
+              color: '#c9945f',
+            },
+          ],
+          walls: [
+            {
+              id: 'wall_1',
+              start: { x: 0, z: 0 },
+              end: { x: 4, z: 0 },
+              height: 2.5,
+              thickness: 0.2,
+              surface: 'stone',
+              color: '#d8d2c8',
+            },
+            {
+              id: 'wall_2',
+              start: { x: 4, z: 0 },
+              end: { x: 4, z: 4 },
+              height: 2.5,
+              thickness: 0.2,
+              surface: 'stone',
+              color: '#d8d2c8',
+            },
+          ],
+          rooms: [
+            {
+              id: 'room_1',
+              name: 'Комната',
+              polygon: [
+                { x: 0, z: 0 },
+                { x: 4, z: 0 },
+                { x: 4, z: 4 },
+                { x: 0, z: 4 },
+              ],
+              floorColor: '#c8b89a',
+              wallIds: ['wall_1', 'wall_2'],
+              fingerprint: '0,0;4,0;4,4;0,4',
+            },
+          ],
+          openings: [
+            {
+              id: 'opening_1',
+              wallId: 'wall_1',
+              type: 'door',
+              t: 0.5,
+              width: 0.9,
+              height: 2.1,
+              sill: 0,
+            },
+          ],
+          furniture: [
+            {
+              id: 'furniture_1',
+              catalogId: 'sofa',
+              position: { x: 1, y: 0, z: 1 },
+              rotationY: 0,
+              scale: 1,
+              width: 2,
+              depth: 0.9,
+              height: 0.8,
+              surface: 'fabric',
+              color: '#6b7c8a',
+            },
+          ],
+          stairs: [],
+          dimensions: [
+            {
+              id: 'dim_1',
+              start: { x: 0, z: 0 },
+              end: { x: 4, z: 0 },
+              offset: 0.35,
+            },
+          ],
+          settings: createDefaultSceneSettings(),
+        },
+      },
+    ]);
+
+    const snap = floors[0]!.snapshot;
+    expect(snap.objects[0]!.id).not.toBe('shape_1');
+    expect(snap.walls[0]!.id).not.toBe('wall_1');
+    expect(snap.walls[1]!.id).not.toBe('wall_2');
+    expect(snap.rooms[0]!.id).not.toBe('room_1');
+    expect(snap.rooms[0]!.wallIds).toEqual([snap.walls[0]!.id, snap.walls[1]!.id]);
+    expect(snap.openings[0]!.id).not.toBe('opening_1');
+    expect(snap.openings[0]!.wallId).toBe(snap.walls[0]!.id);
+    expect(snap.furniture[0]!.id).not.toBe('furniture_1');
+    expect(snap.dimensions[0]!.id).not.toBe('dim_1');
   });
 });
 

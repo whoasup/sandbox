@@ -9,6 +9,7 @@ import {
   parseImportedProject,
 } from '@sandbox/editor-core';
 import type { FloorRecord, ProjectRecord, ProjectStore, SceneSnapshot } from '@sandbox/editor-core';
+import { getProjectTemplate } from '../constants/projectTemplates';
 
 const LAST_PROJECT_KEY = 'sandbox:lastProjectId';
 
@@ -60,6 +61,18 @@ export async function getProject(id: string): Promise<ProjectRecord | null> {
 
 export async function createProject(name = 'Новый проект'): Promise<ProjectRecord> {
   const record = createProjectRecord(name);
+  await getProjectStore().save(record);
+  rememberLastProjectId(record.id);
+  return record;
+}
+
+export async function createProjectFromTemplate(templateId: string): Promise<ProjectRecord> {
+  const template = getProjectTemplate(templateId);
+  if (!template) {
+    throw new Error(`Unknown project template: ${templateId}`);
+  }
+  const floors = cloneProjectFloors(template.buildFloors());
+  const record = createProjectRecord(template.title, floors);
   await getProjectStore().save(record);
   rememberLastProjectId(record.id);
   return record;
