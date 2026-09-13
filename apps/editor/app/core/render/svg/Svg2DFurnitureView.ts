@@ -39,6 +39,7 @@ export class Svg2DFurnitureView {
     pxPerUnit: number,
     originPx: { x: number; y: number },
     selected: boolean,
+    style: 'clean' | 'draft' = 'clean',
   ): void {
     const widthPx = object.footprint.width * pxPerUnit;
     const depthPx = object.footprint.depth * pxPerUnit;
@@ -56,10 +57,19 @@ export class Svg2DFurnitureView {
       el.setAttribute('transform', `rotate(${rotationDeg} ${centerX} ${centerY})`);
     }
 
-    this.base.setAttribute('fill', object.color);
-    this.overlay.setAttribute('fill', `url(#${patternIdFor(object.surface)})`);
-    this.base.setAttribute('stroke', selected ? '#3b7ded' : '#00000033');
-    this.base.setAttribute('stroke-width', selected ? '2.5' : '1');
+    if (style === 'draft') {
+      this.base.setAttribute('fill', 'none');
+      this.base.setAttribute('stroke', selected ? '#3b7ded' : '#111827');
+      this.base.setAttribute('stroke-width', selected ? '2.5' : '1.5');
+      this.overlay.setAttribute('fill', 'none');
+      this.overlay.setAttribute('opacity', '0');
+    } else {
+      this.base.setAttribute('fill', object.color);
+      this.overlay.setAttribute('fill', `url(#${patternIdFor(object.surface)})`);
+      this.overlay.setAttribute('opacity', '0.75');
+      this.base.setAttribute('stroke', selected ? '#3b7ded' : '#00000033');
+      this.base.setAttribute('stroke-width', selected ? '2.5' : '1');
+    }
 
     this.label.textContent = preset.label;
     this.label.setAttribute('x', String(centerX));

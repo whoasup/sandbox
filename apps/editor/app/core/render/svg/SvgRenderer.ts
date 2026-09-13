@@ -76,6 +76,7 @@ export class SvgRenderer implements ISceneRenderer {
   private latestDimensions: readonly DimensionLine[] = [];
   private latestSelection: SelectionRef = null;
   private latestSettings: SceneSettings = createDefaultSceneSettings();
+  private planStyle: 'clean' | 'draft' = 'clean';
 
   public constructor(private readonly interactions: RendererInteractionEvents = {}) {
     this.svg = document.createElementNS(SVG_NS, 'svg') as SVGSVGElement;
@@ -123,6 +124,14 @@ export class SvgRenderer implements ISceneRenderer {
       tool === 'room'
         ? 'crosshair'
         : '';
+  }
+
+  public setPlanStyle(style: 'clean' | 'draft'): void {
+    this.planStyle = style;
+    this.svg.setAttribute('data-plan-style', style);
+    if (this.latestFurniture.length > 0 || this.furnitureViews.size > 0) {
+      this.syncFurniture(this.latestFurniture, this.latestSelection);
+    }
   }
 
   public mount(container: HTMLElement): void {
@@ -278,7 +287,7 @@ export class SvgRenderer implements ISceneRenderer {
         this.furnitureViews.set(item.id, view);
         this.furnitureGroup.appendChild(view.group);
       }
-      view.update(item, PX_PER_UNIT, this.origin, item.id === selectedId);
+      view.update(item, PX_PER_UNIT, this.origin, item.id === selectedId, this.planStyle);
     }
 
     for (const [id, view] of this.furnitureViews) {

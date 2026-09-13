@@ -17,3 +17,9 @@ export function exportFilename(projectName: string, floorName: string, ext: stri
   const cleanedExt = ext.replace(/^\./, '');
   return `${safe(projectName)}-${safe(floorName)}.${cleanedExt}`;
 }
+
+/** `{project}-{floor}-360.png` for equirect / cubemap exports. */
+export function export360Filename(projectName: string, floorName: string): string {
+  const safe = (value: string) => value.replace(/[^\w\-а-яА-ЯёЁ]+/gi, '_').slice(0, 48) || 'export';
+  return `${safe(projectName)}-${safe(floorName)}-360.png`;
+}

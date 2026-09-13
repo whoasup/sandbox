@@ -17,26 +17,40 @@ describe('EditorExportMenu', () => {
     const downloadPng = vi.spyOn(service, 'downloadPng').mockResolvedValue();
     const downloadSvg = vi.spyOn(service, 'downloadSvg').mockResolvedValue();
     const downloadGltf = vi.spyOn(service, 'downloadGltf').mockResolvedValue();
+    const download360 = vi.spyOn(service, 'download360').mockResolvedValue();
 
     const wrapper = mount(EditorExportMenu, {
       props: {
         exportService: service,
         projectId: 'proj_1',
         floorId: 'floor_1',
+        planStyle: 'draft',
       },
     });
 
+    const planOpts = {
+      projectId: 'proj_1',
+      floorId: 'floor_1',
+      style: 'draft',
+      includeDimensions: true,
+      includeLegend: true,
+    };
+
     await wrapper.get('[data-testid="export-menu-trigger"]').trigger('click');
     await wrapper.get('[data-testid="export-png"]').trigger('click');
-    expect(downloadPng).toHaveBeenCalledWith({ projectId: 'proj_1', floorId: 'floor_1' });
+    expect(downloadPng).toHaveBeenCalledWith(planOpts);
 
     await wrapper.get('[data-testid="export-menu-trigger"]').trigger('click');
     await wrapper.get('[data-testid="export-svg"]').trigger('click');
-    expect(downloadSvg).toHaveBeenCalledWith({ projectId: 'proj_1', floorId: 'floor_1' });
+    expect(downloadSvg).toHaveBeenCalledWith(planOpts);
 
     await wrapper.get('[data-testid="export-menu-trigger"]').trigger('click');
     await wrapper.get('[data-testid="export-gltf"]').trigger('click');
     expect(downloadGltf).toHaveBeenCalledWith({ projectId: 'proj_1', floorId: 'floor_1' });
+
+    await wrapper.get('[data-testid="export-menu-trigger"]').trigger('click');
+    await wrapper.get('[data-testid="export-360"]').trigger('click');
+    expect(download360).toHaveBeenCalledWith({ projectId: 'proj_1', floorId: 'floor_1' });
   });
 
   it('emits exportJson for Проект JSON…', async () => {

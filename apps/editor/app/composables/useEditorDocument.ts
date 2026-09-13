@@ -91,6 +91,7 @@ export interface EditorDocumentContext {
   cameraMode: Ref<CameraMode>;
   tool: Ref<EditorTool>;
   showCeiling: Ref<boolean>;
+  planStyle: Ref<'clean' | 'draft'>;
   wallDefaults: WallDefaults;
   activeSurface: ShallowRef<SurfaceKind>;
   activeColor: ShallowRef<string>;
@@ -198,6 +199,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
   const mode = shallowRef<EditorMode>('3d');
   const cameraMode = ref<CameraMode>('orbit');
   const showCeiling = ref(false);
+  const planStyle = ref<'clean' | 'draft'>('clean');
   const tool = ref<EditorTool>('select');
   const wallDefaults = reactive<WallDefaults>({ height: 2.5, thickness: 0.2 });
   const activeSurface = shallowRef<SurfaceKind>('wood');
@@ -302,6 +304,7 @@ export function createEditorDocumentContext(): EditorDocumentContext {
     mode,
     cameraMode,
     showCeiling,
+    planStyle,
     tool,
     wallDefaults,
     activeSurface,

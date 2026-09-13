@@ -20,11 +20,16 @@ withDefaults(
   { hideHeading: false },
 );
 
-const { settings, patchSettings } = useEditorDocument();
+const { settings, patchSettings, planStyle } = useEditorDocument();
 
 const backgroundModeOptions = [
   { value: 'preset' as const, label: 'Пресет' },
   { value: 'color' as const, label: 'Цвет' },
+];
+
+const planStyleOptions = [
+  { value: 'clean' as const, label: 'Чистовик' },
+  { value: 'draft' as const, label: 'Чертёж' },
 ];
 
 const presetOptions = [
@@ -41,6 +46,13 @@ const backgroundMode = computed({
 const backgroundPreset = computed({
   get: () => settings.value.background.preset ?? 'studio',
   set: (preset: BackgroundPreset) => patchSettings({ background: { mode: 'preset', preset } }),
+});
+
+const planStyleModel = computed({
+  get: () => planStyle.value,
+  set: (value: 'clean' | 'draft') => {
+    planStyle.value = value;
+  },
 });
 
 function onBgColorInput(event: Event): void {
@@ -99,6 +111,16 @@ function setFloorSurface(surface: SurfaceKind): void {
     data-testid="editor-scene-panel"
   >
     <UiText v-if="!hideHeading" weight="bold" as="h2">Сцена / поле</UiText>
+
+    <div class="flex flex-col gap-2">
+      <UiText size="xs" tone="muted" as="span">План 2D</UiText>
+      <UiToggleGroup
+        v-model="planStyleModel"
+        :options="planStyleOptions"
+        size="sm"
+        data-testid="plan-style-toggle"
+      />
+    </div>
 
     <div class="flex flex-col gap-2">
       <UiText size="xs" tone="muted" as="span">Фон</UiText>

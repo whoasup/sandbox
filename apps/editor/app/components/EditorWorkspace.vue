@@ -67,6 +67,7 @@ try {
 
 const mode = computed(() => ctx?.mode.value ?? '3d');
 const cameraMode = computed(() => ctx?.cameraMode.value ?? 'orbit');
+const planStyle = computed(() => ctx?.planStyle.value ?? 'clean');
 const showCeiling = computed({
   get: () => ctx?.showCeiling.value ?? false,
   set: (value: boolean) => {
@@ -361,7 +362,7 @@ onUnmounted(() => {
   if (import.meta.client) {
     document.body.style.overflow = '';
   }
-  exportService.value?.setLivePngCapture(null);
+  exportService.value?.setLive360Capture(null);
 });
 
 const statusLabel = computed(() => {
@@ -424,6 +425,7 @@ const statusLabel = computed(() => {
             :export-service="exportService"
             :project-id="projectId"
             :floor-id="activeFloorId"
+            :plan-style="planStyle"
             :disabled="loadState !== 'ready'"
             @export-json="onExportJson"
             @error="onExportError"
