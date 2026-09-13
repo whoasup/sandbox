@@ -15,6 +15,7 @@ import { Room, type RoomSnapshot } from './Room';
 import { detectRooms } from './rooms/detectRooms';
 import { snapPointPipeline } from '../snap/snapPoint';
 import { assertValidStairTarget, StairObject, type StairObjectInit } from './StairObject';
+import { DimensionLine, type DimensionLineInit } from './DimensionLine';
 import type { SceneObjectInit, SceneSnapshot, SelectionRef, ShapeKind, SurfaceKind } from './types';
 import { WallObject, type Point2, type WallObjectInit } from './WallObject';
 
@@ -25,6 +26,7 @@ export type SceneDocumentChange = {
   openings: Opening[];
   furniture: FurnitureObject[];
   stairs: StairObject[];
+  dimensions: DimensionLine[];
 };
 
 // A type literal (not an `interface`) so it structurally satisfies the
@@ -37,7 +39,8 @@ export type SceneDocumentEvents = {
 
 /**
  * The single source of truth for the editor: shapes + walls + rooms +
- * openings + furniture + stairs, document-level `SceneSettings`, plus a selection cursor.
+ * openings + furniture + stairs + dimensions, document-level `SceneSettings`,
+ * plus a selection cursor.
  */
 export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly objects = new Map<string, SceneObject>();
@@ -46,6 +49,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
   private readonly openings = new Map<string, Opening>();
   private readonly furniture = new Map<string, FurnitureObject>();
   private readonly stairs = new Map<string, StairObject>();
+  private readonly dimensions = new Map<string, DimensionLine>();
   private selection: SelectionRef = null;
   private sceneSettings: SceneSettings = createDefaultSceneSettings();
 
@@ -71,6 +75,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public listStairs(): StairObject[] {
     return [...this.stairs.values()];
+  }
+
+  public listDimensions(): DimensionLine[] {
+    return [...this.dimensions.values()];
   }
 
   public listOpeningsForWall(wallId: string): Opening[] {
@@ -99,6 +107,10 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
 
   public getStair(id: string): StairObject | undefined {
     return this.stairs.get(id);
+  }
+
+  public getDimension(id: string): DimensionLine | undefined {
+    return this.dimensions.get(id);
   }
 
   public get selected(): SelectionRef {
@@ -225,6 +237,34 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.notifyChange();
   }
 
+  public addDimension(init: DimensionLineInit): DimensionLine {
+    const dim = new DimensionLine(init);
+    this.dimensions.set(dim.id, dim);
+    this.select({ type: 'dimension', id: dim.id });
+    this.notifyChange();
+    return dim;
+  }
+
+  public removeDimension(id: string): void {
+    if (!this.dimensions.delete(id)) return;
+    if (this.selection?.type === 'dimension' && this.selection.id === id) {
+      this.select(null);
+    }
+    this.notifyChange();
+  }
+
+  public updateDimension(
+    id: string,
+    patch: Partial<Pick<DimensionLine, 'start' | 'end' | 'offset'>>,
+  ): void {
+    const dim = this.dimensions.get(id);
+    if (!dim) return;
+    if (patch.start) dim.start = { ...patch.start };
+    if (patch.end) dim.end = { ...patch.end };
+    if (patch.offset !== undefined) dim.offset = patch.offset;
+    this.notifyChange();
+  }
+
   public moveStair(id: string, x: number, z: number): void {
     const stair = this.stairs.get(id);
     if (!stair) return;
@@ -256,6 +296,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     else if (this.selection.type === 'opening') this.removeOpening(this.selection.id);
     else if (this.selection.type === 'furniture') this.removeFurniture(this.selection.id);
     else if (this.selection.type === 'stair') this.removeStair(this.selection.id);
+    else if (this.selection.type === 'dimension') this.removeDimension(this.selection.id);
     else if (this.selection.type === 'room') this.select(null);
   }
 
@@ -267,6 +308,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     if (next?.type === 'opening' && !this.openings.has(next.id)) return;
     if (next?.type === 'furniture' && !this.furniture.has(next.id)) return;
     if (next?.type === 'stair' && !this.stairs.has(next.id)) return;
+    if (next?.type === 'dimension' && !this.dimensions.has(next.id)) return;
     this.selection = next;
     this.emit('select', next);
   }
@@ -604,6 +646,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       openings: this.listOpenings().map((opening) => opening.toSnapshot()),
       furniture: this.listFurniture().map((item) => item.toSnapshot()),
       stairs: this.listStairs().map((stair) => stair.toSnapshot()),
+      dimensions: this.listDimensions().map((dim) => dim.toSnapshot()),
       settings: this.settings,
     };
   }
@@ -616,6 +659,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.openings.clear();
     this.furniture.clear();
     this.stairs.clear();
+    this.dimensions.clear();
     this.selection = null;
 
     for (const object of snapshot.objects) {
@@ -661,6 +705,11 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       }
     }
 
+    for (const dimSnap of snapshot.dimensions ?? []) {
+      const dim = DimensionLine.fromSnapshot(dimSnap);
+      this.dimensions.set(dim.id, dim);
+    }
+
     this.sceneSettings = cloneSceneSettings(snapshot.settings ?? createDefaultSceneSettings());
     this.rebuildRooms(snapshot.rooms ?? []);
     this.emit('settings', this.settings);
@@ -675,6 +724,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
     this.openings.clear();
     this.furniture.clear();
     this.stairs.clear();
+    this.dimensions.clear();
     this.select(null);
     this.notifyChange();
   }
@@ -724,6 +774,7 @@ export class SceneDocument extends EventEmitter<SceneDocumentEvents> {
       openings: this.listOpenings(),
       furniture: this.listFurniture(),
       stairs: this.listStairs(),
+      dimensions: this.listDimensions(),
     });
   }
 }

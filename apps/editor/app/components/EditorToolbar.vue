@@ -58,6 +58,7 @@ const toolOptionsFull = [
   { value: 'door' as const, label: 'Дверь' },
   { value: 'window' as const, label: 'Окно' },
   { value: 'stair' as const, label: 'Лестница' },
+  { value: 'dimension' as const, label: 'Размер' },
 ];
 
 const toolOptionsShort = [
@@ -66,6 +67,7 @@ const toolOptionsShort = [
   { value: 'door' as const, label: 'Дверь' },
   { value: 'window' as const, label: 'Окно' },
   { value: 'stair' as const, label: 'Лестн.' },
+  { value: 'dimension' as const, label: 'Разм.' },
 ];
 
 const toolOptions = computed(() => (isLgLayout.value ? toolOptionsFull : toolOptionsShort));
@@ -77,7 +79,13 @@ const toggleTouchClass = '[&_button]:min-h-11 lg:[&_button]:min-h-0';
 
 /** Draw tools only work in the 2D plan — switch automatically. */
 watch(tool, (next) => {
-  if (next === 'wall' || next === 'door' || next === 'window' || next === 'stair') {
+  if (
+    next === 'wall' ||
+    next === 'door' ||
+    next === 'window' ||
+    next === 'stair' ||
+    next === 'dimension'
+  ) {
     mode.value = '2d';
   }
 });

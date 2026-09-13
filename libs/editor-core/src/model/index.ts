@@ -10,5 +10,6 @@ export * from './Room';
 export * from './Opening';
 export * from './FurnitureObject';
 export * from './StairObject';
+export * from './DimensionLine';
 export * from './stairPairs';
 export * from './rooms/detectRooms';

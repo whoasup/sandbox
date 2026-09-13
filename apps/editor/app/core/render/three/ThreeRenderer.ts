@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   createDefaultSceneSettings,
   resolveBackgroundColor,
+  type DimensionLine,
   type FurnitureObject,
   type Opening,
   type Room,
@@ -214,6 +215,7 @@ export class ThreeRenderer implements ISceneRenderer {
     openings: readonly Opening[],
     furniture: readonly FurnitureObject[],
     stairs: readonly StairObject[],
+    _dimensions: readonly DimensionLine[],
     selection: SelectionRef,
     settings: SceneSettings,
   ): void {

@@ -10,6 +10,7 @@ const {
   openings,
   furniture,
   stairs,
+  dimensions,
   selection,
   settings,
   tool,
@@ -19,6 +20,7 @@ const {
   moveFurniture,
   moveStair,
   addWall,
+  addDimension,
   addOpeningAtPoint,
   addStairAtPoint,
   activateStair,
@@ -39,6 +41,7 @@ onMounted(() => {
     onMoveFurniture: (id, x, z) => moveFurniture(id, x, z),
     onMoveStair: (id, x, z) => moveStair(id, x, z),
     onAddWall: (start, end) => addWall(start, end),
+    onAddDimension: (start, end) => addDimension(start, end),
     onAddOpening: (type, point, wallId) => addOpeningAtPoint(type, point, wallId),
     onAddStair: (point) => addStairAtPoint(point),
     onActivateStair: (id) => activateStair(id),
@@ -57,13 +60,14 @@ onMounted(() => {
       openings.value,
       furniture.value,
       stairs.value,
+      dimensions.value,
       selection.value,
       settings.value,
     );
   }
 });
 
-watch([objects, walls, rooms, openings, furniture, stairs, selection, settings], () => {
+watch([objects, walls, rooms, openings, furniture, stairs, dimensions, selection, settings], () => {
   renderer?.render(
     objects.value,
     walls.value,
@@ -71,6 +75,7 @@ watch([objects, walls, rooms, openings, furniture, stairs, selection, settings],
     openings.value,
     furniture.value,
     stairs.value,
+    dimensions.value,
     selection.value,
     settings.value,
   );

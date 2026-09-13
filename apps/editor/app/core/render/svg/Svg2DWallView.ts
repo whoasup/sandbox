@@ -13,6 +13,7 @@ export class Svg2DWallView {
   private readonly segmentsGroup: SVGGElement;
   private readonly openingsGroup: SVGGElement;
   private readonly selectionOutline: SVGLineElement;
+  private lengthLabel: SVGTextElement | null = null;
 
   public constructor(wall: WallObject) {
     this.group = document.createElementNS(SVG_NS, 'g');
@@ -37,6 +38,7 @@ export class Svg2DWallView {
     originPx: { x: number; y: number },
     selected: boolean,
     selectedOpeningId: string | null,
+    showLength = false,
   ): void {
     this.group.dataset.wallId = wall.id;
     const x1 = originPx.x + wall.start.x * pxPerUnit;
@@ -86,6 +88,35 @@ export class Svg2DWallView {
       overlay.style.mixBlendMode = 'multiply';
 
       this.segmentsGroup.append(base, overlay);
+    }
+
+    if (this.lengthLabel) {
+      this.lengthLabel.remove();
+      this.lengthLabel = null;
+    }
+    if (showLength && wall.length >= 0.05) {
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = (-dy / len) * 12;
+      const ny = (dx / len) * 12;
+      const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const readable = angleDeg > 90 || angleDeg < -90 ? angleDeg + 180 : angleDeg;
+      const label = document.createElementNS(SVG_NS, 'text');
+      label.setAttribute('x', String(mx + nx));
+      label.setAttribute('y', String(my + ny));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('dominant-baseline', 'middle');
+      label.setAttribute('font-size', '11');
+      label.setAttribute('font-family', 'ui-sans-serif, system-ui, sans-serif');
+      label.setAttribute('fill', '#1f2937');
+      label.setAttribute('pointer-events', 'none');
+      label.setAttribute('transform', `rotate(${readable} ${mx + nx} ${my + ny})`);
+      label.textContent = `${wall.length.toFixed(2)} м`;
+      this.group.appendChild(label);
+      this.lengthLabel = label;
     }
 
     this.openingsGroup.replaceChildren();

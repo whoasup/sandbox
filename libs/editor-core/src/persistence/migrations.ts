@@ -5,6 +5,7 @@ import type { FurnitureObjectSnapshot } from '../model/FurnitureObject';
 import type { OpeningSnapshot, OpeningType } from '../model/Opening';
 import type { RoomSnapshot } from '../model/Room';
 import { fingerprintPolygon } from '../model/Room';
+import type { DimensionLineSnapshot } from '../model/DimensionLine';
 import type { StairDirection, StairObjectSnapshot } from '../model/StairObject';
 import type { SceneSnapshot } from '../model/types';
 import type { WallObjectSnapshot } from '../model/WallObject';
@@ -40,6 +41,18 @@ function ensureSettings(value: unknown): SceneSettings {
       snap: typeof field.snap === 'boolean' ? field.snap : defaults.field.snap,
       axesVisible:
         typeof field.axesVisible === 'boolean' ? field.axesVisible : defaults.field.axesVisible,
+      wallLengthsVisible:
+        typeof field.wallLengthsVisible === 'boolean'
+          ? field.wallLengthsVisible
+          : defaults.field.wallLengthsVisible,
+      roomAreasVisible:
+        typeof field.roomAreasVisible === 'boolean'
+          ? field.roomAreasVisible
+          : defaults.field.roomAreasVisible,
+      compassVisible:
+        typeof field.compassVisible === 'boolean'
+          ? field.compassVisible
+          : defaults.field.compassVisible,
     },
     floor: {
       color: typeof floor.color === 'string' ? floor.color : defaults.floor.color,
@@ -184,6 +197,24 @@ function parseStairSnapshot(value: unknown): StairObjectSnapshot | null {
   };
 }
 
+function parseDimensionSnapshot(value: unknown): DimensionLineSnapshot | null {
+  if (!isRecord(value)) return null;
+  const start = isRecord(value.start) ? value.start : {};
+  const end = isRecord(value.end) ? value.end : {};
+  return {
+    id: typeof value.id === 'string' && value.id.length > 0 ? value.id : createId('dim'),
+    start: {
+      x: Number(start.x) || 0,
+      z: Number(start.z) || 0,
+    },
+    end: {
+      x: Number(end.x) || 0,
+      z: Number(end.z) || 0,
+    },
+    offset: typeof value.offset === 'number' && Number.isFinite(value.offset) ? value.offset : 0.35,
+  };
+}
+
 export function createEmptySnapshot(): SceneSnapshot {
   return {
     objects: [],
@@ -192,6 +223,7 @@ export function createEmptySnapshot(): SceneSnapshot {
     openings: [],
     furniture: [],
     stairs: [],
+    dimensions: [],
     settings: createDefaultSceneSettings(),
   };
 }
@@ -204,6 +236,7 @@ function parseSceneSnapshot(raw: unknown): SceneSnapshot {
   const openingsRaw = Array.isArray(snapshotRaw.openings) ? snapshotRaw.openings : [];
   const furnitureRaw = Array.isArray(snapshotRaw.furniture) ? snapshotRaw.furniture : [];
   const stairsRaw = Array.isArray(snapshotRaw.stairs) ? snapshotRaw.stairs : [];
+  const dimensionsRaw = Array.isArray(snapshotRaw.dimensions) ? snapshotRaw.dimensions : [];
 
   return {
     objects: objects
@@ -237,6 +270,9 @@ function parseSceneSnapshot(raw: unknown): SceneSnapshot {
     stairs: stairsRaw
       .map(parseStairSnapshot)
       .filter((stair): stair is StairObjectSnapshot => stair !== null),
+    dimensions: dimensionsRaw
+      .map(parseDimensionSnapshot)
+      .filter((dim): dim is DimensionLineSnapshot => dim !== null),
     settings: ensureSettings(snapshotRaw.settings),
   };
 }

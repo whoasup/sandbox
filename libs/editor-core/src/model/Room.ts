@@ -67,6 +67,23 @@ export class Room {
     this.floorColor = color;
   }
 
+  /** Absolute floor area in m² (XZ plane). */
+  public get areaM2(): number {
+    return Math.abs(polygonSignedArea(this.polygon));
+  }
+
+  /** Centroid of the polygon in the XZ plane (for labels). */
+  public get centroid(): Point2 {
+    if (this.polygon.length === 0) return { x: 0, z: 0 };
+    let sx = 0;
+    let sz = 0;
+    for (const p of this.polygon) {
+      sx += p.x;
+      sz += p.z;
+    }
+    return { x: sx / this.polygon.length, z: sz / this.polygon.length };
+  }
+
   public toSnapshot(): RoomSnapshot {
     return {
       id: this.id,

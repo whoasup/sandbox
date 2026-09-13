@@ -15,6 +15,12 @@ export interface SceneFieldSettings {
   gridStep: number;
   snap: boolean;
   axesVisible: boolean;
+  /** Auto wall length labels on the 2D plan (Epic 18). */
+  wallLengthsVisible: boolean;
+  /** Room name + area labels on the 2D plan (Epic 18). */
+  roomAreasVisible: boolean;
+  /** North compass rose on the 2D plan (Epic 18). */
+  compassVisible: boolean;
 }
 
 export interface SceneFloorSettings {
@@ -48,6 +54,9 @@ export function createDefaultSceneSettings(): SceneSettings {
       gridStep: 1,
       snap: false,
       axesVisible: true,
+      wallLengthsVisible: true,
+      roomAreasVisible: true,
+      compassVisible: false,
     },
     floor: {
       color: '#d7dbe0',

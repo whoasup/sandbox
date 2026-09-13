@@ -1,4 +1,5 @@
 import type { SceneDocument, Point2 } from '@sandbox/editor-core';
+import { Svg2DDimensionView } from '../render/svg/Svg2DDimensionView';
 import { Svg2DFurnitureView } from '../render/svg/Svg2DFurnitureView';
 import { Svg2DRoomView } from '../render/svg/Svg2DRoomView';
 import { Svg2DShapeView } from '../render/svg/Svg2DShapeView';
@@ -29,7 +30,9 @@ export class SvgExportBuilder {
     const shapes = document.list();
     const furniture = document.listFurniture();
     const stairs = document.listStairs();
+    const dimensions = document.listDimensions();
     const settings = document.settings;
+    const { wallLengthsVisible, roomAreasVisible, compassVisible } = settings.field;
 
     const bounds = expandBounds(collectBounds(document), PADDING_M);
     const widthPx = Math.max((bounds.maxX - bounds.minX) * PX_PER_UNIT, 1);
@@ -64,7 +67,7 @@ export class SvgExportBuilder {
     const roomsGroup = group('rooms');
     for (const room of rooms) {
       const view = new Svg2DRoomView(room);
-      view.update(room, PX_PER_UNIT, origin, false);
+      view.update(room, PX_PER_UNIT, origin, false, roomAreasVisible);
       roomsGroup.appendChild(view.group);
     }
     root.appendChild(roomsGroup);
@@ -73,7 +76,7 @@ export class SvgExportBuilder {
     for (const wall of walls) {
       const view = new Svg2DWallView(wall);
       const wallOpenings = openings.filter((o) => o.wallId === wall.id);
-      view.update(wall, wallOpenings, PX_PER_UNIT, origin, false, null);
+      view.update(wall, wallOpenings, PX_PER_UNIT, origin, false, null, wallLengthsVisible);
       wallsGroup.appendChild(view.group);
     }
     root.appendChild(wallsGroup);
@@ -101,6 +104,18 @@ export class SvgExportBuilder {
       stairsGroup.appendChild(view.group);
     }
     root.appendChild(stairsGroup);
+
+    const dimensionsGroup = group('dimensions');
+    for (const dim of dimensions) {
+      const view = new Svg2DDimensionView(dim);
+      view.update(dim, PX_PER_UNIT, origin, false);
+      dimensionsGroup.appendChild(view.group);
+    }
+    root.appendChild(dimensionsGroup);
+
+    if (compassVisible) {
+      root.appendChild(buildCompass(widthPx));
+    }
 
     return new XMLSerializer().serializeToString(root);
   }
@@ -210,6 +225,41 @@ function buildGrid(
     line.setAttribute('stroke-width', '1');
     g.appendChild(line);
   }
+
+  return g;
+}
+
+function buildCompass(svgWidth: number): SVGGElement {
+  const g = group('compass');
+  const cx = svgWidth - 36;
+  const cy = 36;
+  const r = 22;
+
+  const bg = globalThis.document.createElementNS(SVG_NS, 'circle');
+  bg.setAttribute('cx', String(cx));
+  bg.setAttribute('cy', String(cy));
+  bg.setAttribute('r', String(r));
+  bg.setAttribute('fill', 'rgba(255,255,255,0.92)');
+  bg.setAttribute('stroke', '#9ca3af');
+  bg.setAttribute('stroke-width', '1');
+  g.appendChild(bg);
+
+  const needle = globalThis.document.createElementNS(SVG_NS, 'polygon');
+  needle.setAttribute('points', `${cx},${cy - r + 6} ${cx - 5},${cy + 4} ${cx + 5},${cy + 4}`);
+  needle.setAttribute('fill', '#e5484d');
+  g.appendChild(needle);
+
+  const label = globalThis.document.createElementNS(SVG_NS, 'text');
+  label.setAttribute('x', String(cx));
+  label.setAttribute('y', String(cy - r + 14));
+  label.setAttribute('text-anchor', 'middle');
+  label.setAttribute('dominant-baseline', 'middle');
+  label.setAttribute('font-size', '11');
+  label.setAttribute('font-weight', '600');
+  label.setAttribute('font-family', 'ui-sans-serif, system-ui, sans-serif');
+  label.setAttribute('fill', '#374151');
+  label.textContent = 'N';
+  g.appendChild(label);
 
   return g;
 }
